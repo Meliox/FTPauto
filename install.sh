@@ -16,7 +16,7 @@ fi
 # main programs needed
 function install {
 	update
-	read -p " Do you wish to continue(y/n)? "
+	read -p " Do you wish to install(y/n)? "
 	if [[ "$REPLY" == "n" ]]; then
 		echo "... Exiting"; echo ""; exit 0
 	fi
@@ -192,7 +192,8 @@ function download {
 	echo "Updated to v$release_version"
 	echo "Installing ..."
 	echo " (only to confirm tools are still installed and working and adding new programs if needed)"
-	bash "$scriptdir/install.sh" install
+	bash "$scriptdir/install.sh" install &
+	exit 0
 }
 function update {
 	# get most recent stable version
@@ -202,9 +203,9 @@ function update {
 	release_version=${release_version%.tar.gz}
 	# comparasion
 	if [[ $i_version -eq "0" ]]; then
-		echo "New installation ..."
+		echo -e "\e[00;32m [New installation]\e[00m"
 		download
-	elif [[ "$( echo "$release_version > $i_version" | bc)" -eq "1" ]]; then
+	elif [[ "$( echo "$release_version > $i_version" | bc)" -eq "0" ]]; then
 		echo -e "\e[00;33m [$version available]\e[00m"
 		read -p " Do you want to update your version(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then		
