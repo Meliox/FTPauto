@@ -1,12 +1,16 @@
 #!/bin/bash
 ###
 scriptdir=$(dirname $(readlink -f $0))
-i_version=$(sed -n '2p' "$scriptdir/ftpauto.sh")
-i_version=${i_version#$"s_version=\""}
-i_version=${i_version%\"}
 #
 ### code below
 #
+if [[ -f "$scriptdir/ftpauto.sh" ]]; then
+	i_version=$(sed -n '2p' "$scriptdir/ftpauto.sh")
+	i_version=${i_version#$"s_version=\""}
+	i_version=${i_version%\"}
+else
+	i_version=0
+fi
 
 # main programs needed
 function install {
@@ -215,7 +219,7 @@ echo ""
 case "$1" in
 	uninstall)	uninstall;;
 	install)	install;;
-	update)	update;;
+	update)update;;
 	*)
 		echo ""; echo "Usage: $0 (install | uninstall | update)"; echo "";
 		exit 1

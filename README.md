@@ -32,8 +32,8 @@ To get FTPauto, simple download and run the installer: [download](https://github
 The installer will set up the enviroment and will help to install the nessary programs. During the installation you will also be able to set up a user!
 
 ```bash
-mkdir FTPauto
-wget https://github.com/Meliox/FTPauto/install.sh
+mkdir FTPauto && cd FTPauto
+wget https://github.com/Meliox/FTPauto/blob/master/install.sh
 bash install.sh
 ```
 
