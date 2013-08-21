@@ -637,20 +637,28 @@ fi
 
 #Is largest file too large
 if [[ "$split_files" == "true" ]] && [[ "$video_file_only" != "true" ]]; then
-	if [[ $transferetype == "upftp" ]]; then
-		source "$scriptdir/dependencies/largefile.sh" && largefile "$filepath" "exclude_array[@]"
-	elif [[ $transferetype == "downftp" ]]; then
-		echo -e "\e[00;33mERROR: split_files is not supported in mode=$transferetype. Continuing without ...\e[00m"
+	if [[ -n $(builtin type -p rar) ]] || [[ -n $(builtin type -p cksfv) ]]; then
+		if [[ $transferetype == "upftp" ]]; then
+			source "$scriptdir/dependencies/largefile.sh" && largefile "$filepath" "exclude_array[@]"
+		elif [[ $transferetype == "downftp" ]]; then
+			echo -e "\e[00;33mERROR: split_files is not supported in mode=$transferetype. Continuing without ...\e[00m"
+		fi
+	else
+		echo -e "\e[00;33mERROR: split_files is not supported as rar or cksfv is missing. Continuing without ...\e[00m"
 	fi
 fi
 
 # Try to only send videofile
 if [[ "$video_file_only" == "true" ]] && [[ "$split_files" != "true" ]]; then
-	if [[ $transferetype == "upftp" ]]; then
-		source "$scriptdir/plugins/videofile.sh" && videoFile
-	elif [[ $transferetype == "downftp" ]]; then
-		echo -e "\e[00;33mERROR: video_file_only is not supported in mode=$transferetype. Continuing without ...\e[00m"
-	fi
+	if [[ -n $(builtin type -p rarfs) ]]; then
+		if [[ $transferetype == "upftp" ]]; then
+			source "$scriptdir/plugins/videofile.sh" && videoFile
+		elif [[ $transferetype == "downftp" ]]; then
+			echo -e "\e[00;33mERROR: video_file_only is not supported in mode=$transferetype. Continuing without ...\e[00m"
+		fi
+	else
+		echo -e "\e[00;33mERROR: split_files is not supported as rarfs is missing. Continuing without ...\e[00m"
+	fi		
 fi
 
 # Try to sort files

@@ -13,28 +13,22 @@ else
 	i_version=0
 fi
 
-# main programs needed
-function install {
-	update
-	read -p " Do you wish to install(y/n)? "
-	if [[ "$REPLY" == "n" ]]; then
-		echo "... Exiting"; echo ""; exit 0
-	fi
-	# lftp
+#programs
+function install_lftp {
 	echo -n "Checking lftp ..."
 	if [[ -z $(which lftp) ]]; then
-		echo -e " [\e[00;31mERROR\e[00m] \"lftp\" is not installed! It is needed for ftpautodownload to work"
+		echo -e " [\e[00;31mERROR\e[00m] \"lftp\" is not installed! lftp is needed for FTPauto to work!"
 		read -p " Do you want to install it(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
 			read -p " Do you want latest version(y)(needs to be compiled - SLOW - Any installed version will be removed) or the package from repo(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
-				if ! builtin type -p lftp &>/dev/null; then
+				if [[ -z $(builtin type -p $i) ]]; then
 					sudo apt-get -y remove lftp &> /dev/null
 				fi
-				cd $scriptdir/dependencies
+				cd "$scriptdir/dependencies"
 				sudo apt-get -y install checkinstall libreadline-dev &> /dev/null
 				wget http://lftp.yar.ru/ftp/lftp-4.4.8.tar.gz &> /dev/null
-				rm lftp-4.4.8.tar.gz
+				rm "$scriptdir/lftp-4.4.8.tar.gz"
 				tar -xzvf lftp-4.4.8.tar.gz &> /dev/null
 				cd lftp-4.4.8 && ./configure --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
 			else
@@ -45,18 +39,32 @@ function install {
 					echo "... Exiting"; echo ""; exit 1
 				fi
 			fi
-			if builtin type -p lftp &>/dev/null; then
+			if [[ -z $(builtin type -p $i) ]]; then
 				echo -e " \e[00;32m [OK]\e[00m"
 			fi
 		fi
+	else
+		echo -e "\e[00;32m [OK]\e[00m"
 	fi
-	echo -e "\e[00;32m [OK]\e[00m"
-	# other programs
-	programs=("rar" "cksfv" "bc" )
+}
+
+# main programs needed
+function install {
+	update
+	read -p " Do you wish to install(y/n)? "
+	if [[ "$REPLY" == "n" ]]; then
+		echo "... Exiting"; echo ""; exit 0
+	fi
+	
+	echo "Installing required tools ..."
+	# lftp
+	install_lftp
+	# other programs that is needed
+	programs=( "bc" )
 	for i in "${programs[@]}"; do
 		echo -n "Checking $i ..."
-		if ! builtin type -p $i &>/dev/null; then
-			echo -e "\e[00;31m[ERROR]\e[00m \"$i\" is not installed"
+		if [[ -z $(builtin type -p $i) ]]; then
+			echo -e "\e[00;31m[ERROR]\e[00m \"$i\" is not installed. $i is needed for FTPauto to work!"
 			read -p " Do you want to install it(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
 				sudo apt-get -y install $i &> /dev/null
@@ -65,12 +73,36 @@ function install {
 					echo "You have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\""
 					echo "... Exiting"; echo ""; exit 0
 				fi
-				if builtin type -p $i &>/dev/null; then
+				if [[ -z $(builtin type -p $i) ]]; then
 					echo -e " \e[00;32m [OK]\e[00m"
 				fi				
 			else
 				echo -e "\e[00;31mScript will not work without... exiting\e[00m"; echo ""
 				exit 0
+			fi
+		else
+			echo -e "\e[00;32m [OK]\e[00m"
+		fi
+	done
+	echo "Installing optional tools ..."
+	# optional programs
+	programs=( "rar" "cksfv" )
+	for i in "${programs[@]}"; do
+		echo -n "Checking $i ..."
+		if [[ -z $(builtin type -p $i) ]]; then
+			echo -e "\e[00;31m[ERROR]\e[00m \"$i\" is not installed"
+			read -p " Do you want to install it(y/n)? "
+			if [[ "$REPLY" == "y" ]]; then
+				sudo apt-get -y install $i &> /dev/null
+				if [[ $? -eq 1 ]]; then
+					echo "INFO: Could not install program using sudo."
+					echo "You have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\""
+				fi
+				if [[ -z $(builtin type -p $i) ]]; then
+					echo -e " \e[00;32m [OK]\e[00m"
+				fi				
+			else
+				echo -e "\e[00;31mScript will work. But some features will not work!\e[00m"; echo ""
 			fi
 		else
 			echo -e "\e[00;32m [OK]\e[00m"
@@ -88,11 +120,11 @@ function install {
 				echo "You have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\""
 				echo "... Exiting"; echo ""; exit 0
 			else
-				cd $scriptdir/dependencies/
+				cd "$scriptdir/dependencies/"
 				wget http://downloads.sourceforge.net/project/rarfs/rarfs/0.1.1/rarfs-0.1.1.tar.gz &> /dev/null
 				tar -xzvf rarfs-0.1.1.tar.gz &> /dev/null
 				cd rarfs-0.1.1 && ./configure --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
-				rm $scriptdir/dependencies/rarfs-0.1.1.tar.gz
+				rm "$scriptdir/dependencies/rarfs-0.1.1.tar.gz"
 				read -p "Which user would you like to run this program at(no spaces)? "
 				sudo adduser $REPLY fuse &> /dev/null
 				sudo chgrp fuse /dev/fuse &> /dev/null
@@ -115,7 +147,7 @@ function install {
 	echo -e "\e[00;32m [OK]\e[00m"
 	# Confirm all files are present
 	echo -n "Checking needed files ..."
-	local main_files=("dependencies/ftpauto.sh" "dependencies/ftp_online_test.sh" "dependencies/ftp_size_management.sh" "dependencies/help.sh" "dependencies/largefile.sh" "dependencies/setup.sh" "dependencies/sorting.sh")
+	local main_files=("ftpauto.sh" "dependencies/ftp_online_test.sh" "dependencies/ftp_size_management.sh" "dependencies/help.sh" "dependencies/largefile.sh" "dependencies/setup.sh" "dependencies/sorting.sh")
 	for i in "${main_files[@]}"; do
 		if [[ ! -f "$scriptdir/$i" ]]; then
 			echo "$i not found."; echo -e "\e[00;31mScript will not work without... exiting\e[00m"; echo ""; exit 1;
@@ -132,11 +164,12 @@ function install {
 			user="default"
 		fi
 		echo -n "Adding user ..."
-		bash "$scriptdir/ftpauto.sh" --add --user="$user" &> /dev/null
+		source "$scriptdir/dependencies/help.sh"
+		write_config
 		echo -e "\e[00;32m [OK]\e[00m NOTE: User="$user""
 		read -p " Do you want to configure that user now(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
-			nano $scriptdir/users/$user/config
+			nano "$scriptdir/users/$user/config"
 		else
 			echo "You can edit the user, by editing \"$scriptdir/users/$user/config\""
 		fi
