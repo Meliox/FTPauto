@@ -4,7 +4,8 @@ scriptdir=$(dirname $(readlink -f $0))
 #
 ### code below
 #
-if [[ -f "$scriptdir/ftpauto.sh" ]]; then
+if [[ ! -f "$scriptdir/ftpauto.sh" ]]; then
+	# local version
 	i_version=$(sed -n '2p' "$scriptdir/ftpauto.sh")
 	i_version=${i_version#$"s_version=\""}
 	i_version=${i_version%\"}
@@ -51,7 +52,7 @@ function install {
 	fi
 	echo -e "\e[00;32m [OK]\e[00m"
 	# other programs
-	programs=("rar" "cksfv")
+	programs=("rar" "cksfv" "bc" )
 	for i in "${programs[@]}"; do
 		echo -n "Checking $i ..."
 		if ! builtin type -p $i &>/dev/null; then
@@ -146,9 +147,10 @@ function install {
 	echo ""
 	echo "Installation done. Enyoy! Start using ftpautodownload by using ftpauto.sh. For more info see --help"
 	echo ""
+	exit 0
 }
 function uninstall {
-	local programs=("lftp" "rar" "cksfv" "rarfs" "subversion" "automake1.9" "fuse-utils" "libfuse-dev" "checkinstall" "libreadline-dev")
+	local programs=("lftp" "bc" "rar" "cksfv" "rarfs" "subversion" "automake1.9" "fuse-utils" "libfuse-dev" "checkinstall" "libreadline-dev")
 	echo "The following will be removed: ${programs[@]}"
 	read -p " Do you want to remove all or one by one(y/n)? "
 	if [[ "$REPLY" == "y" ]]; then
@@ -183,28 +185,30 @@ function uninstall {
 	echo ""
 	exit 0
 }
+function download {
+	wget -q "https://github.com/Meliox/FTPauto/archive/FTPauto-v$release_version.tar.gz"
+	echo tar -xzf "$scriptdir"/FTPauto-v"$release_version.tar.gz" --overwrite --strip-components 1
+	rm -f "$scriptdir"/FTPauto-v"$release_version.tar.gz"
+	echo "Updated to v$release_version"
+	echo "Installing ..."
+	echo " (only to confirm tools are still installed and working and adding new programs if needed)"
+	bash "$scriptdir/install.sh" install
+}
 function update {
 	# get most recent stable version
 	echo -n "Checking for new stable version ..."
 	local release=$(curl --silent https://github.com/Meliox/FTPauto/releases | egrep -o 'FTPauto-v[-.0-9]+tar.gz' | sort -n | tail -1)
 	release_version=${release#$"FTPauto-v"}
 	release_version=${release_version%.tar.gz}
-	# local version
-	local version=$(sed -n '2p' "$scriptdir/ftpauto.sh")
-	version=${version#$"s_version=\""}
-	version=${version%\"}
 	# comparasion
-	if [[ "$( echo "$release_version > $version" | bc)" -eq "1" ]]; then
+	if [[ $i_version -eq "0" ]]; then
+		echo "New installation ..."
+		download
+	elif [[ "$( echo "$release_version > $i_version" | bc)" -eq "1" ]]; then
 		echo -e "\e[00;33m [$version available]\e[00m"
 		read -p " Do you want to update your version(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then		
-			wget -q "https://github.com/Meliox/FTPauto/archive/FTPauto-v$release_version.tar.gz"
-			echo tar -xzf "$scriptdir"/FTPauto-v"$release_version.tar.gz" --overwrite --strip-components 1
-			rm -f "$scriptdir"/FTPauto-v"$release_version.tar.gz"
-			echo "Updated to v$release_version"
-			echo "Installing ..."
-			echo " (only to confirm tools are still installed and working and adding new programs if needed)"
-			bash "$scriptdir/install.sh" install
+			download
 		else
 			echo -e "\e[00;33m [Present version kept]\e[00m"
 		fi
