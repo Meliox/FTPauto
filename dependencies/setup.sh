@@ -1,40 +1,16 @@
 #!/bin/bash
-version="0.2"
-use_compiled_lftp="0"
-if [[ use_compiled_lftp -eq 1 ]]; then
-	lftp="/home/ammin/apps/lftp/bin/lftp"
-else
-	lftp=$(which lftp)
-fi
+version="0.4"
 
-function init_setup {
-	program=("lftp" "rar" "cksfv")
-	for i in "${program[@]}"; do
-		if ! builtin type -p $i &>/dev/null; then
-			echo -e "\e[00;31mERROR: \"$i\" is not installed\e[00m"
-			read -p "Do you want to install it? (y/n)?  :  "
-			if [[ "$REPLY" == "y" ]]; then
-				sudo apt-get -y install $n
-				if [[ $? -eq 1 ]]; then
-					echo "INFO: Could not install program using sudo."
-					echo "You have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\""
-					exit="true"
-				fi
-			else
-				echo -e "\e[00;31mScript will not work without... exiting\e[00m"; echo ""
-				exit 0
-			fi
-		fi
-	done
-	if [[ $exit == "true" ]]; then echo "... Exiting"; echo ""; exit 0; fi
-	if [[ ! -d "$scriptdir/run" ]]; then mkdir "$scriptdir/run"; fi;
-	if [[ ! -d "$scriptdir/users" ]]; then mkdir "$scriptdir/users"; fi;
-}
-
+### code below
 function setup {
+	# programs
+	lftp=$(which lftp)
+	rarfs=$(which rarfs)
+	# paths 
 	queue_file="$scriptdir/run/$username.queue"
 	lockfile="$scriptdir/run/$username.lck"
 	logfile="$scriptdir/users/$username/log"
+	oldlogfile="$scriptdir/users/$username/log.old"
 	ftptransfere_file="$scriptdir/run/$username.ftptransfere"
 	ftptransfere_processbar="$scriptdir/run/$username.ftpprocessbar"
 	ftplogin_file="$scriptdir/run/$username.ftplogin"
@@ -43,7 +19,10 @@ function setup {
 	ftpcheck_testfile="$scriptdir/run/$username.testfile"
 	ftpcheck_file="$scriptdir/run/$username.ftpcheck"
 	proccess_bar_file="$scriptdir/run/$username.transfered.info"
+	ftp_size_file="$scriptdir/run/$username.ftpsize.info"
 	log_control="$scriptdir/run/$username.controllog"
+	scriptdebugfile="$scriptdir/run/$username.debug"
+	lftpdebug="$scriptdir/run/$username.lftpdebug"
 }
 
 function get_size {
@@ -51,7 +30,7 @@ function get_size {
 	local dir="$1"
 	local var=("${!2}")
 	directorysize=$(du -bs "$dir" | awk '{print $1}')
-	size=$(echo "scale=2; "$directorysize" / (1024*1024)" | bc)
+	size=$(echo "scale=2; "$directorysize" / (1024*1024)" | bc)	
 	echo "INFO: Size to transfere: "$size"MB"
 	if [[ -n "$var" ]]; then
 		local exp=()
@@ -72,7 +51,7 @@ function cleanup {
 			# remove pids and lockfile
 	        if [[ -n "$pid_transfer" ]]; then kill -9 $pid_transfer &> /dev/null; fi
         	if [[ -n "$pid_f_process" ]]; then kill -9 $pid_f_process &> /dev/null; fi
-		if [[ -n $(sed -n '4p' $lockfile) ]]; then kill -9 $(sed -n '4p' $lockfile) &> /dev/null; fi
+		if [[ -f "$lockfile" ]] && [[ -n $(sed -n '4p' $lockfile) ]]; then kill -9 $(sed -n '4p' $lockfile) &> /dev/null; fi
 		if [[ -f "$queue_file" ]]; then rm "$queue_file"; fi;
 		if [[ -f "$lockfile" ]]; then rm "$lockfile"; fi;
 		#remove all files created

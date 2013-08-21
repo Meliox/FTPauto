@@ -3,39 +3,28 @@ function write_config {
 #write show_example to config
 	echo "INFO: Preparing config"
 	if [[ -n "$user" ]]; then
-		echo "INFO: Writing config for user=$user"
-		local config="$scriptdir/users/$user/config"
-		if [[ ! -d "$scriptdir/users" ]]; then
-			mkdir "$scriptdir/users"
-		fi
-		if [[ ! -d "$scriptdir/users/$user" ]]; then
-			mkdir "$scriptdir/users/$user"
-		fi
-		if [[ -f "$config" ]]; then
-			echo ""
-			read -p "Config already exits($config), do you want to overwrite? (y/n)?  :  "
-			if [[ "$REPLY" == "y" ]]; then
-				show_example > "$config"
-				echo "Config written to \"$config\""
-			fi
-		else
+		user="$user"
+	else
+		user=default
+	fi
+	echo "INFO: Writing config for user=$user"
+	local config="$scriptdir/users/$user/config"
+	if [[ ! -d "$scriptdir/users" ]]; then
+		mkdir "$scriptdir/users"
+	fi
+	if [[ ! -d "$scriptdir/users/$user" ]]; then
+		mkdir "$scriptdir/users/$user"
+	fi
+	if [[ -f "$config" ]]; then
+		echo ""
+		read -p "Config already exits($config), do you want to overwrite? (y/n)?  :  "
+		if [[ "$REPLY" == "y" ]]; then
 			show_example > "$config"
 			echo "Config written to \"$config\""
 		fi
 	else
-		echo "INFO: Writing config for default"
-		local config="$scriptdir/users/default"
-		if [[ -f "$config" ]]; then
-			echo ""
-			read -p "Config already exits($config), do you want to overwrite? (y/n)?  :  "
-			if [[ "$REPLY" == "y" ]]; then
-				show_example > "$config"
-				echo "Config written to \"$config\""
-			fi
-		else
-			show_example > "$config"
-			echo "Config written to \"$config\""
-		fi
+		show_example > "$config"
+		echo "Config written to \"$config\""
 	fi
 	echo
 }
@@ -48,22 +37,22 @@ function show_help {
 	echo -e "  FTP AUTODOWNLOAD script is a simple commandline tool to send files from a local server to\n  a remote easily. Numerous options may be specified such a checking free space for \n  transfering, multiple user support, delay of transfer and category support. It is\n  especially powerfull in combination with \e[00;33mFlexget\e[00m which can be found at \e[04;34mhttp://flexget.com/\e[00m"
 	echo ""
 	echo -e "\e[1;30m  Arguments allowed are\e[00m"
-	echo "     --help or -h displays help info"
-	echo "     --quiet supresses all output"
-	echo "     --verbose or -v displays debug info"
+	echo "     --help or -h | displays help info"
+	echo "     --quiet | supresses all output"
+	echo "     --verbose or -v | displays debug info"
 	echo "     --path or -p ~/home/ or path=~/home"
-	echo "     --feed flexgetfeedname or --feed=name"
+	echo "     --feed=<FLEXGETFEEDNAME> or --feed=name | When using flexget to invoke this script, option to remove item from flexget config"
 	echo "     --user or -u username or --user=name"
-	echo "     --force or -f ignores lockfile"
-	echo "     --online returns if server is online or not"
-	echo "     --freespace returns how much freespace is available on server. Requires ftpsizemanagement=\"true\" in config"
-	echo "     --category=CAT save to custom category in a subdirectory in ftpcomplete directory set below"
-	echo "     --delay=\"01/01/2010 12:00\" has to be in this format!"
-	echo "     --example shows configuration example"
-	echo "     --test try the script without actual transfer"
-	echo "     --exec_post see exec_pre further explanation"
-	echo "       allow_background=\"yes\" might be used in config so that ftpautodownloadscript will not wait for it to finish"	
-	echo "     --exec_pre execute an external command. Be sure to use '' to qoute the command."
+	echo "     --force or -f | Ignores lockfile"
+	echo "     --online | Returns if server is online or not"
+	echo "     --freespace | Returns how much freespace is available on server. Requires ftpsizemanagement=\"true\" in config"
+	echo "     --category=<CAT> | Save to custom category in a subdirectory in ftpcomplete directory set below"
+	echo "     --delay=\"01/01/2010 12:00\" | Has to be in this format!"
+	echo "     --example | Prints configuration example"
+	echo "     --test | Try the script without actual transfer. Usefull for testing purposes!"
+	echo "     --exec_post | see exec_pre further explanation"
+	echo "       allow_background=\"yes\" might be used in config so that ftp_main will not wait for it to finish"	
+	echo "     --exec_pre | Execute an external command. Be sure to use '' to qoute the command."
 	echo "       Please note that the command has to be written correctly in order to be carried out properly"
 	echo "       The following can be used:"
 	echo "         "'$user'": States to user being used"
@@ -72,17 +61,17 @@ function show_help {
 	echo "         "'$source'": States the source used for the transfer"
 	echo "         "'$ftpcomplete'": States the complete directory"
 	echo "         "'$ftpincomplete'": States the incomplete directory"
-	echo -e "     --source INFO: Source is used to show how the download has been started. The\n       following is possible:\n         MANDL=manual download(if nothing is used)\n         MANDLQ=manual download from queue\n         WEBDL=download from webpage\n         WEBDLQ=download queue from webpage\n         FLXDL=autodownload from flexget\n         FLXDL=autodownload from flexget\n         FLXDLQ=autodownload from flexget queue"
+	echo -e "         --source <SOURCE> | Source is used to show how the download has been started. The\n           following is possible:\n           MANDL=manual download(if nothing is used)\n           WEBDL=download from webpage\n           FLXDL=autodownload from flexget\n           other can be used as well..."
 	echo
 	echo -e "\e[00;31m     Remember quotes for all possible cases!\e[00m"
 	echo ""
 	echo ""
 	echo -e "\e[1;30m  Examples of use\e[00m"
 	echo "      Example of single user support"
-	echo "      bash ftpautodownloadscript.sh --path="~/path/" --delay=\"01/01/2010 12:00\" --cat=\"TV\""
+	echo "      bash ftp_main.sh --path="~/path/" --delay=\"01/01/2010 12:00\" --cat=\"TV\""
 	echo ""
 	echo "      Example of multiuser support"
-	echo -e "      bash ftpautodownloadscript.sh --user=\"admin\" --path="~/path/"\n      --delay=\"01/01/2010 12:00\" --cat=\"TV\""
+	echo -e "      bash ftp_main.sh --user=\"admin\" --path="~/path/"\n      --delay=\"01/01/2010 12:00\" --cat=\"TV\""
 	echo -e "       Almost the same af single user, but the config setup is different as the\n       config has to be here ~/users/USERNAME/config. The whole transprocess, lockfiles etc.\n       are to be found in ~/run for all users"
 	echo ""
 	echo -e "      Using \e[00;33mFlexget\e[00m"
@@ -102,7 +91,7 @@ function show_help {
 	echo "                  allow_background: yes"
 	echo "                  auto_escape: yes"
 	echo "                  on_output:"
-	echo -e "                    for_accepted: 'sleep 5; bash ~/ftpautodownloadscript.sh \n         --path="{{location}}/" --user=USER --source=FLXDL &'"
+	echo -e "                    for_accepted: 'sleep 5; bash ~/ftp_main.sh \n         --path="{{location}}/" --user=USER --source=FLXDL &'"
 	echo "         -------------------------"
 	echo -e "         Having written the config properly i.e. without it failing\n         \"bin/flexget --check\", it may be added to crontab. Do this by crontab -e and write\n         \"*/5 * * * * /home/ammin/flexget-download/bin/flexget --cron\". 5, minutes, is\n         the interval checking for new files. \e[00;33mINFO\e[00m: Flexget only handle one user PER show,\n         so if several users see the same you need to add addtional configs to crontab like\n         \"*/5* * * * /home/ammin/flexget-rss/bin/flexget -c ~/flexget/config2.yml --cron\""
 	echo
@@ -113,23 +102,30 @@ function show_example {
 #shows an example for configuration
 	echo
 	echo	"#This the the configuration file for ftpautodownload"
-	echo	"config_version=\"1\""
+	echo	"config_version=\"2\""
 	echo	"#Place the file in $scriptdir/run/'$username'/config and load with --user='$username' or"
 	echo	"# just load it with --config=config_path"
 	echo
 	echo	"#HOWTO: Edit the info between the qoutes \"TEST\", here the word TEST"
 	echo
-	echo	"#### FTP server Setup - receiver ####"
+	echo	"#### FTP server Setup ####"
 	echo	" # If you just want the server to send <ITEM> to your ftp, edit the options below"
+	echo	"transferetype=\"upftp or downftp or fxp\" # Determine how to transfere file: Either send or receive from ftp or fxp them to another server"	
+	echo	""
+	echo	" # These directories are where you want to download/send the item" 
 	echo	"ftpincomplete=\"/shares/USB_Storage/temp/\" # incomplete directory. Remember trailing slash!"
 	echo	"ftpcomplete=\"/shares/USB_Storage/Download/\" # complete directory. Remember trailing slash!"
+	echo	""
+	echo	"#### DOWN/UP MODE ####"
+	echo	" # If you just want to send/receive items, change these"
 	echo	"ftpuser=\"user\" # username"
 	echo	"ftppass=\"pass\" # password"
 	echo	"ftphost=\"ip\" # ipaddres for ftp server"
 	echo	"ftpport=\"port\" # ftp port"
 	echo	"ssl=\"false\" # Set to true to use ftps else set it to false"
-	echo
-	echo	"#### FTP server Setup - sender ####"
+	echo	""
+	echo	"#### FXP MODE ####"
+	echo	" # If you just want to send/receive items from one server to another, change these also!"
 	echo	"ftpuser2=\"user\" # username"
 	echo	"ftppass2=\"pass\" # password"
 	echo	"ftphost2=\"ip\" # ipaddres for ftp server"
@@ -153,7 +149,6 @@ function show_example {
 	echo	"### Transfer settings"
 	echo
 	echo	"## General settings"
-	echo	"transferetype=\"upftp or downftp or fxp\" # Determine how to transfere file: Either send or receive from ftp or fxp them to another server"
 	echo	"parallel=\"3\" # how many simultaneous transferes to download with"
 	echo	"queue=\"true\" # if script is executed while something is running, the task is queued"
 	echo	"retries=\"3\" # How many times should the transfer be tried, before giving up"
