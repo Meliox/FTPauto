@@ -90,7 +90,7 @@ function install {
 	for i in "${programs[@]}"; do
 		echo -n "Checking $i ..."
 		if [[ -z $(builtin type -p $i) ]]; then
-			echo ""; echo -e "\"$i\" is not installed. It is required at servers end to split large files before sending them. Otherwise large file will be send normally"
+			echo ""; echo -e " \"$i\" is not installed. It is required at servers end to split large files before sending them. Otherwise large file will be send normally"
 			read -p " Do you want to install it(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
 				sudo apt-get -y install $i &> /dev/null
@@ -143,6 +143,7 @@ function install {
 		echo -e "\e[00;32m [OK]\e[00m"
 	fi
 	# create directories
+	echo -n "Finalizing ..."
 	echo -n "Creating directories ..."
 	if [[ ! -d "$scriptdir/run" ]]; then mkdir "$scriptdir/run"; fi;
 	if [[ ! -d "$scriptdir/users" ]]; then mkdir "$scriptdir/users"; fi;
@@ -228,13 +229,14 @@ function uninstall {
 	exit 0
 }
 function download {
+	echo "Download ..."
 	wget -q "https://github.com/Meliox/FTPauto/archive/FTPauto-v$release_version.tar.gz"
 	tar -xzf "$scriptdir"/FTPauto-v"$release_version.tar.gz" --overwrite --strip-components 1
 	rm -f "$scriptdir"/FTPauto-v"$release_version.tar.gz"
-	echo "Updated to v$release_version"
-	echo "Installing ..."
-	echo " (only to confirm tools are still installed and working and adding new programs if needed)"
-	bash "$scriptdir/install.sh" install &
+	echo " Updated to v$release_version"
+	echo -n "Extracting ..."
+	echo -e "\e[00;32m [OK]\e[00m"
+	bash "$scriptdir/install.sh" install
 	exit 0
 }
 function update {
