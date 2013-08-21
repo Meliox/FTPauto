@@ -4,7 +4,7 @@ scriptdir=$(dirname $(readlink -f $0))
 #
 ### code below
 #
-if [[ ! -f "$scriptdir/ftpauto.sh" ]]; then
+if [[ -f "$scriptdir/ftpauto.sh" ]]; then
 	# local version
 	i_version=$(sed -n '2p' "$scriptdir/ftpauto.sh")
 	i_version=${i_version#$"s_version=\""}
@@ -187,7 +187,7 @@ function uninstall {
 }
 function download {
 	wget -q "https://github.com/Meliox/FTPauto/archive/FTPauto-v$release_version.tar.gz"
-	echo tar -xzf "$scriptdir"/FTPauto-v"$release_version.tar.gz" --overwrite --strip-components 1
+	tar -xzf "$scriptdir"/FTPauto-v"$release_version.tar.gz" --overwrite --strip-components 1
 	rm -f "$scriptdir"/FTPauto-v"$release_version.tar.gz"
 	echo "Updated to v$release_version"
 	echo "Installing ..."
