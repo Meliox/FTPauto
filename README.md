@@ -33,7 +33,7 @@ The installer will set up the enviroment and will help to install the nessary pr
 
 ```bash
 mkdir FTPauto && cd FTPauto
-wget https://github.com/Meliox/FTPauto/blob/master/install.sh
+wget https://raw.github.com/Meliox/FTPauto/master/install.sh
 bash install.sh
 ```
 

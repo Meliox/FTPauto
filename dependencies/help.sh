@@ -1,13 +1,13 @@
 #!/bin/bash
 function write_config {
 #write show_example to config
-	echo "INFO: Preparing config"
+	echo -n "Preparing config ..."
 	if [[ -n "$user" ]]; then
 		user="$user"
 	else
 		user=default
 	fi
-	echo "INFO: Writing config for user=$user"
+	echo -e "\e[00;32m [OK]\e[00m"
 	local config="$scriptdir/users/$user/config"
 	if [[ ! -d "$scriptdir/users" ]]; then
 		mkdir "$scriptdir/users"
@@ -16,8 +16,7 @@ function write_config {
 		mkdir "$scriptdir/users/$user"
 	fi
 	if [[ -f "$config" ]]; then
-		echo ""
-		read -p "Config already exits($config), do you want to overwrite? (y/n)?  :  "
+		read -p " Config already exits($config), do you want to overwrite(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
 			show_example > "$config"
 			echo "Config written to \"$config\""
@@ -26,7 +25,6 @@ function write_config {
 		show_example > "$config"
 		echo "Config written to \"$config\""
 	fi
-	echo
 }
 
 function show_help {

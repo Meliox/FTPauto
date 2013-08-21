@@ -85,12 +85,12 @@ function install {
 		fi
 	done
 	echo "Installing optional tools ..."
-	# optional programs
+	# split files
 	programs=( "rar" "cksfv" )
 	for i in "${programs[@]}"; do
 		echo -n "Checking $i ..."
 		if [[ -z $(builtin type -p $i) ]]; then
-			echo -e "\e[00;31m[ERROR]\e[00m \"$i\" is not installed"
+			echo ""; echo -e "\"$i\" is not installed. It is required at servers end to split large files before sending them. Otherwise large file will be send normally"
 			read -p " Do you want to install it(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
 				sudo apt-get -y install $i &> /dev/null
@@ -100,9 +100,10 @@ function install {
 				fi
 				if [[ -z $(builtin type -p $i) ]]; then
 					echo -e " \e[00;32m [OK]\e[00m"
-				fi				
+				fi
 			else
-				echo -e "\e[00;31mScript will work. But some features will not work!\e[00m"; echo ""
+				echo -e "Checking rarfs ... [\e[00;33mSKIPPED\e[00m] NOTE: \"split_files\" and \"create_sfv\" will not work"
+				break
 			fi
 		else
 			echo -e "\e[00;32m [OK]\e[00m"
@@ -111,7 +112,7 @@ function install {
 	# for mouting to work
 	echo -n "Checking rarfs ..."
 	if [[ -z $(which rarfs) ]]; then
-		echo -e " [\e[00;31m[ERROR]\e[00m] \"rarfs\" is not installed! It is needed for \"videofile only\" to work. The file will be transfered as normally otherwise"
+		echo ""; echo -n " \"rarfs\" is not installed! It is needed to send videofile only. The file will be transfered as normally otherwise"
 		read -p " Do you want to install it(needs to be compiled - SLOW)(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
 			sudo apt-get -y install subversion automake1.9 fuse-utils libfuse-dev checkinstall &> /dev/null
@@ -133,13 +134,14 @@ function install {
 				sudo chmod u+s /bin/fusermount &> /dev/null
 			fi
 		else
-			echo -e "Checking rarfs ... [\e[00;33mSKIPPED\e[00m] NOTE: \"videofile only\" will not work"
+			echo -e "Checking rarfs ... [\e[00;33mSKIPPED\e[00m] NOTE: \"videofile_only\" will not work"
 		fi
-		if builtin type -p $i &>/dev/null; then
+		if [[ -z $(builtin type -p rarfs) ]]; then
 			echo -e " \e[00;32m [OK]\e[00m"
 		fi
+	else
+		echo -e "\e[00;32m [OK]\e[00m"
 	fi
-	echo -e "\e[00;32m [OK]\e[00m"
 	# create directories
 	echo -n "Creating directories ..."
 	if [[ ! -d "$scriptdir/run" ]]; then mkdir "$scriptdir/run"; fi;
@@ -155,7 +157,7 @@ function install {
 	done
 	echo -e "\e[00;32m [OK]\e[00m"
 	# Install default user
-	read -p " Do you want to install a user. You can add user later on(y/n)? "
+	read -p " Do you want to install a user? (You can add user later on)(y/n)? "
 	if [[ "$REPLY" == "y" ]]; then
 		read -p " What username do you want to use (leave empty for default)? "
 		if [[ -n "$REPLY" ]]; then
@@ -164,21 +166,28 @@ function install {
 			user="default"
 		fi
 		echo -n "Adding user ..."
+		echo -e "\e[00;32m [$user]\e[00m"
 		source "$scriptdir/dependencies/help.sh"
 		write_config
-		echo -e "\e[00;32m [OK]\e[00m NOTE: User="$user""
-		read -p " Do you want to configure that user now(y/n)? "
-		if [[ "$REPLY" == "y" ]]; then
-			nano "$scriptdir/users/$user/config"
+		echo -n "Checking user ..." 
+		if [[ ! -f "$scriptdir/users/$user/config/" ]]; then
+			echo -e "\e[00;32m [OK]\e[00m"
+			read -p " Do you want to configure that user now(y/n)? "
+			if [[ "$REPLY" == "y" ]]; then
+				nano "$scriptdir/users/$user/config"
+			else
+				echo "You can edit the user, by editing \"$scriptdir/users/$user/config\" or bash ftpauto.sh --user=$user --edit"
+			fi	
 		else
-			echo "You can edit the user, by editing \"$scriptdir/users/$user/config\""
+			echo -e "\e[00;32m [OK]\e[00m User exists"
 		fi
+		
 	else
 		echo -e "Adding user ... [\e[00;33mSKIPPED\e[00m] NOTE: See ftpauto.sh --help for more info"
 	fi
 	
 	echo ""
-	echo "Installation done. Enyoy! Start using ftpautodownload by using ftpauto.sh. For more info see --help"
+	echo -e "\e[00;32m [Installation done]\e[00m Enyoy! Start using ftpautodownload by using ftpauto.sh --help"
 	echo ""
 	exit 0
 }
@@ -235,10 +244,10 @@ function update {
 	release_version=${release#$"FTPauto-v"}
 	release_version=${release_version%.tar.gz}
 	# comparasion
-	if [[ $i_version -eq "0" ]]; then
+	if [[ "$i_version" == "0" ]]; then
 		echo -e "\e[00;32m [New installation]\e[00m"
 		download
-	elif [[ "$( echo "$release_version > $i_version" | bc)" -eq "0" ]]; then
+	elif [[ "$( echo "$release_version <= $i_version" | bc)" -eq "0" ]]; then
 		echo -e "\e[00;33m [$version available]\e[00m"
 		read -p " Do you want to update your version(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then		
