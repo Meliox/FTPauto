@@ -1,6 +1,6 @@
 # FTPauto
 
-FTPauto is a simple, but highly advanced commandline tool written in Bash for Unix. It relies on lftp, http://lftp.yar.ru/, but helps to automate simple transfers. So essentially this is a tool to send files from a local server to a remote FTP easily.
+FTPauto is a simple, but highly advanced commandline tool written in Bash for Unix. It relies on [lftp](http://lftp.yar.ru/), but helps to automate simple transfers. So essentially this is a tool to send files from a local server to a remote FTP easily.
 
 If you find this tool helpful, a small donation would be appreciated! Thanks!
 
@@ -17,8 +17,8 @@ If you find this tool helpful, a small donation would be appreciated! Thanks!
 * Exec support pre/post transfer
 * Sorting (use of regex)
 * Exclution of files
-* Send push notification to phones etc. Uses [Pushover](https://pushover.net/)
-* Especially powerfull in combination with [FlexGet] (http://flexget.com/)
+* Send push notification to phones etc. with [Pushover](https://pushover.net/)
+* Especially powerfull in combination with [FlexGet](http://flexget.com/)
 
 ![Pushover](https://pushover.net/assets/pushover-header-eaa79ef56c7041125acbe9fb9290b2fa.png)![FlexGet](http://flexget.com/chrome/site/FlexGet.png)
 
@@ -28,16 +28,16 @@ If you find this tool helpful, a small donation would be appreciated! Thanks!
 You should have User and sudo or root access to use and install, respectively. 
 
 ## Installation (Recommended)
-To get FTPauto, simple download and run the installer: [download](https://github.com/Meliox/FTPauto/install.sh)
+To get FTPauto, simple download and run the installer: [download](https://raw.github.com/Meliox/FTPauto/master/install.sh)
 The installer will set up the enviroment and will help to install the nessary programs. During the installation you will also be able to set up a user!
 
 ```bash
 mkdir FTPauto && cd FTPauto
 wget https://raw.github.com/Meliox/FTPauto/master/install.sh
-bash install.sh
+bash install.sh install
 ```
 
-Follow the instructions and now you're ready to use FTPauto!
+Follow the instructions and now you're ready to use FTPauto! Go to [configuration](https://github.com/Meliox/FTPauto#configuration)
 
 ### Get svn
 Alternatively, you can get it from Github (This version may contain unfinished features and be ustable).
@@ -46,11 +46,11 @@ git clone https://github.com/Meliox/FTPauto.git
 ```
 Run
 ```bash 
-bash install.sh
+bash install.sh install
 ```
 
 ### Manually install
-If you prefer to do everything manually, read below:
+If you prefer to do everything manually, read below.
 
 If you want the lastest version of lftp, then compile it from source:
 ```bash
@@ -103,7 +103,11 @@ bash install.sh update
 # Configuration
 First thing that need to be done is to create a user and edit the users settings. If you only want one user, you can leave <USERNAME> empty.
 ```bash
-bash FTPauto.sh --add --user=<USERNAME>
+bash ftpauto.sh --add --user=<USERNAME>
+```
+Editing can be done by
+```bash
+bash ftpauto.sh --edit --user=<USERNAME>
 ```
 Note: Editing can also be done manually after adding the user!
 ```bash
@@ -202,23 +206,137 @@ push_user=""
 ## Single user
 If you didn't add a default user during the installation, then add it
 ```bash
-bash FTPauto.sh --user= --add
+bash ftpauto.sh --user= --add
 ```
-
+### Download
 Now you can transfer something
 ```bash
-bash FTPauto.sh --path=~/something/
+bash ftpauto.sh --path=~/something/
 ```
 
 ## Multiple users
 Add users
 ```bash
-bash FTPauto.sh --user=<USER> --add
+bash ftpauto.sh --user=<USERNAME> --add
 ```
-
+### Download
 Now you can transfer something
 ```bash
-bash FTPauto.sh --user=<USERS> --path=~/something/
+bash ftpauto.sh --user=<USERNAME> --path=~/something/
 ```
 
-## Options
+## Arguments
+Can be shown with
+```bash
+bash ftpauto.sh --help
+```
+Here's an overview as well
+```bash
+== Required ==
+      --user=<USER>      | Required at all times in multi user setup, can be omitted in single user setop
+== Session manipulation ==
+      --pause            | Terminates transfer and leaves queue intact
+      --stop             | Terminates transfer and remove queue and current id
+      --start            | Begins transfer and let it finish queue
+      --online           | Returns if transfer is online or not
+
+== Item manipulation ==
+      --list             | Lists all items in queue
+      = Required =
+       --id=<id>         | Id for <PATH> you want to manipulate. Find them in the queuefile. See --list
+      = Options =
+       --up              | Move <ID> Up
+       --down            | Move <ID> down
+       --forget          | Remove <ID> from queue
+       --clear           | Remove everything in queue
+       --queue=<PATH>    | Sends <PATH> to queue WITHOUT starting script if autostart=false in config. NOTE that --path <ITEM> is required for this to work
+       --path=<PATH>     | <PATH> used to transfer now!
+       --source=<SOURCE> | Source is used to show how the download has been started. The
+                           following is possible:
+                           MANDL=manual download(if nothing is used)
+                           WEBDL=download from webpage
+                           FLXDL=autodownload from flexget
+                           other can be used as well...
+
+== User manipulation ==
+      --add              | Add user --add=<USER>
+      --remove           | Removes all user history
+      --purge            | Removes all user history and configs
+	  --edit             | Edit <USER> config
+
+== Server ==
+      --online           | Checks if server is online and writeable
+	  --freespace        | Checks how much free space is available (slow)
+
+	  == Optional ==
+      --test             | Shows what transfer is going to happen
+      --quiet            | Supresses all output
+	  --verbose          | Debugs to console
+	  --debug            | Debugs to logfile
+	  --force            | Transfer file despite something is running
+	  --exec_pre         | Execute commands before download
+	  --exec_post        | Execute commands after download
+	  --delay            | Delays transfer until X. Has to be in this format "01/01/2010 12:00"
+	  --help             | Print help info
+```
+
+# 3rd party uses
+## FlexGet
+First prerequisite is to install Flexget, which can be found here [FlexGet#Install](http://flexget.com/wiki/InstallWizard/Linux/Environment/). Then an appropiate config has to be written as the following example.
+
+This is a serverside configuration!
+```yaml
+tasks:
+ download:
+  listdir: [~/TV/, ~/path2/]
+  series:
+    720p:
+      - TVSHOW1
+      - TVSHOW2
+  exec:
+    fail_entries: ye
+    allow_background: yes
+    auto_escape: yes
+    on_output:
+      for_accepted: 'sleep 5; bash ~/ftpauto.sh --path="{{location}}/" --user=<USER> --source=FLXDL &'
+```
+
+This is a clientside configuration!
+```yaml
+tasks:
+ download:
+  rss:
+    url: http://....
+  series:
+    720p:
+      - TVSHOW1
+      - TVSHOW2
+  manipulate:
+    SOMETHING IS MISSING HERE
+  exec:
+    fail_entries: ye
+    allow_background: yes
+    auto_escape: yes
+    on_output:
+      for_accepted: 'sleep 5; bash ~/ftpauto.sh --path="{{location}}/" --user=<USER> --source=FLXDL &'
+```
+
+Having written the config properly i.e. without it failing, i.e. pass
+```bash
+bin/flexget --check
+```
+and it may be added to crontab. Do this by
+```bash
+crontab -e
+```
+and add this entry
+```bash
+*/5 * * * * /home/ammin/flexget-download/bin/flexget --cron
+```
+, where 5 minutes is the interval checking for new files.
+
+NOTE: Flexget only handle one user PER show, so if several users see the same you need to add addtional configs to crontab like
+```bash
+*/5* * * * /home/ammin/flexget-rss/bin/flexget -c ~/flexget/config2.yml --cron\
+```
+More info on FlexGet and how it work is not going to be explained as it is done so very nicely on their homepage, [FlexGet#Configuration]/http://flexget.com/wiki/Configuration/)
