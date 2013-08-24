@@ -133,54 +133,42 @@ function ftp_transfere {
 			echo "set mirror:exclude-regex \"$lftp_exclude\"" >> "$ftptransfere_file"	
 			unset lftp_exclude count
 		fi
-	# fail if transfers fails
-	echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 	if [[ $transferetype == "downftp" ]]; then
 		# create final directories if they don't exists
 		echo "!mkdir -p \"$ftpcomplete\"" >> "$ftptransfere_file"
 		echo "!mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
-		
-		# continue, reverse, locale, remote 
-		#for ((i=0;i<=${#filepath[@]};i++)); do
-		i=0
-		for n in "${filepath[@]}"; do
-			if [[ ! -d ${filepath[$i]} ]]; then # single file
-				if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
-					if [[ $i -eq 0 ]]; then #make sure that directory only is created once
-						echo "!mkdir \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
-					fi
-					echo "queue get -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
-					echo "wait"  >> "$ftptransfere_file"
-				elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
-					echo "queue get -c -O \"$ftpcomplete${orig_name[$i]}\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
-				fi
-			else # directories
-				if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
-					echo "queue mirror --no-umask -p --parallel=$parallel -c \"${filepath[$i]}\" \"$ftpincomplete\"" >> "$ftptransfere_file"
-					echo "wait"  >> "$ftptransfere_file"
-				elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
-					echo "queue mirror --no-umask -p --parallel=$parallel -c \"${filepath[$i]}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
-				fi
+		# fail if transfers fails
+		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
+		# from get_size we know if its a file or a path!
+		if [[ "$transfer_type" == "file" ]]; then
+			if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+				echo "!mkdir -p \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
+				echo "queue get -c -O \"$ftpincomplete$changed_name\" \"$filepath\"" >> "$ftptransfere_file"
+			elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
+				echo "queue get -c -O \"$ftpcomplete$orig_name\" \"$filepath\"" >> "$ftptransfere_file"
 			fi
-			let i++
-		done
-		# moving part
-		if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
-			for n in "${changed_name[@]}"; do #using several directories, like in mount
-				if [[ "$n" == "$orig_name" ]]; then
-					echo "queue !mv \"$ftpincomplete$n/\" \"$ftpcomplete\"" >> "$ftptransfere_file"
-				else
-					echo "queue !mv \"$ftpincomplete$n/\" \"$ftpcomplete$orig_name\"" >> "$ftptransfere_file"
-				fi
-				echo "wait"  >> "$ftptransfere_file"
-			done
+			echo "wait"  >> "$ftptransfere_file"
+		elif [[ "$transfer_type" == "directory" ]]; then
+			if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+				echo "queue mirror --no-umask -p --parallel=$parallel -c \"$filepath\" \"$ftpincomplete\"" >> "$ftptransfere_file"
+			elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
+				echo "queue mirror --no-umask -p --parallel=$parallel -c \"$filepath\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+			fi
+			echo "wait"  >> "$ftptransfere_file"
 		fi
-		 # else assume $retry_option == "complete"
+		# moving part, locally
+		if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+			echo "queue !mv \"$ftpincomplete$filepath\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+		elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
+			echo "queue !mv \"$ftpincomplete$filepath\" \"$ftpcomplete$orig_name\"" >> "$ftptransfere_file"
+		fi
+		echo "wait"  >> "$ftptransfere_file"
 	elif [[ $transferetype == "upftp" ]]; then
 		# create final directories if they don't exists
 		echo "mkdir -p \"$ftpcomplete\"" >> "$ftptransfere_file"
 		echo "mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
-		
+		# fail if transfers fails. IMPORTANT that it is after mkdir as it will fail if path exists
+		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 		# continue, reverse, locale, remote 
 		#for ((i=0;i<=${#filepath[@]};i++)); do
 		i=0
@@ -188,7 +176,7 @@ function ftp_transfere {
 			if [[ ! -d ${filepath[$i]} ]]; then # single file
 				if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
 					if [[ $i -eq 0 ]]; then #make sure that directory only is created once
-						echo "mkdir \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
+						echo "mkdir -p \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
 					fi
 					echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
 					echo "wait"  >> "$ftptransfere_file"
@@ -205,7 +193,7 @@ function ftp_transfere {
 			fi
 			let i++
 		done
-		# moving part
+		# moving part, remotely
 		if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
 			for n in "${changed_name[@]}"; do #using several directories, like in mount
 				if [[ "$n" == "$orig_name" ]]; then
@@ -396,8 +384,10 @@ function ftp_processbar { #Showing how download is proceding
 					break
 				else
 					if [[ $transferetype == "downftp" ]]; then
+						sleep 5
 						eval $transfered_size
 					elif [[ $transferetype == "upftp" ]]; then
+						sleep $sleeptime
 						$lftp -f "$ftptransfere_processbar" &> /dev/null &
 						pid_process=$!
 						sed "4c $pid_process" -i $lockfile
@@ -428,7 +418,6 @@ function ftp_processbar { #Showing how download is proceding
 						echo -ne  "$procentage% is done in $timediff at $speed MB/s. ETA: $etatime\r"
 					fi
 				fi
-				sleep $sleeptime
 			done
 			}
 			#new line
@@ -520,8 +509,9 @@ function loadConfig {
 		exit 1
 	fi
 	# confirm that config is most recent version
-	if [[ $config_version -lt "1" ]]; then
+	if [[ $config_version -lt "2" ]]; then
 		echo -e "\e[00;31mERROR: Config is out-dated, please update it. See --help for more info!\e[00m"
+		echo -e "\e[00;31mIt has to be version 2\e[00m"
 		cleanup session
 		cleanup end
 		exit 0
@@ -603,7 +593,7 @@ tempdir="$scriptdir/run/$username-temp-$orig_name/"
 echo "INFO: Preparing transfere of \"$filepath\""
 echo "INFO: Lunched from \"$source\""
 
-#add to queue file, to get Id initialized
+#add to queue file, to get ID initialized
 queue add
 
 echo "INFO: $parallel Simultaneous transferes"
@@ -612,10 +602,10 @@ echo "INFO: $parallel Simultaneous transferes"
 get_size "$filepath" "exclude_array[@]"
 
 #Execute preexternal command
-if [[ -n $exec_pre ]]; then
+if [[ -n "$exec_pre" ]]; then
 	if [[ $test_mode != "true" ]]; then
 			echo "INFO: Executing external command: \"$exec\" "
-			eval $exec_pre
+			eval "$exec_pre"
 	else
 		echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec\"\e[00m"
 	fi
@@ -632,7 +622,19 @@ fi
 
 #Check if enough free space on ftp
 if [[ "$ftpsizemanagement" == "true" ]]; then
-	source "$scriptdir/dependencies/ftp_size_management.sh" && ftp_sizemanagement check
+	if [[ $transferetype == "upftp" ]]; then
+		source "$scriptdir/dependencies/ftp_size_management.sh" && ftp_sizemanagement check
+	elif [[ $transferetype == "downftp" ]]; then
+		freesize=$(( $(df -P "$ftpincomplete" | tail -1 | awk '{ print $3}') / (1024*1024) ))
+		freespaceneeded="$size"
+		while [[ "$freesize" -lt "$freespaceneeded" ]]; do
+			echo "INFO: Not enough free space"
+			echo "INFO: Trying again in 1 min"
+			sleep 60
+			# recalculate free space
+			freesize=$(( $(df -P "$ftpincomplete" | tail -1 | awk '{ print $3}') / (1024*1024) ))
+		done
+	fi
 fi
 
 #Is largest file too large
@@ -746,15 +748,34 @@ do
 		--delay=* ) date_time="${1#--delay=}"; shift;;
 		--force | -f ) force=true; shift;;
 		--source=* ) source="${1#--source=}"; shift;;
-		--sort=* ) sortto="${1#--sort=}"; shift;;
+		--sortto=* ) sortto="${1#--sortto=}"; shift;;
 		--example ) load_help; show_example; exit 0;;
 		--freespace ) ftp_sizemanagement info; cleanup session; exit 0;;
 		--test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;
+		--verbose | -v) verbose=1; shift;;
+		--debug ) verbose=2; shift;;
+		--quiet) quiet=true; shift;;		
 		-* ) echo -e "\e[00;31mInvalid option: $@\e[00m"; echo "See --help for more information"; echo ""; exit 1;;
 		* ) break ;;
 		--) shift; break;;
 	esac
 done
+
+if [[ $quiet ]]; then
+	#silent
+	exec > /dev/null 2>&1
+elif [[ ! $quiet ]] && [[ $verbose == 1 ]]; then
+	echo "STARTING PID=$BASHPID"
+	set -x	
+elif [[ ! $quiet ]] && [[ $verbose == 2 ]]; then
+	#verbose
+	exec 2>> "$scriptdir/run/$user.control.debug"
+	echo "STARTING PID=$BASHPID"
+	set -x
+elif [[ $quiet ]] && [[ $verbose != 0 ]]; then
+	echo -e "\e[00;31mERROR: Verbose and silent can't be used at the same time\e[00m"
+	exit 0
+fi
 
 #Load dependencies
 source "$scriptdir/dependencies/setup.sh" && setup
@@ -767,14 +788,27 @@ case "$option" in
 		load_help; show_help; show_example; exit 0
 	;;
 	* ) # main program
-		if [[ -d "$filepath" ]] || [[ -f "$filepath" ]] && [[ -z $(find "$filepath" -type f) ]]; then
-			# make sure that path is real and contains something, else exit
-			# if not used, do nothing!
-			echo -e "\e[00;31mERROR: Option --path is required with existing path and has to contain file(s).\n See --help for more info!\e[00m"
-			echo
+		if [[ "$transferetype" == "downftp" ]]; then
+			# client
+			# assume path is OK
+			echo "INFO: Transfertype: $transferetype"
+		elif [[ "$transferetype" == "upftp" ]]; then
+			echo "INFO: Transfertype: $transferetype"
+			# server
+			if [[ -d "$filepath" ]] || [[ -f "$filepath" ]] && [[ -z $(find "$filepath" -type f) ]]; then
+				# make sure that path is real and contains something, else exit
+				# if not used, do nothing!
+				echo -e "\e[00;31mERROR: Option --path is required with existing path and has to contain file(s).\n See --help for more info!\e[00m"
+				echo
+				cleanup session
+				cleanup end
+				exit 1
+			fi
+		else
+			echo not supported
 			cleanup session
 			cleanup end
-			exit 1
+			exit 1			
 		fi
 
 		# Looking for lockfile, create if not present, and if something new is added, add to queue if something

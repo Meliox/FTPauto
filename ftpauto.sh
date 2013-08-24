@@ -1,6 +1,6 @@
 #!/bin/bash
 s_version="0.2"
-verbose=0 #0 Normal info | 1 debug console | 2 debug into logfile
+verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 script="$(readlink -f $0)"
 scriptdir=$(dirname $script)
 
@@ -10,6 +10,26 @@ control_c() {
 		cleanup die
 }
 trap control_c SIGINT
+
+function verbose {
+	if [[ $quiet ]]; then
+		#silent
+		exec > /dev/null 2>&1
+	elif [[ ! $quiet ]] && [[ $verbose == 1 ]]; then
+		echo "STARTING PID=$BASHPID"
+		set -x
+	elif [[ ! $quiet ]] && [[ $verbose == 2 ]]; then
+		#verbose
+		exec 2>> "$scriptdir/run/$username.control.debug"
+		echo "STARTING PID=$BASHPID"
+		set -x
+	elif [[ $quiet ]] && [[ $verbose != 0 ]]; then
+		echo -e "\e[00;31mERROR: Verbose and silent can't be used at the same time\e[00m"
+		exit 0
+	fi
+}
+# load verbose
+verbose
 
 function message {
 	if [[ "$2" == "1" ]]; then
@@ -71,6 +91,47 @@ function load_help {
 	fi
 }
 
+function load_user {
+	if [[ -z "$username" ]] && [[ -f "$scriptdir/users/default/config" ]]; then
+		echo "INFO: Loading default config"
+		username="default"
+		config_name="$scriptdir/users/default"
+	elif [[ -n "$username" ]] && [[ -f "$scriptdir/users/$username/config" ]]; then
+		echo "INFO: Loading config: \"$username\""
+		source "$scriptdir/users/$username/config"
+		username="$username"
+	elif [[ $option == "add" ]]; then
+		# manually add user
+		if [[ -z "$username" ]]; then
+			username="default"
+		else
+			username="$username"
+		fi
+	else
+		# user used not found, want to create them
+		if [[ -z "$username" ]]; then
+			echo -e "\e[00;31mERROR: No config found for default\e[00m"
+			read -p "Do you want to create config for default user (y/n)?"
+			if [ "$REPLY" == "y" ]; then
+				username="default"
+				option="add"
+			else
+				echo -e "\e[00;31mYou may want to have a look on help, --help\e[00m"
+				exit 1
+			fi
+		elif [[ -n "$username" ]]; then
+			echo -e "\e[00;31mERROR: No config found for user=$username\e[00m"
+			read -p "Do you want to create config for $username user (y/n)?"
+			if [ "$REPLY" == "y" ]; then
+				username="$username"
+				option="add"
+			else
+				echo -e "\e[00;31mYou may want to have a look on help, --help\e[00m"
+				exit 1			
+			fi		
+		fi
+	fi
+}
 ################################################### CODE BELOW #######################################################
 
 echo
@@ -84,102 +145,55 @@ do
 		# Session
 		--pause ) option=pause; shift;;
 		--stop ) option=stop; shift;;
-		--start ) if [[ -z ${option[0]} ]]; then option=( "start" "start"); else option[1]="start"; fi; shift;;
+		--start ) option[0]=start; shift;;
 		# User
 		--add ) option=add; shift;;
 		--edit ) option=edit; shift;;
 		--purge ) option=purge; shift;;
-		--user ) if (($# > 1 )); then user=$2; else echo -e "\e[00;31mInvalid option for argument '$@'\e[00m"; show_help; exit 1; fi; shift 2;;
-		--user=* ) user=${1#--user=}; shift;;		
+		--user ) if (($# > 1 )); then user=$2; download_argument+=" --username=\"$username\""; else echo -e "\e[00;31mInvalid option for argument '$@'\e[00m"; show_help; exit 1; fi; shift 2;;
+		--user=* ) username=${1#--user=}; download_argument+=" --user=\"$username\""; shift;;		
 		# Item
-		--quiet ) quiet=true; shift;;
 		--forget ) option[0]=forget; shift;;
-		--queue ) option[1]="queue"; shift;;
 		--list ) option[0]=list; shift;;
 		--remove ) option[0]=remove; shift;;
-		--source=* ) source=${1#--source=}; if [[ -z $source ]]; then show_help; exit 1; fi; shift;;
-		--source | -s ) if (($# > 1 )); then source=$2; if [[ -z $source ]]; then show_help; exit 1; fi; else echo "Invalid option for argument '$@'"; show_help; exit 1; fi; shift 2;;		
 		--up ) option[0]=up; shift;;
 		--down ) option[0]=down; shift;;
 		--id ) if (($# > 1 )); then id=$2; else echo -e "\e[00;31mInvalid option for argument '$@'\e[00m"; show_help; exit 1; fi; shift 2;;
-		--id=* ) id=${1#--id=}; shift;;
-		--sort ) if (($# > 1 )); then sortto="$2"; else echo -e "\e[00;31mInvalid option for argument '$@'\e[00m"; show_help; exit 1; fi; shift 2;;
-		--sort=* ) sortto=${1#--id=}; shift;;		
+		--id=* ) id=${1#--id=}; shift;;		
 		--clear ) option[0]=clear; shift;;
-		--path ) if (($# > 1 )); then option=( "queue" "start"); filepath="$2"; else echo -e "\e[00;31mInvalid option for argument '$@'\e[00m"; show_help; exit 1; fi; shift 2;;
-		--path=* ) option=( "queue" "start"); filepath="${1#--path=}"; shift;;		
+		# Options
+		--queue ) option[1]=queue; shift;;
+		--sort ) if (($# > 1 )); then sortto="$2"; download_argument+=" --sortto=\"$sortto\""; else echo -e "\e[00;31mInvalid option for argument '$@'\e[00m"; show_help; exit 1; fi; shift 2;;
+		--sort=* ) sortto=${1#--sort=}; download_argument+=" --sortto=\"$sortto\""; shift;;
+		--path ) if (($# > 1 )); then option=("download" "start"); filepath="$2"; download_argument+=" --path=\"$filepath\""; else echo -e "\e[00;31mInvalid option for argument '$@'\e[00m"; show_help; exit 1; fi; shift 2;;
+		--path=* ) option=("download" "start"); filepath="${1#--path=}"; download_argument+=" --path=\"$filepath\""; shift;;
+		--source=* ) source=${1#--source=}; download_argument+=" --source=\"$source\""; if [[ -z $source ]]; then show_help; exit 1; fi; shift;;
+		--source | -s ) if (($# > 1 )); then source=\"$2\"; download_argument+=" --source=\"$source\""; if [[ -z $source ]]; then show_help; exit 1; fi; else echo "Invalid option for argument '$@'"; show_help; exit 1; fi; shift 2;;		
 		# Other
 		--help | -h ) show_help; exit 1;;
-		--verbose | -v) verbose=1; shift;;
-		--debug ) verbose=2; shift;;
+		--verbose | -v) verbose=1; download_argument+=" --verbose"; shift;;
+		--debug ) verbose=2; download_argument+=" --debug"; shift;;
 		--quiet) quiet=true; shift;;
 		--online ) option=online; shift;;
+		--force ) download_argument+=" --force"; shift;;
 		--freespace ) option=freespace; shift;;
-		--exec_post=* ) exec_post="${1#--exec_post=}"; shift;;
-		--exec_post ) if (($# > 1 )); then exec_post="$2"; else echo -e "\e[00;31mInvalid option for argument '$@'\e[00m"; show_help; exit 1; fi; shift 2;;
-		--exec_pre=* ) exec_pre="${1#--exec_pre=}"; shift;;
-		--exec_pre ) if (($# > 1 )); then exec_pre="$2"; else echo -e "\e[00;31mInvalid option for argument '$@'\e[00m"; show_help; exit 1; fi; shift 2;;		
-		--test ) option=test; shift;;
+		--exec_post=* ) exec_post="${1#--exec_post=}"; download_argument+=" --exec_post"; shift;;
+		--exec_post ) if (($# > 1 )); then exec_post="$2"; download_argument+=" --exec_post"; else echo -e "\e[00;31mInvalid option for argument '$@'\e[00m"; show_help; exit 1; fi; shift 2;;
+		--exec_pre=* ) exec_pre="${1#--exec_pre=}"; download_argument+=" --exec_pre"; shift;;
+		--exec_pre ) if (($# > 1 )); then exec_pre="$2"; download_argument+=" --exec_pre"; else echo -e "\e[00;31mInvalid option for argument '$@'\e[00m"; show_help; exit 1; fi; shift 2;;		
+		--test ) option=( "download" "start"); download_argument+=" --test"; shift;;
 		-* ) echo -e "\e[00;31mInvalid option: $@\e[00m"; echo "Try viewing --help"; exit 0;;
 		* ) break ;;
 		--) shift; break;;
 	esac
 done
-if [[ $quiet ]]; then
-	#silent
-	exec > /dev/null 2>&1
-elif [[ ! $quiet ]] && [[ $verbose == 1 ]]; then
-	echo "STARTING PID=$BASHPID"
-	set -x	
-elif [[ ! $quiet ]] && [[ $verbose == 2 ]]; then
-	#verbose
-	exec 2>> $scriptdir/run/$user.control.debug
-	echo "STARTING PID=$BASHPID"
-	set -x
-elif [[ $quiet ]] && [[ $verbose != 0 ]]; then
-	echo -e "\e[00;31mERROR: Verbose and silent can't be used at the same time\e[00m"
-	exit 0
-fi
 
-if [[ -z "$user" ]] && [[ -f "$scriptdir/users/default/config" ]]; then
-	echo "INFO: Loading default config"
-	username="default"
-	config_name="$scriptdir/users/default"
-elif [[ -n "$user" ]] && [[ -f "$scriptdir/users/$user/config" ]]; then
-	echo "INFO: Loading config: \"$user\""
-	source "$scriptdir/users/$user/config"
-	username="$user"
-elif [[ $option == "add" ]]; then
-	# manually add user
-	if [[ -z "$user" ]]; then
-		username="default"
-	else
-		username="$user"
-	fi
-else
-	# user used not found, want to create them
-	if [[ -z "$user" ]]; then
-		echo -e "\e[00;31mERROR: No config found for default\e[00m"
-		read -p "Do you want to create config for default user (y/n)?"
-		if [ "$REPLY" == "y" ]; then
-			username="default"
-			option="add"
-		else
-			echo -e "\e[00;31mYou may want to have a look on help, --help\e[00m"
-			exit 1
-		fi
-	elif [[ -n "$user" ]]; then
-		echo -e "\e[00;31mERROR: No config found for user=$user\e[00m"
-		read -p "Do you want to create config for $user user (y/n)?"
-		if [ "$REPLY" == "y" ]; then
-			username="$user"
-			option="add"
-		else
-			echo -e "\e[00;31mYou may want to have a look on help, --help\e[00m"
-			exit 1			
-		fi		
-	fi
-fi
+# load verbose level
+verbose
+
+# load user
+load_user
+
 #Load dependencies
 source "$scriptdir/dependencies/setup.sh"
 setup
@@ -190,36 +204,36 @@ case "${option[0]}" in
 		load_help; write_config
 		read -p " Do you want to configure that user now(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
-			nano "$scriptdir/users/$username/config"
+			nano "$scriptdir/users/$usernamename/config"
 		else
-			echo "You can edit the user, by editing \"$scriptdir/users/$user/config\""
+			echo "You can edit the user, by editing \"$scriptdir/users/$username/config\""
 		fi		
-		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: User=\"$username\" added." "0"		
+		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: User=\"$usernamename\" added." "0"		
 		exit 0
 	;;
 	"edit" )
-		nano "$scriptdir/users/$user/config"	
+		nano "$scriptdir/users/$username/config"	
 		exit 0
 	;;	
 	"remove" )
-			# remove all userfiles log files from /run and /user/$user/
+			# remove all userfiles log files from /run and /user/$username/
 			if [[ -f "$lockfile" ]]; then
-				message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Can't remove userfiles for $username while session is running." "1"
+				message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Can't remove userfiles for $usernamename while session is running." "1"
 				exit 1
 			fi
-			rm -f "$scriptdir/run/$username*"
-			message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Userfiles removed for $username." "0"
+			rm -f "$scriptdir/run/$usernamename*"
+			message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Userfiles removed for $usernamename." "0"
 			exit 0
 	;;
 	"purge" )
-			# remove all userfiles log files and config from /run and /user/$user/
+			# remove all userfiles log files and config from /run and /user/$username/
 			if [[ -f "$lockfile" ]]; then
-				message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Can't remove $username while session is running." "1"
+				message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Can't remove $usernamename while session is running." "1"
 				exit 1
 			fi
-			rm -r -f "$scriptdir/users/$username"
-			rm -f "$scriptdir/run/$username*"
-			message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: User=\"$username\" removed." "0"
+			rm -r -f "$scriptdir/users/$usernamename"
+			rm -f "$scriptdir/run/$usernamename*"
+			message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: User=\"$usernamename\" removed." "0"
 			exit 0
 	;;
 	"pause" )
@@ -267,22 +281,23 @@ case "${option[0]}" in
 				exit 1
 			fi
 	;;
-	"queue" )
-			if [[ ! -d "$filepath" ]] || [[ ! -f "$filepath" ]] && [[ -z $(find "$filepath" -type f) ]]; then
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): ERROR: Option --path is required with existing path and has to contain file(s).\n See --help for more info!!" "1"
-				exit 1
-			fi
+	"download" )
+			# TODO Add all options to execution
 			# start download
 			if [[ ${option[1]} == "start" ]]; then
-					exe="bash "$scriptdir/dependencies/ftp_main.sh" --user="$username" --path="$filepath" --sort="$sortto" --source="$source" --exec_post="$exec_post" --exec_pre="$exec_post" --delay="$delay""
-				if [[ $force == "true" ]]; then
-					eval "$exe" --force
-				else
-					eval "$exe"
-				fi
+				eval bash "$scriptdir/dependencies/ftp_main.sh"$download_argument &
+				exit 0
 			# queue download
 			# TODO: Add options to queuefile as well
 			elif [[ ${option[1]} == "queue" ]]; then
+				if [[ "$transferetype" == "downftp" ]]; then
+					echo "INFO: Looking up size on ftp..."
+				elif [[ "$transferetype" == "upftp" ]]; then
+					if [[ ! -d "$filepath" ]] || [[ ! -f "$filepath" ]] && [[ -z $(find "$filepath" -type f) ]]; then
+						message "$(date '+%d/%m/%y-%a-%H:%M:%S'): ERROR: Option --path is required with existing path and has to contain file(s).\n See --help for more info!!" "1"
+						exit 1
+					fi
+				fi			
 				get_size "$filepath" "exclude_array[@]" &> /dev/null
 				if [[ -e "$queue_file" ]]; then
 					if [[ -n $(cat $queue_file | grep $(basename $filepath)) ]]; then
@@ -312,13 +327,13 @@ case "${option[0]}" in
 							if [[ $? -eq 1 ]]; then
 								echo "INFO: No lockfile detected"
 								rm "$lockfile"
-								if [[ "$username" == "default" ]]; then
+								if [[ "$usernamename" == "default" ]]; then
 									bash "$scriptdir/dependencies/ftp_main.sh" &> /dev/null &
 								else
-									bash "$scriptdir/dependencies/ftp_main.sh" --user="$user" &> /dev/null &
+									bash "$scriptdir/dependencies/ftp_main.sh" --user="$username" &> /dev/null &
 								fi
 							else
-								echo -e "\e[00;31mERROR: The user $user is running something\e[00m"
+								echo -e "\e[00;31mERROR: The user $username is running something\e[00m"
 								echo "       The script running is: $mypid_script"
 								echo "       The transfere is: "$alreadyinprogres""
 								echo "       If that is wrong remove you need to remove $lockfile"
@@ -328,10 +343,10 @@ case "${option[0]}" in
 							fi
 						else
 							# nothing running, start script
-							if [[ "$username" == "default" ]]; then
+							if [[ "$usernamename" == "default" ]]; then
 								bash "$scriptdir/dependencies/ftp_main.sh" &> /dev/null &
 							else
-								bash "$scriptdir/dependencies/ftp_main.sh" --user="$user" &> /dev/null &
+								bash "$scriptdir/dependencies/ftp_main.sh" --user="$username" &> /dev/null &
 							fi
 						fi
 					fi
@@ -350,11 +365,7 @@ case "${option[0]}" in
 			fi
 	;;	
 	"start" )
-			if [[ "$username" == "default" ]]; then
-				bash "$scriptdir/dependencies/ftp_main.sh" &> /dev/null &
-			else
-				bash "$scriptdir/dependencies/ftp_main.sh" --user="$user" &> /dev/null &
-			fi
+			bash "$scriptdir/dependencies/ftp_main.sh" --user="$username" &> /dev/null &
 			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Session has started." "0"
 			exit 0
 	;;
@@ -426,7 +437,7 @@ case "${option[0]}" in
 				exit 0
 			else
 				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Server is not responding" "1"
-				exit 1			
+				exit 1
 			fi
 	;;
 	"freespace" ) # check free space
@@ -440,10 +451,6 @@ case "${option[0]}" in
 				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Server is responding" "0"
 				exit 0
 			fi
-	;;	
-	"test" )
-			bash "$scriptdir/dependencies/ftp_main.sh" --test --user="$username" --path="$filepath"
-			exit 0
 	;;
 	* )
 		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): No options selected." "1"

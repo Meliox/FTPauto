@@ -1,6 +1,4 @@
 #!/bin/bash
-version="0.4"
-
 ### code below
 function setup {
 	# programs
@@ -23,24 +21,101 @@ function setup {
 	log_control="$scriptdir/run/$username.controllog"
 	scriptdebugfile="$scriptdir/run/$username.debug"
 	lftpdebug="$scriptdir/run/$username.lftpdebug"
+	lftptransfersize="$scriptdir/run/$username.ftptransfersize"
+	transfersize="$scriptdir/run/$username.transfersize"
+	lftptransfersize2="$scriptdir/run/$username.lftptransfersize2"
 }
 
 function get_size {
 	#called with $filepath $exclude_array[@]
 	local dir="$1"
 	local var=("${!2}")
-	directorysize=$(du -bs "$dir" | awk '{print $1}')
-	size=$(echo "scale=2; "$directorysize" / (1024*1024)" | bc)	
-	echo "INFO: Size to transfere: "$size"MB"
-	if [[ -n "$var" ]]; then
-		local exp=()
-		for i in "${var[@]}"; do
-			exp+=(-iname "$i")
-		done
-		exp="( ${exp[@]} -prune -o -type f )" #
-		size=$(find "$dir" $exp -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}')
+	if [[ "$transferetype" == "downftp" ]]; then
+		#client
+		# size lookup without expression
+		source "$scriptdir/dependencies/ftp_login.sh" && ftp_login
+		cat "$ftplogin_file" > "$lftptransfersize"
+		echo "du -bs \"$dir\" > ~/../..$transfersize" >> "$lftptransfersize"
+		echo "ls -l \"$dir\" > ~/../..$transfersize" >> "$lftptransfersize2"
+		echo "exit" >> "$lftptransfersize"
+		"$lftp" -f "$lftptransfersize" &> /dev/null
+		# figure out if it is a file or directory
+		local count=0
+		while read line; do
+			let ++count
+		done <"$lftptransfersize2"
+		if [[ $count -gt 0 ]]; then
+			echo "INFO: Transfering a directory"
+			transfer_type="directory"
+		else
+			echo "INFO: Transfering a file"
+			transfer_type="file"
+		fi
+		size=$(cat "$transfersize" | awk '{print $1}')
 		size=$(echo "scale=2; "$size" / (1024*1024)" | bc)
-		echo "INFO: Updated size to transfere(filter used): "$size"MB"
+		echo "INFO: Size to transfere: "$size"MB"
+		cleanup session
+		if [[ -n "$var" ]]; then
+			# size lookup if expression is used
+			cat "$ftplogin_file" > "$lftptransfersize"
+			echo "ls -lR \"$dir\" > ~/../..$transfersize" >> "$lftptransfersize"
+			echo "exit" >> "$lftptransfersize"
+			"$lftp" -f "$lftptransfersize" &> /dev/null
+			# prepare regex
+			exp=()
+			n="0"
+			for i in "${var[@]}"; do
+					if [[ $n -lt ${#var[@]} ]] && [[ $n -ge 1 ]]; then
+							exp+="|"
+					fi
+					exp+="$i"
+					let n++
+			done
+			# loop through result from lftp
+			while read line; do
+					if [[ -n $(echo "$line" | egrep '('$exp')') ]]; then
+							# ignore files in regex
+							continue
+					fi
+					if [[ -n $(echo "$line" | egrep '\/(.*):') ]]; then
+							# catch subdirectories path to add to the files
+							path="$line"
+							path=${path%:}
+							path="$path/"
+							continue
+					fi
+					if [[ -n $(echo "$line") ]]; then
+							# make sure line contains something
+							if [[ "$(echo "$line" | awk {'print $5'})" -gt "0" ]]; then
+									# remove entries without size
+									if [[ "$(echo "$line" | awk {'print $2'})" == "2" ]]; then
+											# catch directories
+											t_size=$(echo "$line" | awk {'print $5'})
+											full_path="$path$(echo "$line" | awk {'print $9'})/"
+									fi
+							fi
+							t_size=$(echo "$line" | awk {'print $5'})
+							#full_path="$path$(echo "$line" | awk {'print $9'})"
+							size=$(( $size + $t_size ))
+					fi
+			done < "$transfersize"
+		fi
+		cleanup session
+	elif [[ "$transferetype" == "upftp" ]]; then
+		#server
+		directorysize=$(du -bs "$dir" | awk '{print $1}')
+		size=$(echo "scale=2; "$directorysize" / (1024*1024)" | bc)	
+		echo "INFO: Size to transfere: "$size"MB"
+		if [[ -n "$var" ]]; then
+			local exp=()
+			for i in "${var[@]}"; do
+				exp+=(-iname "$i")
+			done
+			exp="( ${exp[@]} -prune -o -type f )" #
+			size=$(find "$dir" $exp -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}')
+			size=$(echo "scale=2; "$size" / (1024*1024)" | bc)
+			echo "INFO: Updated size to transfere(filter used): "$size"MB"
+		fi
 	fi
 }
 
@@ -62,14 +137,18 @@ function cleanup {
 		if [[ $test_mode == "true" ]]; then
 			read -sn 1 -p "Press ANY buttom to continue cleanup..."
 		fi
-		if [[ -f "$ftplogin_file" ]]; then rm "$ftplogin_file"; fi
 		if [[ $mount_in_use == "true" ]]; then
 			mountsystem umount
 			unset mount_in_use tempmountset
 		fi
+		# removal of all files creates
+		if [[ -f "$ftplogin_file" ]]; then rm "$ftplogin_file"; fi
 		if [[ -d "$tempdir" ]]; then rm -r "$tempdir"; fi;
 		if [[ -f "$ftptransfere_file" ]]; then rm "$ftptransfere_file"; fi
 		if [[ -f "$ftpfreespace_file" ]]; then rm "$ftpfreespace_file"; fi
+		if [[ -f "$lftptransfersize" ]]; then rm "$lftptransfersize"; fi
+		if [[ -f "$lftptransfersize2" ]]; then rm "$lftptransfersize2"; fi
+		if [[ -f "$transfersize" ]]; then rm "$transfersize"; fi
 		if [[ -f "$proccess_bar_file" ]]; then rm "$proccess_bar_file"; fi
 		if [[ -f "$ftpalive_file" ]]; then rm "$ftpalive_file"; fi
 		if [[ -f "$ftpcheck_file" ]]; then rm "$ftpcheck_file"; fi

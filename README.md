@@ -1,6 +1,6 @@
 # FTPauto
 
-FTPauto is a simple, but highly advanced commandline tool written in Bash for Unix. It relies on [lftp](http://lftp.yar.ru/), but helps to automate simple transfers. So essentially this is a tool to send files from a local server to a remote FTP easily.
+FTPauto is a simple, but highly advanced commandline tool written in #Bash for Unix. It relies on [lftp](http://lftp.yar.ru/), but helps to automate simple transfers. So essentially this is a tool to send files from a local server to a remote FTP easily.
 
 If you find this tool helpful, a small donation would be appreciated! Thanks!
 
@@ -237,7 +237,7 @@ Here's an overview as well
 == Session manipulation ==
       --pause            | Terminates transfer and leaves queue intact
       --stop             | Terminates transfer and remove queue and current id
-      --start            | Begins transfer and let it finish queue
+      --start            | Begins transfer from queue and let it finish queue. Only to be used for sessions!
       --online           | Returns if transfer is online or not
 
 == Item manipulation ==
@@ -306,7 +306,7 @@ This is a clientside configuration!
 tasks:
  download:
   rss:
-    url: http://....
+    url: http://some.url.rss
   series:
     720p:
       - TVSHOW1

@@ -14,6 +14,36 @@ else
 fi
 
 #programs
+function version_compare {
+	local IFS=.
+	local n1=($1) n2=($2)
+	for i in ${!n1[@]}; do
+		if [[ ${n1[i]} -gt ${n2[i]} ]]; then
+			new_version="1"
+			break
+		elif [[ ${n1[i]} -lt ${n2[i]} ]]; then
+			new_version="0"
+		fi
+	done
+}
+
+function lftp_update {
+	if [[ -z $(builtin type -p $i) ]]; then
+		echo -n "Removing old version ..."
+		sudo apt-get -y remove lftp &> /dev/null
+	fi
+	cd "$scriptdir/dependencies"
+	sudo apt-get -y install checkinstall libreadline-dev &> /dev/null
+	# find latest lftp
+	local lftpversion=$(curl --silent http://lftp.cybermirror.org/ | egrep -o '>lftp.(.*).+tar.gz' | sort -n | tail -1)
+	lftpversion=${lftpversion#\>lftp\-}
+	lftpversion=${lftpversion%.tar.gz}
+	wget http://lftp.yar.ru/ftp/lftp-$lftpversion.tar.gz &> /dev/null
+	rm "$scriptdir/lftp-$lftpversion.tar.gz"
+	tar -xzvf lftp-$lftpversion.tar.gz &> /dev/null
+	cd lftp-$lftpversion && ./configure --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
+}
+
 function install_lftp {
 	echo -n "Checking lftp ..."
 	if [[ -z $(which lftp) ]]; then
@@ -22,15 +52,7 @@ function install_lftp {
 		if [[ "$REPLY" == "y" ]]; then
 			read -p " Do you want latest version(y)(needs to be compiled - SLOW - Any installed version will be removed) or the package from repo(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
-				if [[ -z $(builtin type -p $i) ]]; then
-					sudo apt-get -y remove lftp &> /dev/null
-				fi
-				cd "$scriptdir/dependencies"
-				sudo apt-get -y install checkinstall libreadline-dev &> /dev/null
-				wget http://lftp.yar.ru/ftp/lftp-4.4.8.tar.gz &> /dev/null
-				rm "$scriptdir/lftp-4.4.8.tar.gz"
-				tar -xzvf lftp-4.4.8.tar.gz &> /dev/null
-				cd lftp-4.4.8 && ./configure --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
+				lftp_update
 			else
 				sudo apt-get -y install lftp &> /dev/null
 				if [[ $? -eq 1 ]]; then
@@ -44,7 +66,24 @@ function install_lftp {
 			fi
 		fi
 	else
-		echo -e "\e[00;32m [OK]\e[00m"
+		# get online lftp version
+		local lftpversion=$(curl --silent http://lftp.yar.ru/ftp/ | egrep -o '>lftp.(.*).+tar.gz' | sort -n | tail -1)
+		lftpversion=${lftpversion#\>lftp\-}
+		lftpversion=${lftpversion%.tar.gz}		
+		# get current lftp version
+		local c_lftpversion=$(lftp --version | egrep -o 'Version\ [0-9].[0-9].[0-9]' | cut -d' ' -f2)
+		version_compare "$lftpversion" "$c_lftpversion"
+		if [[ "$new_version" -eq "1" ]]; then
+			echo -e "[\e[00;33mv$lftpversion available\e[00m]"
+			read -p " Do you wish to update? "
+			if [[ "$REPLY" == "y" ]]; then
+				lftp_update
+			else
+				echo -e "lftp update ... [\e[00;33mSKIPPED\e[00m] Current version $c_lftpversion"
+			fi
+		else
+			echo -e "\e[00;32m [lastest]\e[00m"x
+		fi
 	fi
 }
 
@@ -102,7 +141,7 @@ function install {
 					echo -e " \e[00;32m [OK]\e[00m"
 				fi
 			else
-				echo -e "Checking rarfs ... [\e[00;33mSKIPPED\e[00m] NOTE: \"split_files\" and \"create_sfv\" will not work"
+				echo -e "Checking $i ... [\e[00;33mSKIPPED\e[00m] NOTE: \"split_files\" and \"create_sfv\" will not work"
 				break
 			fi
 		else
@@ -143,7 +182,7 @@ function install {
 		echo -e "\e[00;32m [OK]\e[00m"
 	fi
 	# create directories
-	echo -n "Finalizing ..."
+	echo "Finalizing ..."
 	echo -n "Creating directories ..."
 	if [[ ! -d "$scriptdir/run" ]]; then mkdir "$scriptdir/run"; fi;
 	if [[ ! -d "$scriptdir/users" ]]; then mkdir "$scriptdir/users"; fi;
@@ -229,8 +268,9 @@ function uninstall {
 	exit 0
 }
 function download {
-	echo "Download ..."
+	echo "Downloading ..."
 	wget -q "https://github.com/Meliox/FTPauto/archive/FTPauto-v$release_version.tar.gz"
+	echo -e "\e[00;32m [OK]\e[00m"
 	tar -xzf "$scriptdir"/FTPauto-v"$release_version.tar.gz" --overwrite --strip-components 1
 	rm -f "$scriptdir"/FTPauto-v"$release_version.tar.gz"
 	echo " Updated to v$release_version"
@@ -250,7 +290,7 @@ function update {
 		echo -e "\e[00;32m [New installation]\e[00m"
 		download
 	elif [[ "$( echo "$release_version <= $i_version" | bc)" -eq "0" ]]; then
-		echo -e "\e[00;33m [$version available]\e[00m"
+		echo -e "\e[00;33m [v$version available]\e[00m"
 		read -p " Do you want to update your version(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then		
 			download
@@ -258,7 +298,7 @@ function update {
 			echo -e "\e[00;33m [Present version kept]\e[00m"
 		fi
 	else
-		echo -e "\e[00;32m [You have lastest]\e[00m"
+		echo -e "\e[00;32m [lastest]\e[00m"
 	fi	
 }
 
