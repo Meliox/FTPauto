@@ -291,7 +291,7 @@ function update {
 		echo -e "\e[00;32m [New installation]\e[00m"
 		download
 	elif [[ "$new_version" -eq "1" ]]; then
-		echo -e "\e[00;33m [v$version available]\e[00m"
+		echo -e "\e[00;33m [v$release_version available]\e[00m"
 		read -p " Do you want to update your version(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then		
 			download

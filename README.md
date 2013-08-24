@@ -42,7 +42,7 @@ Follow the instructions and now you're ready to use FTPauto! Go to [configuratio
 ### Get svn
 Alternatively, you can get it from Github (This version may contain unfinished features and be ustable).
 ```bash
-git clone https://github.com/Meliox/FTPauto.git
+git clone ssh://git@github.com/Meliox/FTPauto.git
 ```
 Run
 ```bash 
