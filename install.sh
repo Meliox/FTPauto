@@ -282,14 +282,15 @@ function download {
 function update {
 	# get most recent stable version
 	echo -n "Checking for new stable version ..."
-	local release=$(curl --silent https://github.com/Meliox/FTPauto/releases | egrep -o 'FTPauto-v[-.0-9]+tar.gz' | sort -n | tail -1)
+	local release=$(curl --silent https://github.com/Meliox/FTPauto/releases | egrep -o 'FTPauto-v(.*)+tar.gz' | sort -n | tail -1)
 	release_version=${release#$"FTPauto-v"}
 	release_version=${release_version%.tar.gz}
 	# comparasion
+	version_compare "$release_version" "$i_version"
 	if [[ "$i_version" == "0" ]]; then
 		echo -e "\e[00;32m [New installation]\e[00m"
 		download
-	elif [[ "$( echo "$release_version <= $i_version" | bc)" -eq "0" ]]; then
+	elif [[ "$new_version" -eq "1" ]]; then
 		echo -e "\e[00;33m [v$version available]\e[00m"
 		read -p " Do you want to update your version(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then		
