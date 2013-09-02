@@ -1,10 +1,12 @@
 #!/bin/bash
 ### code below
 function setup {
+	#
+	PATH=$HOME/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 	# programs
 	lftp=$(which lftp)
 	rarfs=$(which rarfs)
-	# paths 
+	# paths  
 	queue_file="$scriptdir/run/$username.queue"
 	lockfile="$scriptdir/run/$username.lck"
 	logfile="$scriptdir/users/$username/log"
@@ -145,6 +147,7 @@ function cleanup {
 		if [[ -f "$ftplogin_file" ]]; then rm "$ftplogin_file"; fi
 		if [[ -d "$tempdir" ]]; then rm -r "$tempdir"; fi;
 		if [[ -f "$ftptransfere_file" ]]; then rm "$ftptransfere_file"; fi
+		if [[ -f "$ftp_size_file" ]]; then rm "$ftp_size_file"; fi
 		if [[ -f "$ftpfreespace_file" ]]; then rm "$ftpfreespace_file"; fi
 		if [[ -f "$lftptransfersize" ]]; then rm "$lftptransfersize"; fi
 		if [[ -f "$lftptransfersize2" ]]; then rm "$lftptransfersize2"; fi

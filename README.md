@@ -28,7 +28,7 @@ If you find this tool helpful, a small donation would be appreciated! Thanks!
 You should have User and sudo or root access to use and install, respectively. 
 
 ## Installation (Recommended)
-To get FTPauto, simple download and run the installer: [download](https://raw.github.com/Meliox/FTPauto/master/install.sh)
+To get FTPauto, download and execute the installer: [download](https://raw.github.com/Meliox/FTPauto/master/install.sh)
 The installer will set up the enviroment and will help to install the nessary programs. During the installation you will also be able to set up a user!
 
 ```bash
@@ -37,7 +37,7 @@ wget https://raw.github.com/Meliox/FTPauto/master/install.sh
 bash install.sh install
 ```
 
-Follow the instructions and now you're ready to use FTPauto! Go to [configuration](https://github.com/Meliox/FTPauto#configuration)
+Follow the instructions to set up a user and then you're ready to use FTPauto! If you skipped user setup or need help go to [configuration](https://github.com/Meliox/FTPauto#configuration) to set up a user.
 
 ### Get svn
 Alternatively, you can get it from Github (This version may contain unfinished features and be ustable).
@@ -89,10 +89,11 @@ mkdir run/
 ```
 
 ### Upgrading
-Upgrading to new stable version is simple run
+If you want to upgrade to newest version, simply run
 ```bash
 bash install.sh update
 ```
+NOTE: Running lastest version, doesn't mean its 100% stable. 
 
 The same almost goes for git
 ```bash
@@ -101,10 +102,18 @@ bash install.sh update
 ```
 
 # Configuration
-First thing that need to be done is to create a user and edit the users settings. If you only want one user, you can leave <USERNAME> empty.
+First thing that need to be done is to create a user and edit the users settings. If you only want one user, you can leave <USERNAME> empty (default will be used). The setting that is to be edited is shown in [settings](https://github.com/Meliox/FTPauto#settings)
+
+## Single user
+Add users
 ```bash
-bash ftpauto.sh --add --user=<USERNAME>
-```
+bash ftpauto.sh --user= --add
+
+## Multiple users
+Add users
+```bash
+bash ftpauto.sh --user=<USERNAME> --add
+
 Editing can be done by
 ```bash
 bash ftpauto.sh --edit --user=<USERNAME>
@@ -113,8 +122,23 @@ Note: Editing can also be done manually after adding the user!
 ```bash
 nano ~/users/<USERNAME>/config
 ```
+
+When finish you can now start use FTPauto [usage](https://github.com/Meliox/FTPauto#usage)
+
 ## Settings
-The settings should explain themselves:
+The most important setting is "transferetype".
+Depending on the solution you can FTPauto can do
+```
+FTP	
+	SERVER --> client   : upftp
+	server <-- CLIENT   : downftp
+FXP
+	SERVER <-> client   : upfxp
+	server <-> CLIENT   : downfxp
+```
+The capital letters state where FTPauto is executed and therefor giving the correct path is important. see [example](https://github.com/Meliox/FTPauto#transferetype-example)
+
+The rest of the settings should explain themselves.
 ```bash
 #This the the configuration file for ftpautodownload
 config_version="1"
@@ -191,10 +215,6 @@ exec_pre="" #Execute external command before starting. See --help for more info
 #### Used for controlscript only ####
 autostart="true" # Autostart download when adding something to queue
 
-#### Flexget settings ####
-c_flexget="/home/ammin/flexget-download/download.yml"
-feed_name="ftpmoviedownload" # feedname for flexget
-
 #### Push notificaions ####
  # Create a user at https://pushover.net/ and enter data below
  # Leave push_user empty if you don't use it
@@ -202,28 +222,24 @@ push_token=""
 push_user=""
 ```
 
+## Transferetype-example
+
 # Usage
-## Single user
-If you didn't add a default user during the installation, then add it
-```bash
-bash ftpauto.sh --user= --add
-```
-### Download
+Depending on you have multiple users or just a single user, you can start transfering files
+
+### Download - single user
 Now you can transfer something
 ```bash
 bash ftpauto.sh --path=~/something/
 ```
-
-## Multiple users
-Add users
-```bash
-bash ftpauto.sh --user=<USERNAME> --add
 ```
-### Download
+### Download - multiple user
 Now you can transfer something
 ```bash
 bash ftpauto.sh --user=<USERNAME> --path=~/something/
 ```
+
+More arguments are available, [arguments](https://github.com/Meliox/FTPauto#arguments).
 
 ## Arguments
 Can be shown with
@@ -238,7 +254,6 @@ Here's an overview as well
       --pause            | Terminates transfer and leaves queue intact
       --stop             | Terminates transfer and remove queue and current id
       --start            | Begins transfer from queue and let it finish queue. Only to be used for sessions!
-      --online           | Returns if transfer is online or not
 
 == Item manipulation ==
       --list             | Lists all items in queue
@@ -249,7 +264,9 @@ Here's an overview as well
        --down            | Move <ID> down
        --forget          | Remove <ID> from queue
        --clear           | Remove everything in queue
-       --queue=<PATH>    | Sends <PATH> to queue WITHOUT starting script if autostart=false in config. NOTE that --path <ITEM> is required for this to work
+       --queue           | Sends <PATH> to queue WITHOUT starting script if autostart=false in config.
+	                       NOTE that --path <ITEM> is required for this to work.
+						   Might also be used to start transfer in background if autostart=true
        --path=<PATH>     | <PATH> used to transfer now!
        --source=<SOURCE> | Source is used to show how the download has been started. The
                            following is possible:
@@ -266,7 +283,7 @@ Here's an overview as well
 
 == Server ==
       --online           | Checks if server is online and writeable
-	  --freespace        | Checks how much free space is available (slow)
+	  --freespace        | Checks how much free space is available (slow if on remote server)
 
 	  == Optional ==
       --test             | Shows what transfer is going to happen
@@ -314,7 +331,7 @@ tasks:
   manipulate:
     SOMETHING IS MISSING HERE
   exec:
-    fail_entries: ye
+    fail_entries: yes
     allow_background: yes
     auto_escape: yes
     on_output:

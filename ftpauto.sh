@@ -1,5 +1,5 @@
 #!/bin/bash
-s_version="0.2.2"
+s_version="0.2.3"
 verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 script="$(readlink -f $0)"
 scriptdir=$(dirname $script)
@@ -20,7 +20,7 @@ function verbose {
 		set -x
 	elif [[ ! $quiet ]] && [[ $verbose == 2 ]]; then
 		#verbose
-		exec 2>> "$scriptdir/run/$username.control.debug"
+		exec 2>> "$scriptdir/run/$username.debug"
 		echo "STARTING PID=$BASHPID"
 		set -x
 	elif [[ $quiet ]] && [[ $verbose != 0 ]]; then
@@ -31,6 +31,20 @@ function verbose {
 # load verbose
 verbose
 
+function confirm_queue_file {
+	if [[ -e "$queue_file" ]]; then
+		message "$1" "$2"
+		exit 1
+	fi
+}
+
+function confirm_lock_file {
+	if [[ -e "$queue_file" ]]; then
+		message "$1" "$2"
+		exit 1
+	fi
+}
+
 function message {
 	if [[ "$2" == "1" ]]; then
 		echo -e "\e[00;31m$1\e[00m"
@@ -38,6 +52,7 @@ function message {
 		echo -e "\e[00;32m$1\e[00m"
 	fi
 	echo
+	exit "$2"
 }
 
 function show_help {
@@ -200,7 +215,7 @@ setup
 
 # Execute the given option
 case "${option[0]}" in
-	"add" )
+	"add" ) # add user
 		load_help; write_config
 		read -p " Do you want to configure that user now(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
@@ -208,180 +223,123 @@ case "${option[0]}" in
 		else
 			echo "You can edit the user, by editing \"$scriptdir/users/$username/config\""
 		fi		
-		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: User=\"$usernamename\" added." "0"		
-		exit 0
+		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: User=\"$usernamename\" added." "0"
 	;;
-	"edit" )
+	"edit" ) # edit user config
 		nano "$scriptdir/users/$username/config"	
-		exit 0
+		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: User=\"$usernamename\" edited." "0"
 	;;	
-	"remove" )
+	"remove" ) # remove all userfiles log files
+			confirm_lock_file "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Can't remove userfiles for $usernamename while session is running." "1"
 			# remove all userfiles log files from /run and /user/$username/
-			if [[ -f "$lockfile" ]]; then
-				message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Can't remove userfiles for $usernamename while session is running." "1"
-				exit 1
-			fi
 			rm -f "$scriptdir/run/$usernamename*"
 			message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Userfiles removed for $usernamename." "0"
-			exit 0
 	;;
-	"purge" )
-			# remove all userfiles log files and config from /run and /user/$username/
-			if [[ -f "$lockfile" ]]; then
-				message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Can't remove $usernamename while session is running." "1"
-				exit 1
-			fi
+	"purge" ) # remove all userfiles log files and config from /run and /user/$username/
+			confirm_lock_file "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Can't remove $usernamename while session is running." "1"
 			rm -r -f "$scriptdir/users/$usernamename"
 			rm -f "$scriptdir/run/$usernamename*"
 			message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: User=\"$usernamename\" removed." "0"
-			exit 0
 	;;
-	"pause" )
-			if [[ -f "$lockfile" ]]; then
-				# clean up everything
-				cleanup stop
-				cleanup session
-				cleanup end
-				message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Session has been terminated." "0"
-				exit 0
-			else
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, lockfile couldn't be found. Nothing could be done!" "1"
-				exit 1
-			fi
+	"pause" ) # Stop transfer
+			confirm_lock_file message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, lockfile couldn't be found. Nothing could be done!" "1"
+			cleanup stop
+			cleanup session
+			cleanup end
+			message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Session has been terminated." "0"
 	;;
-	"stop" )
-			if [[ -f "$lockfile" ]]; then
-				cleanup stop
-				cleanup session
-				cleanup end
-				rm "$queue_file"
-				message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Session has been terminated." "0"
-				exit 0
-			else
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, lockfile couldn't be found. Nothing could be done!" "1"
-				exit 1
-			fi
+	"stop" ) # Stop transfer and remove queue
+			confirm_lock_file "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, lockfile couldn't be found. Nothing could be done!" "1"
+			cleanup stop
+			cleanup session
+			cleanup end
+			rm "$queue_file"
+			message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Session has been terminated." "0"
 	;;
-	"list" )
-			if [[ -f "$queue_file" ]]; then
-				message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): Listing queued item for user" "0"
-				while read line
-				do
-					id=$(echo $line | cut -d'#' -f1)  
-					source=$(echo $line | cut -d'#' -f2)
-					path=$(echo $line | cut -d'#' -f3)
-					size=$(echo $line | cut -d'#' -f4)
-					time=$(echo $line | cut -d'#' -f5)
-					echo $id $source $path $size $time
-				done < "$queue_file"
-				message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: List has been shown." "0"
-				exit 0				
-			else
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, queuefile couldn't be found. Nothing could be showed!" "1"
-				exit 1
-			fi
-	;;
+	"start" ) # start session from queue file
+			bash "$scriptdir/dependencies/ftp_main.sh" --user="$username" &> /dev/null &
+			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Session has started." "0"
+	;;	
 	"download" )
-			# TODO Add all options to execution
-			# start download
+			# start download right away
 			if [[ ${option[1]} == "start" ]]; then
-				eval bash "$scriptdir/dependencies/ftp_main.sh"$download_argument &
-				exit 0
+				eval bash "$scriptdir/dependencies/ftp_main.sh"$download_argument
+				if [[ $? -eq 1 ]]; then
+					message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Succeded." "0"
+				else
+					message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Failed." "1"
+				fi
 			# queue download
 			# TODO: Add options to queuefile as well
 			elif [[ ${option[1]} == "queue" ]]; then
-				if [[ "$transferetype" == "downftp" ]]; then
-					echo "INFO: Looking up size on ftp..."
-				elif [[ "$transferetype" == "upftp" ]]; then
-					if [[ ! -d "$filepath" ]] || [[ ! -f "$filepath" ]] && [[ -z $(find "$filepath" -type f) ]]; then
-						message "$(date '+%d/%m/%y-%a-%H:%M:%S'): ERROR: Option --path is required with existing path and has to contain file(s).\n See --help for more info!!" "1"
-						exit 1
-					fi
-				fi			
-				get_size "$filepath" "exclude_array[@]" &> /dev/null
-				if [[ -e "$queue_file" ]]; then
-					if [[ -n $(cat $queue_file | grep $(basename $filepath)) ]]; then
-						echo "INFO: Item already exists. Doing nothing. Exiting..."
-						exit 0
-					fi
-					# find id to <ITEM>
-					id=$(( $(tail -1 $queue_file | cut -d'#' -f1) + 1 ))
-				else # no queue files exists
-					id="1"
-				fi
-				# set source
-				if [[ -z $source ]]; then
-					source="CONSOLEQ"
-				else
-					source=$source"Q"
-				fi
-				echo "INFO: Adding $(basename $filepath) to queue with id=$id"
-				echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> $queue_file
-				
 				# If autostart is used, then try and execute main script
-					if [[ $autostart == "true" ]]; then
-						if [[ -f "$lockfile" ]]; then
-							# check if lockfile is present, in order to determine if we should start script
-							mypid_script=$(sed -n 1p "$lockfile")
-							kill -0 $mypid_script
-							if [[ $? -eq 1 ]]; then
-								echo "INFO: No lockfile detected"
-								rm "$lockfile"
-								if [[ "$usernamename" == "default" ]]; then
-									bash "$scriptdir/dependencies/ftp_main.sh" &> /dev/null &
-								else
-									bash "$scriptdir/dependencies/ftp_main.sh" --user="$username" &> /dev/null &
-								fi
-							else
-								echo -e "\e[00;31mERROR: The user $username is running something\e[00m"
-								echo "       The script running is: $mypid_script"
-								echo "       The transfere is: "$alreadyinprogres""
-								echo "       If that is wrong remove you need to remove $lockfile"
-								echo "       Wait for it to end, or kill it: kill -9 pidID"
-								echo ""
-								exit 0
-							fi
-						else
-							# nothing running, start script
-							if [[ "$usernamename" == "default" ]]; then
-								bash "$scriptdir/dependencies/ftp_main.sh" &> /dev/null &
-							else
-								bash "$scriptdir/dependencies/ftp_main.sh" --user="$username" &> /dev/null &
-							fi
+				if [[ $autostart == "true" ]]; then
+					eval "bash "$scriptdir/dependencies/ftp_main.sh"$download_argument &> /dev/null &"
+					message "$(date '+%d/%m/%y-%a-%H:%M:%S'): Download started" "0"
+				else
+					# determine if item exists already
+					if [[ -e "$queue_file" ]]; then
+						if [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
+							message "INFO: Item already exists. Doing nothing. Exiting..." "1"
+						fi
+						# find id to <ITEM>
+						id=$(( $(tail -1 "$queue_file" | cut -d'#' -f1) + 1 ))
+					else # no queue files exists
+						id="1"
+					fi
+					# get transfer size
+					if [[ "$transferetype" == "downftp" ]]; then
+						echo "INFO: Looking up size on ftp..."
+					elif [[ "$transferetype" == "upftp" ]]; then
+						if [[ ! -d "$filepath" ]] || [[ ! -f "$filepath" ]] && [[ -z $(find "$filepath" -type f) ]]; then
+							message "$(date '+%d/%m/%y-%a-%H:%M:%S'): ERROR: Option --path is required with existing path and has to contain file(s).\n See --help for more info!!" "1"
+							exit 1
 						fi
 					fi
-				echo
-				exit 0
+					get_size "$filepath" "exclude_array[@]" &> /dev/null
+					
+					# set source
+					if [[ -z $source ]]; then
+						source="CONSOLEQ"
+					else
+						source=$source"Q"
+					fi
+					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+					message "INFO: Adding $(basename "$filepath") to queue with id=$id" "0"
+				fi
 			fi
 	;;
-	"clear" )
-			if [[ -e "$queue_file" ]]; then
-				rm "$queue_file"
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Queue removed." "0"
-				exit 0
-			else
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Queue does not exits." "1"
-				exit 1
-			fi
+	"list" ) # list content of queue file
+			confirm_queue_file "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, queuefile couldn't be found. Nothing could be showed!" "1"
+			message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): Listing queued item for user" "0"
+			while read line; do
+				id=$(echo $line | cut -d'#' -f1)  
+				source=$(echo $line | cut -d'#' -f2)
+				path=$(echo $line | cut -d'#' -f3)
+				size=$(echo $line | cut -d'#' -f4)
+				time=$(echo $line | cut -d'#' -f5)
+				echo $id $source $path $size $time
+			done < "$queue_file"
+			message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: List has been shown." "0"
 	;;	
-	"start" )
-			bash "$scriptdir/dependencies/ftp_main.sh" --user="$username" &> /dev/null &
-			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Session has started." "0"
-			exit 0
-	;;
-	"forget" )
+	"clear" ) # clear content of queue file
+			confirm_queue_file "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, queue could not be found." "1"
+			rm "$queue_file"
+			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Queue removed." "0"
+	;;	
+	"forget" ) # remove item with <ID> from queue
+			confirm_queue_file "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, queuefile couldn't be found. Nothing could be removed!" "1"
 			if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id#") ]]; then
 				#make sure id exists and is present in queue
 				echo "Removing id=$id"
 				sed "/^"$id"\#/d" -i "$queue_file" #ex -s -c '%s/^[0-9]*//|wq' file.txt if your ex is actually symlinked to the installed vim, then you can use \d and \+
 				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Id=$id removed from queue."	"0"
-				exit 0
 			else
 				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: No Id=$id selected/in queue." "1"
-				exit 1
 			fi
 	;;
-	"up" )
+	"up" ) # Move item with <ID> 1 up in queue
+			confirm_queue_file "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, queuefile couldn't be found. Nothing could be moved!" "1"
 			if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id#") ]]; then
 				line_info=$(cat "$queue_file" | grep "^$id#")
 				line_number=$(cat "$queue_file" | grep -ne "^$id#" | cut -d':' -f1)			
@@ -389,19 +347,17 @@ case "${option[0]}" in
 				if [[ "$line_number" -lt "2" ]]; then
 					#if id is the first, keep it there
 					message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Id, $id, is at top." "0"
-					exit 0
 				else
 					sed "/^"$id"\#/d" -i "$queue_file"
 					sed "$previous_line_number i $line_info" -i "$queue_file"
 					message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Moved Id=$id, up." "0"
-					exit 0
 				fi
 			else
 				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: No Id=$id, selected/in queue." "1"
-				exit 1
-			fi
+			fi		
 	;;
-	"down" )
+	"down" ) # Move item with <ID> 1 down in queue
+			confirm_queue_file "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, queuefile couldn't be found. Nothing could be moved!" "1"
 			if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id#") ]]; then
 				line_info=$(cat "$queue_file" | grep "^$id#")
 				line_number=$(cat "$queue_file" | grep -ne "^$id#" | cut -d':' -f1)
@@ -411,21 +367,18 @@ case "${option[0]}" in
 					#add id to the end of file
 					sed "/^"$id"\#/d" -i "$queue_file"
 					echo $line_info >> "$queue_file"
-					exit 0
+					message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Id=$id, is at the buttom." "0"
 				elif [[ $next_line_number -gt $last_line ]]; then
 					#if id is the last, do nothing
 					message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Id=$id, is at the buttom." "1"
-					exit 0
 				else
 					#any other cases
 					sed "/^"$id"\#/d" -i "$queue_file"
 					sed "$next_line_number i $line_info" -i "$queue_file"
 					message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Moved Id=$id, down." "0"
-					exit 0
 				fi
-				else
+			else
 				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: No Id, $id, selected/in queue." "1"
-				exit 1
 			fi
 	;;
 	"online" ) # Perform server test
@@ -433,11 +386,9 @@ case "${option[0]}" in
 			source "$scriptdir/dependencies/ftp_online_test.sh" && online_test
 			cleanup session
 			if [[ $is_online -eq 0 ]]; then
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Server is responding" "0"
-				exit 0
+				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): Server is OK" "0"
 			else
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Server is not responding" "1"
-				exit 1
+				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): Server is NOT OK" "1"
 			fi
 	;;
 	"freespace" ) # check free space
@@ -446,14 +397,11 @@ case "${option[0]}" in
 			cleanup session
 			if [[ $is_online -eq 1 ]]; then
 				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Could " "1"
-				exit 1
 			else
 				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Server is responding" "0"
-				exit 0
 			fi
 	;;
 	* )
 		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): No options selected." "1"
-		exit 1
 	;;
 esac

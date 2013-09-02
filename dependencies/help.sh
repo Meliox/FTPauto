@@ -180,10 +180,6 @@ function show_example {
 	echo	"#### Used for controlscript only ####"
 	echo	"autostart=\"true\" # Autostart download when adding something to queue"
 	echo
-	echo	"#### Flexget settings ####"
-	echo    "c_flexget=\"/home/ammin/flexget-download/download.yml\""
-	echo    "feed_name=\"ftpmoviedownload\" # feedname for flexget"
-	echo
 	echo	"#### Push notificaions ####"
 	echo	" # Create a user at https://pushover.net/ and enter data below"
 	echo	" # Leave push_user empty if you don't use it"

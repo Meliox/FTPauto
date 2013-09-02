@@ -41,7 +41,7 @@ function lftp_update {
 	wget http://lftp.yar.ru/ftp/lftp-$lftpversion.tar.gz &> /dev/null
 	rm "$scriptdir/lftp-$lftpversion.tar.gz"
 	tar -xzvf lftp-$lftpversion.tar.gz &> /dev/null
-	cd lftp-$lftpversion && ./configure --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
+	cd lftp-$lftpversion && ./configure --with-openssl --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
 }
 
 function install_lftp {
@@ -74,12 +74,12 @@ function install_lftp {
 		local c_lftpversion=$(lftp --version | egrep -o 'Version\ [0-9].[0-9].[0-9]' | cut -d' ' -f2)
 		version_compare "$lftpversion" "$c_lftpversion"
 		if [[ "$new_version" -eq "1" ]]; then
-			echo -e "[\e[00;33mv$lftpversion available\e[00m]"
-			read -p " Do you wish to update? "
+			echo -e "[\e[00;33mv$lftpversion available\e[00m] Current version $c_lftpversion"
+			read -p " Do you wish to update(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
 				lftp_update
 			else
-				echo -e "lftp update ... [\e[00;33mSKIPPED\e[00m] Current version $c_lftpversion"
+				echo -e "lftp update ... [\e[00;33mSKIPPED\e[00m]"
 			fi
 		else
 			echo -e "\e[00;32m [lastest]\e[00m"x

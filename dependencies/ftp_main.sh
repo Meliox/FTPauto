@@ -769,7 +769,7 @@ elif [[ ! $quiet ]] && [[ $verbose == 1 ]]; then
 	set -x	
 elif [[ ! $quiet ]] && [[ $verbose == 2 ]]; then
 	#verbose
-	exec 2>> "$scriptdir/run/$user.control.debug"
+	exec 2>> "$scriptdir/run/$user.debug"
 	echo "STARTING PID=$BASHPID"
 	set -x
 elif [[ $quiet ]] && [[ $verbose != 0 ]]; then
@@ -805,7 +805,7 @@ case "$option" in
 				exit 1
 			fi
 		else
-			echo not supported
+			echo "INFO: transfertype \"$transferetype\" not recognized. Have a look on your config"
 			cleanup session
 			cleanup end
 			exit 1			
