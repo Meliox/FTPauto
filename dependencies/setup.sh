@@ -124,10 +124,10 @@ function get_size {
 function cleanup {
 	case "$1" in
 	"die" ) #used when script stops on user input
-	        echo "*** Ouch! Exiting ***"
-			# remove pids and lockfile
-	        if [[ -n "$pid_transfer" ]]; then kill -9 $pid_transfer &> /dev/null; fi
-        	if [[ -n "$pid_f_process" ]]; then kill -9 $pid_f_process &> /dev/null; fi
+		echo "*** Ouch! Exiting ***"
+		# remove pids and lockfile
+		if [[ -n "$pid_transfer" ]]; then kill -9 $pid_transfer &> /dev/null; fi
+		if [[ -n "$pid_f_process" ]]; then kill -9 $pid_f_process &> /dev/null; fi
 		if [[ -f "$lockfile" ]] && [[ -n $(sed -n '4p' $lockfile) ]]; then kill -9 $(sed -n '4p' $lockfile) &> /dev/null; fi
 		if [[ -f "$queue_file" ]]; then rm "$queue_file"; fi;
 		if [[ -f "$lockfile" ]]; then rm "$lockfile"; fi;

@@ -69,7 +69,7 @@ function install_lftp {
 		# get online lftp version
 		local lftpversion=$(curl --silent http://lftp.yar.ru/ftp/ | egrep -o '>lftp.(.*).+tar.gz' | sort -n | tail -1)
 		lftpversion=${lftpversion#\>lftp\-}
-		lftpversion=${lftpversion%.tar.gz}		
+		lftpversion=${lftpversion%.tar.gz}
 		# get current lftp version
 		local c_lftpversion=$(lftp --version | egrep -o 'Version\ [0-9].[0-9].[0-9]' | cut -d' ' -f2)
 		version_compare "$lftpversion" "$c_lftpversion"
@@ -94,7 +94,7 @@ function install {
 	if [[ "$REPLY" == "n" ]]; then
 		echo "... Exiting"; echo ""; exit 0
 	fi
-	
+
 	echo "Installing required tools ..."
 	# lftp
 	install_lftp
@@ -114,7 +114,7 @@ function install {
 				fi
 				if [[ -z $(builtin type -p $i) ]]; then
 					echo -e " \e[00;32m [OK]\e[00m"
-				fi				
+				fi
 			else
 				echo -e "\e[00;31mScript will not work without... exiting\e[00m"; echo ""
 				exit 0
@@ -147,7 +147,7 @@ function install {
 		else
 			echo -e "\e[00;32m [OK]\e[00m"
 		fi
-	done	
+	done
 	# for mouting to work
 	echo -n "Checking rarfs ..."
 	if [[ -z $(which rarfs) ]]; then
@@ -209,7 +209,7 @@ function install {
 		echo -e "\e[00;32m [$user]\e[00m"
 		source "$scriptdir/dependencies/help.sh"
 		write_config
-		echo -n "Checking user ..." 
+		echo -n "Checking user ..."
 		if [[ ! -f "$scriptdir/users/$user/config/" ]]; then
 			echo -e "\e[00;32m [OK]\e[00m"
 			read -p " Do you want to configure that user now(y/n)? "
@@ -217,15 +217,15 @@ function install {
 				nano "$scriptdir/users/$user/config"
 			else
 				echo "You can edit the user, by editing \"$scriptdir/users/$user/config\" or bash ftpauto.sh --user=$user --edit"
-			fi	
+			fi
 		else
 			echo -e "\e[00;32m [OK]\e[00m User exists"
 		fi
-		
+
 	else
 		echo -e "Adding user ... [\e[00;33mSKIPPED\e[00m] NOTE: See ftpauto.sh --help for more info"
 	fi
-	
+
 	echo ""
 	echo -e "\e[00;32m [Installation done]\e[00m Enyoy! Start using ftpautodownload by using ftpauto.sh --help"
 	echo ""
@@ -293,19 +293,19 @@ function update {
 	elif [[ "$new_version" -eq "1" ]]; then
 		echo -e "\e[00;33m [v$release_version available]\e[00m"
 		read -p " Do you want to update your version(y/n)? "
-		if [[ "$REPLY" == "y" ]]; then		
+		if [[ "$REPLY" == "y" ]]; then
 			download
 		else
 			echo -e "\e[00;33m [Present version kept]\e[00m"
 		fi
 	else
 		echo -e "\e[00;32m [lastest]\e[00m"
-	fi	
+	fi
 }
 
 echo ""
 echo "Autoinstaller v$i_version for FTPauto"
-echo ""	
+echo ""
 case "$1" in
 	uninstall)	uninstall;;
 	install)	install;;

@@ -1,6 +1,4 @@
 #!/bin/bash
-s_version="0.91"
-
 ############## CODE STARTS HERE ##################
 script="$(readlink -f $0)"
 scriptdir=$(dirname $script)
@@ -8,34 +6,46 @@ scriptdir=${scriptdir%/dependencies}
 
 function delay {
 # if --delay is set, wait until it ends. If start/end time is set in config use them. Delay overrules everything
-		if [[ -n $date_time ]]; then
+		if [[ -n $delay ]]; then
 			current_epoch=$(date +%s)
-			target_epoch=$(date -d "$date_time" +%s)
-			sleep_seconds=$(( $target_epoch - $current_epoch ))
-			echo "Transfere has been postponed until $date_time"
-			sleep $sleep_seconds
+			target_epoch=$(date -d "$delay" +%s)
+			if [[ $target_epoch -gt $current_epoch ]]; then
+				sleep_seconds=$(( $target_epoch - $current_epoch ))
+				if [[ $test_mode != "true" ]]; then
+					echo "INFO: Transfere has been postponed until $delay"
+					timediff=$(printf '%2d:%2d:%2d' "$(($sleep_seconds/(60*60)))" "$((($sleep_seconds/60)%60))" "$(($sleep_seconds%60))")
+					countdown "$timediff"
+				else
+					echo -e "\e[00;31mTESTMODE: Would delay until $delay\e[00m"
+				fi
+			else
+				echo "Error: Time is older than current time, now $(date '+%m/%d/%y %H:%M') vs. delay $delay . Format is mm/dd/yy hh:mm. Delay could not be used."
+				cleanup session
+				cleanup end
+				exit 1
+			fi
 		elif [[ -n $transfer_start ]] && [[ -n $transfer_end ]] && [[ $force == "false" ]]; then
 			tranfere_timeframe
 		fi
 }
 
-function date2stamp () {
-    date --utc --date "$1" +%s
-}
-
-function dateDiff (){
-    case $1 in
-        -s)   sec=1;      shift;;
-        -m)   sec=60;     shift;;
-        -h)   sec=3600;   shift;;
-        -d)   sec=86400;  shift;;
-        *)    sec=86400;;
-    esac
-    dte1=$(date2stamp $1)
-    dte2=$(date2stamp $2)
-    diffSec=$((dte2-dte1))
-    if ((diffSec < 0)); then abs=-1; else abs=1; fi
-    echo $((diffSec/sec*abs))
+function countdown {
+        local OLD_IFS="${IFS}"
+        IFS=":"
+        local ARR=( $1 )
+        local SECONDS=$((  (ARR[0] * 60 * 60) + (ARR[1] * 60) + ARR[2]  ))
+        local START=$(date +%s)
+        local END=$((START + SECONDS))
+        local CUR=$START
+        while [[ $CUR -lt $END ]]; do
+                CUR=$(date +%s)
+                LEFT=$((END-CUR))
+                printf "\r%02d:%02d:%02d" \
+                        $((LEFT/3600)) $(( (LEFT/60)%60)) $((LEFT%60))
+                sleep 1
+        done
+        IFS="${OLD_IFS}"
+        echo "        "
 }
 
 function tranfere_timeframe {
@@ -57,38 +67,35 @@ function queue {
 	local option=$2
 	case "$1" in
 		"add" )
-				queue="true"
-				if [[ $queue_run != "true" ]]; then
-					# figure out ID
-					if [[ -e "$queue_file" ]]; then
-						#get last id
-						id=$(( $(tail -1 "$queue_file" | cut -d'#' -f1) + 1 ))
-					else
-						#assume this is the first one
-						id="1"
-					fi
-					if [[ -e "$scriptdir/plugins/addon.sh" ]]; then
-						flexget_feed
-					fi
-					get_size "$filepath" "exclude_array[@]" &> /dev/null
-					if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
-						echo "INFO: Item already exists. Doing nothing."
-						exit 0
-					elif [[ "$option" == "end" ]]; then
-						source=$source"Q"
-						echo "INFO: Adding $(basename $filepath) to queue with id=$id"
-						echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-						echo
-						exit 0
-					else
-						echo "INFO: Adding $(basename $filepath) to queue with id=$id"
-						echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-					fi
+			queue="true"
+			if [[ $queue_run != "true" ]]; then
+				# figure out ID
+				if [[ -e "$queue_file" ]]; then
+					#get last id
+					id=$(( $(tail -1 "$queue_file" | cut -d'#' -f1) + 1 ))
+				else
+					#assume this is the first one
+					id="1"
 				fi
+				get_size "$filepath" "exclude_array[@]" &> /dev/null
+				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
+					echo "INFO: Item already exists. Doing nothing."
+					exit 0
+				elif [[ "$option" == "end" ]]; then
+					source=$source"Q"
+					echo "INFO: Adding $(basename $filepath) to queue with id=$id"
+					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+					echo
+					exit 0
+				else
+					echo "INFO: Adding $(basename $filepath) to queue with id=$id"
+					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+				fi
+			fi
 		;;
 		"remove" )
-				#remove item acording to id
-				sed "/^"$id"\#/d" -i "$queue_file"
+			#remove item acording to id
+			sed "/^"$id"\#/d" -i "$queue_file"
 		;;
 		"run" )
 			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
@@ -96,11 +103,12 @@ function queue {
 				#load next item from top
 				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f1)
 				source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f2)
-				next=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f3)
+				local filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f3)
 				queue_run="true"
-				#Reload config. Things might have changed
-				loadConfig
-				main "$next"
+				# change lockfile status
+				lockfileoption="running"
+				# execute mainscript again
+				start_main --path="$filepath" --user="$username"
 			else
 				echo "Empty queue"
 				if [[ -f "$queue_file" ]]; then rm "$queue_file"; fi
@@ -477,7 +485,7 @@ function create_log_file {
 		if [[ $ftpsizemanagement == "true" ]]; then
 			echo "***************************	FTP INFO: 0/"$totalmb"MB (Free "$freemb"MB)" >> $logfile
 		else
-			echo "***************************	FTP INFO: not enabled" >> $logfile
+			echo "***************************	FTP INFO: not used yet" >> $logfile
 		fi
 		echo "***************************	LASTDL: nothing" >> $logfile
 		echo "***************************	" >> $logfile
@@ -485,6 +493,8 @@ function create_log_file {
 		echo "" >> $logfile
 		else
 			echo "INFO: Logfile: \"$logfile\""
+			# clean log file
+			echo "***************************	FTP INFO:" >> $logfile
 	fi
 }
 
@@ -535,7 +545,10 @@ function check_setup {
 
 function lockfile {
 	case "$1" in
-		"new" )
+		running )
+			echo "INFO: Lockfile exists"
+			;;
+		* ) # upon start no option is available, hence create lockfile
 			echo "INFO: Writing lockfile: \"$lockfile\""
 			if [[ -f "$lockfile" ]] && [[ $force != "true" ]]; then
 				#The file exists, find PID, transfere, confirm it still is running
@@ -548,12 +561,11 @@ function lockfile {
 					echo "INFO: No lockfile detected"
 					rm "$lockfile"
 				else
-					echo -e "\e[00;31mERROR: The user $user is running something\e[00m"
+					echo -e "\e[00;31mINFO: The user $user is running something\e[00m"
 					echo "       The script running is: $mypid_script"
 					echo "       The transfere is: "$alreadyinprogres""
 					echo "       If that is wrong remove you need to remove $lockfile"
 					echo "       Wait for it to end, or kill it: kill -9 pidID"
-					echo ""
 					if [[ $queue == "true" ]]; then
 							queue add end
 					else
@@ -604,10 +616,10 @@ get_size "$filepath" "exclude_array[@]"
 #Execute preexternal command
 if [[ -n "$exec_pre" ]]; then
 	if [[ $test_mode != "true" ]]; then
-			echo "INFO: Executing external command: \"$exec\" "
+			echo "INFO: Executing external command: \"$exec_pre\" "
 			eval "$exec_pre"
 	else
-		echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec\"\e[00m"
+		echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_pre\"\e[00m"
 	fi
 fi
 
@@ -673,13 +685,13 @@ if [[ -n "$feed_name" ]]; then
 	source "$scriptdir/plugins/flexget.sh" && flexget_feed
 fi
 
+# Delay transfer if needed
+delay
+
 #Transfere happens here
 scriptstart=$(date +%s)
 scriptstart2=$(date '+%d/%m/%y-%a-%H:%M:%S')
 echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $scriptstart2\e[00m"
-
-# Delay transfer if needed
-delay
 
 # Transfer files
 ftp_transfere
@@ -715,14 +727,14 @@ echo
 if [[ -n $exec_post ]]; then
 	if [[ $test_mode != "true" ]]; then
 		if [[ $allow_background == "true" ]]; then
-			echo "INFO: Executing external command(In background): \"$exec\" "
-			eval $exec &
+			echo "INFO: Executing external command(In background): \"$exec_post\" "
+			eval $exec_post &
 		else
-			echo "INFO: Executing external command: \"$exec\" "
-			eval $exec
+			echo "INFO: Executing external command: \"$exec_post\" "
+			eval $exec_post
 		fi
 	else
-		echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec\"\e[00m"
+		echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_post\"\e[00m"
 	fi
 fi
 
@@ -733,7 +745,7 @@ queue run
 }
 
 ################################################### CODE BELOW #######################################################
-{ #initiation
+function start_main {
 #Look for which options has been used
 if (($# < 1 )); then echo; echo -e "\e[00;31mERROR: No option specified\e[00m"; echo "See --help for more information"; echo ""; exit 0; fi
 while :
@@ -745,49 +757,39 @@ do
 		--user=* ) user="${1#--user=}"; shift;;
 		--exec_post=* ) exec_post="${1#--exec_post=}"; shift;;
 		--exec_pre=* ) exec_pre="${1#--exec_pre=}"; shift;;
-		--delay=* ) date_time="${1#--delay=}"; shift;;
+		--delay=* ) delay="${1#--delay=}"; shift;;
 		--force | -f ) force=true; shift;;
 		--source=* ) source="${1#--source=}"; shift;;
 		--sortto=* ) sortto="${1#--sortto=}"; shift;;
 		--example ) load_help; show_example; exit 0;;
 		--freespace ) ftp_sizemanagement info; cleanup session; exit 0;;
-		--test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;
-		--verbose | -v) verbose=1; shift;;
-		--debug ) verbose=2; shift;;
-		--quiet) quiet=true; shift;;		
+		--test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;		
 		-* ) echo -e "\e[00;31mInvalid option: $@\e[00m"; echo "See --help for more information"; echo ""; exit 1;;
 		* ) break ;;
 		--) shift; break;;
 	esac
 done
 
-if [[ $quiet ]]; then
-	#silent
-	exec > /dev/null 2>&1
-elif [[ ! $quiet ]] && [[ $verbose == 1 ]]; then
-	echo "STARTING PID=$BASHPID"
-	set -x	
-elif [[ ! $quiet ]] && [[ $verbose == 2 ]]; then
-	#verbose
-	exec 2>> "$scriptdir/run/$user.debug"
-	echo "STARTING PID=$BASHPID"
-	set -x
-elif [[ $quiet ]] && [[ $verbose != 0 ]]; then
-	echo -e "\e[00;31mERROR: Verbose and silent can't be used at the same time\e[00m"
-	exit 0
-fi
-
-#Load dependencies
-source "$scriptdir/dependencies/setup.sh" && setup
-
-#Check wether we have an external config, user config or no config at all
-loadConfig
-
 case "$option" in
 	"help" ) # Write out help
 		load_help; show_help; show_example; exit 0
 	;;
 	* ) # main program
+		# Looking for lockfile, create if not present, and if something new is added, add to queue if something
+		# running. If nothing is running continue
+		lockfile "$lockfileoption"
+		
+		#Load dependencies
+		source "$scriptdir/dependencies/setup.sh"
+
+		#Check wether we have an external config, user config or no config at all
+		loadConfig
+		
+		if [[ -z "$filepath" ]]; then
+			# if --path is not used, try and run queue
+			queue run
+		fi
+		
 		if [[ "$transferetype" == "downftp" ]]; then
 			# client
 			# assume path is OK
@@ -795,10 +797,10 @@ case "$option" in
 		elif [[ "$transferetype" == "upftp" ]]; then
 			echo "INFO: Transfertype: $transferetype"
 			# server
-			if [[ -d "$filepath" ]] || [[ -f "$filepath" ]] && [[ -z $(find "$filepath" -type f) ]]; then
+			if [[ ! -d "$filepath" ]] || [[ ! -f "$filepath" ]] && [[ -z $(find "$filepath" -type f) ]]; then
 				# make sure that path is real and contains something, else exit
 				# if not used, do nothing!
-				echo -e "\e[00;31mERROR: Option --path is required with existing path and has to contain file(s).\n See --help for more info!\e[00m"
+				echo -e "\e[00;31mERROR: Option --path is required with existing path and has to contain file(s).\n       Remove it from queue manually. bash ftpauto.sh --user=$username --id=$id --forget \e[00m"
 				echo
 				cleanup session
 				cleanup end
@@ -809,15 +811,6 @@ case "$option" in
 			cleanup session
 			cleanup end
 			exit 1			
-		fi
-
-		# Looking for lockfile, create if not present, and if something new is added, add to queue if something
-		# running. If nothing is running continue
-		lockfile "new"
-
-		if [[ -z "$filepath" ]]; then
-			# if --path is not used, try and run queue
-			queue run
 		fi
 
 		# OK nothing running and --path is real, lets continue
