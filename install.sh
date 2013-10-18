@@ -67,9 +67,9 @@ function install_lftp {
 		fi
 	else
 		# get online lftp version
-		local lftpversion=$(curl --silent http://lftp.yar.ru/ftp/ | egrep -o '>lftp.(.*).+tar.gz' | sort -n | tail -1)
+		local lftpversion=$(curl --silent http://lftp.yar.ru/ftp/ | egrep -o '>lftp.(.*).+tar.gz<' | tail -1)
 		lftpversion=${lftpversion#\>lftp\-}
-		lftpversion=${lftpversion%.tar.gz}
+		lftpversion=${lftpversion%.tar.gz<}
 		# get current lftp version
 		local c_lftpversion=$(lftp --version | egrep -o 'Version\ [0-9].[0-9].[0-9]' | cut -d' ' -f2)
 		version_compare "$lftpversion" "$c_lftpversion"
