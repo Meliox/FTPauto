@@ -23,9 +23,29 @@ If you find this tool helpful, a small donation would be appreciated! Thanks!
 ![Pushover](https://pushover.net/assets/pushover-header-eaa79ef56c7041125acbe9fb9290b2fa.png)![FlexGet](http://flexget.com/chrome/site/FlexGet.png)
 
 - - -
+# Index
+* [Requirements](#requirements)
+* [Installation (Recommended)](#installation-recommended)
+--* [Get svn](#get-svn)
+--* [Manual install](#manual-install)
+--* [Upgrading](#upgrading)
+* [Configuration](#configuration)
+--* [Single user](#single-users)
+--* [Multiple users](#multiple-users)
+--* [The config](#the-config)
+* [Usage](#usage)
+--* [Download single user](#download---single-user)
+--* [Download multiple users](#download---multiple-users)
+--* [Arguments](#arguments)
+* [Utils](#utils)
+--* [Wakeonlan](#wakeonlan)
+* [3rd party uses](#3rd-party-uses)
+--* [FlexGet](#flexget)
+
 
 ## Requirements
-You should have User and sudo or root access to use and install, respectively. 
+You should have User and sudo or root access to use and install, respectively.
+Script is mainly written to Debian/Ubuntu and is guaranteed to work under these!
 
 ## Installation (Recommended)
 To get FTPauto, download and execute the installer: [download](https://raw.github.com/Meliox/FTPauto/master/install.sh)
@@ -49,7 +69,7 @@ Run
 bash install.sh install
 ```
 
-### Manually install
+### Manual install
 If you prefer to do everything manually, read below.
 
 If you want the lastest version of lftp, then compile it from source:
@@ -108,11 +128,12 @@ First thing that need to be done is to create a user and edit the users settings
 Add users
 ```bash
 bash ftpauto.sh --user= --add
-
+```
 ## Multiple users
 Add users
 ```bash
 bash ftpauto.sh --user=<USERNAME> --add
+```
 
 Editing can be done by
 ```bash
@@ -123,9 +144,10 @@ Note: Editing can also be done manually after adding the user!
 nano ~/users/<USERNAME>/config
 ```
 
-When finish you can now start use FTPauto [usage](https://github.com/Meliox/FTPauto#usage)
+Editing the config should be straight forward, but if you have troubles more info can be found here [The config](#the-config).
+After this you may now start using FTPauto. See more [usage](#usage)
 
-## Settings
+## The config
 The most important setting is "transferetype".
 Depending on the solution you can FTPauto can do
 ```
@@ -225,15 +247,15 @@ push_user=""
 ## Transferetype-example
 
 # Usage
-Depending on you have multiple users or just a single user, you can start transfering files
+Depending on you have multiple users or just a single user see sections below. A common feature is to use the common arguements listed here: [Arguments](#arguments)
 
 ### Download - single user
 Now you can transfer something
 ```bash
 bash ftpauto.sh --path=~/something/
 ```
-```
-### Download - multiple user
+
+### Download - multiple users
 Now you can transfer something
 ```bash
 bash ftpauto.sh --user=<USERNAME> --path=~/something/
@@ -289,15 +311,43 @@ Here's an overview as well
       --test             | Shows what transfer is going to happen
       --quiet            | Supresses all output
 	  --verbose          | Debugs to console
+	  --progress         | While transfering, this will print out progress if enabled in config
 	  --debug            | Debugs to logfile
 	  --force            | Transfer file despite something is running
 	  --exec_pre         | Execute commands before download
 	  --exec_post        | Execute commands after download
-	  --delay            | Delays transfer until X. Has to be in this format "01/01/2010 12:00"
+	  --delay            | Delays transfer until X. Has to be in this format "01/01/2010 12:00" (Month/Day/Year 24h-time)
 	  --help             | Print help info
 ```
 
+# Utils
+A few usefull bashscripts has been added to FTPauto, and might be used...
+## Wakeonlan
+```bash
+# A simple shell to Wake Up nas devices / home servers
+# Should be called with --ip="<IP-ADDRESS>" --macadr="<MAC-ADDRESS>" --port"<PORT>"
+# ONLY <MAC-ADDRESS> is mandatory(on lan you mostlikely only need this)
+# Remember to verify that the server supports wakeonlan
+#     type: ethtool eth0 and if "Supports Wake-on: g" i present
+#     you're good to go. Else type ethtool -s eth0 wol g to activate
+#     and see again. If line is ok, you're good to go, else not working.
+#     eth0 is the network interface, you might have others
+# Example bash wakeonlan.sh -i "10.0.0.1" "30:11:32:08:15:74"
+#
+# Online WOL. Most routers forget the clients after a few minutes and that's why online wol
+# rarely works. On my asus router you can hardcore the ip (static ofc.) with the mac adress
+# with telnet/ssh like arp -s 192.168.0.1 00:30:c1:5e:68:74. And then after portforwarding
+# it should work
+#
+# As a default setting to programs send 3 magic packets incase one is lost. Can be changed
+# below
+#settings
+quiet="false"
+packets="3"
+```
+
 # 3rd party uses
+FTPauto can be used in combination with other software. Here are a few examples listed.
 ## FlexGet
 First prerequisite is to install Flexget, which can be found here [FlexGet#Install](http://flexget.com/wiki/InstallWizard/Linux/Environment/). Then an appropiate config has to be written as the following example.
 
