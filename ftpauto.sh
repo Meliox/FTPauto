@@ -143,22 +143,24 @@ function load_user {
 		# user used not found, want to create them
 		if [[ -z "$username" ]]; then
 			echo -e "\e[00;31mERROR: No config found for default\e[00m"
-			read -p "Do you want to create config for default user (y/n)?"
+			read -p "Do you want to create config for default user (y/n)? "
 			if [ "$REPLY" == "y" ]; then
 				username="default"
 				option="add"
 			else
 				echo -e "\e[00;31mYou may want to have a look on --help\e[00m"
+				echo
 				exit 1
 			fi
 		elif [[ -n "$username" ]]; then
 			echo -e "\e[00;31mERROR: No config found for user=$username\e[00m"
-			read -p "Do you want to create config for $username user (y/n)?"
+			read -p "Do you want to create config for $username user (y/n)? "
 			if [ "$REPLY" == "y" ]; then
 				username="$username"
 				option="add"
 			else
 				echo -e "\e[00;31mYou may want to have a look on --help\e[00m"
+				echo
 				exit 1			
 			fi		
 		fi
