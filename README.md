@@ -48,7 +48,10 @@ If you find this tool helpful, a small donation would be appreciated! Thanks!
 You should have User and sudo or root access to use and install, respectively.
 Script is mainly written to Debian/Ubuntu and is guaranteed to work under these!
 
-## Installation (Recommended)
+## Installation
+There are several way to install FTPauto. Briefly summarized: The installer does just about everything for you. This is also the most stable version. You can also get the most recent version from git by pulling it.
+
+### The installer (recommended)
 To get FTPauto, download and execute the installer: [download](https://raw.github.com/Meliox/FTPauto/master/install.sh)
 The installer will set up the enviroment and will help to install the nessary programs. During the installation you will also be able to set up a user!
 
@@ -73,22 +76,11 @@ bash install.sh install
 ### Manual install
 If you prefer to do everything manually, read below.
 
-If you want the lastest version of lftp, then compile it from source:
+The following programs are needed
 ```bash
-cd dependencies
-sudo apt-get -y install checkinstall libreadline-dev
-wget http://lftp.yar.ru/ftp/lftp-4.4.8.tar.gz
-tar -xzvf lftp-4.4.8.tar.gz
-rm lftp-4.4.8.tar.gz
-cd lftp-4.4.8 && ./configuret && make && sudo checkinstall -y
+rar lftp cksfv subversion automake1.9 fuse-utils libfuse-dev checkinstall libreadline-dev
 ```
-
-Other get the following programs from you repo:
-```bash
-sudo apt-get -y install rar lftp cksfv subversion automake1.9 fuse-utils libfuse-dev checkinstall libreadline-dev
-```
-
-rarfs needs to be compiled:
+Get them from your favorit repo or compile them yourself. However, rarfs needs to be compiled manually. This is showed below
 ```bash
 cd dependencies/
 wget http://downloads.sourceforge.net/project/rarfs/rarfs/0.1.1/rarfs-0.1.1.tar.gz
@@ -114,13 +106,13 @@ If you want to upgrade to newest version, simply run
 ```bash
 bash install.sh update
 ```
-NOTE: Running lastest version, doesn't mean its 100% stable. 
 
 The same almost goes for git
 ```bash
 git pull
 bash install.sh update
 ```
+NOTE: Running lastest version, doesn't mean it's 100% stable. 
 
 # Configuration
 First thing that need to be done is to create a user and edit the users settings. If you only want one user, you can leave <USERNAME> empty (default will be used). The setting that is to be edited is shown in [settings](https://github.com/Meliox/FTPauto#settings)
