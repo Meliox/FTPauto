@@ -28,14 +28,14 @@ function version_compare {
 }
 
 function lftp_update {
-	if [[ -z $(builtin type -p $i) ]]; then
+	if [[ -z $(builtin type -p lftp) ]]; then
 		echo -n "Removing old version ..."
 		sudo apt-get -y remove lftp &> /dev/null
 	fi
 	cd "$scriptdir/dependencies"
 	sudo apt-get -y install checkinstall libreadline-dev &> /dev/null
 	# find latest lftp
-	local lftpversion=$(curl --silent http://lftp.cybermirror.org/ | egrep -o '>lftp.(.*).+tar.gz' | sort -n | tail -1)
+	local lftpversion=$(curl --silent http://lftp.yar.ru/ftp/ | egrep -o '>lftp.(.*).+tar.gz' | tail -1)
 	lftpversion=${lftpversion#\>lftp\-}
 	lftpversion=${lftpversion%.tar.gz}
 	wget http://lftp.yar.ru/ftp/lftp-$lftpversion.tar.gz &> /dev/null
@@ -74,7 +74,7 @@ function install_lftp {
 		local c_lftpversion=$(lftp --version | egrep -o 'Version\ [0-9].[0-9].[0-9]' | cut -d' ' -f2)
 		version_compare "$lftpversion" "$c_lftpversion"
 		if [[ "$new_version" -eq "1" ]]; then
-			echo -e "[\e[00;33mv$lftpversion available\e[00m] Current version $c_lftpversion"
+			echo -e "[\e[00;33mv$lftpversion available, current version $c_lftpversion\e[00m] "
 			read -p " Do you wish to update(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
 				lftp_update
@@ -276,8 +276,8 @@ function download {
 	echo " Updated to v$release_version"
 	echo -n "Extracting ..."
 	echo -e "\e[00;32m [OK]\e[00m"
+	clear
 	bash "$scriptdir/install.sh" install
-	exit 0
 }
 function update {
 	# get most recent stable version
@@ -300,6 +300,8 @@ function update {
 		fi
 	else
 		echo -e "\e[00;32m [lastest]\e[00m"
+		echo
+		exit 0
 	fi
 }
 
@@ -309,7 +311,7 @@ echo ""
 case "$1" in
 	uninstall)	uninstall;;
 	install)	install;;
-	update)update;;
+	update)	update;;
 	*)
 		echo ""; echo "Usage: $0 (install | uninstall | update)"; echo "";
 		exit 1
