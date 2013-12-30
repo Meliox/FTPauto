@@ -165,6 +165,14 @@ function load_user {
 			fi		
 		fi
 	fi
+	# confirm that config is most recent version
+	if [[ $config_version -lt "2" ]]; then
+		echo -e "\e[00;31mERROR: Config is out-dated, please update it. See --help for more info!\e[00m"
+		echo -e "\e[00;31mIt has to be version 2\e[00m"
+		cleanup session
+		cleanup end
+		exit 0
+	fi	
 }
 
 function invalid_arg {
@@ -220,8 +228,8 @@ do
 		--delay=* ) delay=${1#--delay=}; download_argument+=("--delay=$delay"); shift;;
 		--sort ) if (($# > 1 )); then sortto="$2"; download_argument+=("--sortto=$sortto"); else invalid_arg "$@"; fi; shift 2;;
 		--sort=* ) sortto=${1#--sort=}; download_argument+=("--sortto=$sortto"); shift;;
-		--path ) if (($# > 1 )); then option=("download" "start"); filepath="$2"; download_argument+=("--path=$filepath"); else invalid_arg "$@"; fi; shift 2;;
-		--path=* ) option=("download" "start"); filepath="${1#--path=}"; download_argument+=("--path=$filepath"); shift;;
+		--path ) if (($# > 1 )); then option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; filepath="$2"; download_argument+=("--path=$filepath"); else invalid_arg "$@"; fi; shift 2;;
+		--path=* ) option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; filepath="${1#--path=}"; download_argument+=("--path=$filepath"); shift;;
 		--source=* ) source=${1#--source=}; download_argument+=("--source=$source"); if [[ -z $source ]]; then show_help; exit 1; fi; shift;;
 		--source | -s ) if (($# > 1 )); then source=\"$2\"; download_argument+=("--source=$source"); else invalid_arg "$@"; fi; shift 2;;
 		# Other
@@ -313,6 +321,12 @@ case "${option[0]}" in
 		fi
 	;;	
 	"download" )
+		# set source
+		if [[ -z $source ]]; then
+			source="CONSOLE"
+		else
+			source="$source"
+		fi	
 		# start download right away
 		if [[ ${option[1]} == "start" ]]; then
 			start_ftpmain
@@ -353,12 +367,6 @@ case "${option[0]}" in
 				fi
 				get_size "$filepath" "exclude_array[@]" &> /dev/null
 				
-				# set source
-				if [[ -z $source ]]; then
-					source="CONSOLEQ"
-				else
-					source=$source"Q"
-				fi
 				echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 				message "INFO: Adding $(basename "$filepath") to queue with id=$id" "0"
 			fi

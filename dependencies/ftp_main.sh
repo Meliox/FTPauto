@@ -79,11 +79,12 @@ function queue {
 				fi
 				get_size "$filepath" "exclude_array[@]" &> /dev/null
 				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
-					echo "INFO: Item already exists. Doing nothing."
+					echo "INFO: Item already in queue. Doing nothing..."
+					echo
 					exit 0
 				elif [[ "$option" == "end" ]]; then
 					source=$source"Q"
-					echo "INFO: Queue id: $id"
+					echo "INFO: The transfer $(basename "$filepath") has been added to queue with id=$id"
 					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 					echo
 					exit 0
@@ -98,8 +99,9 @@ function queue {
 			sed "/^"$id"\#/d" -i "$queue_file"
 		;;
 		"run" )
+			# Create lockfile
+			lockfile "$lockfileoption"
 			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
-				echo "Running queue"
 				#load next item from top
 				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f1)
 				source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f2)
@@ -108,9 +110,11 @@ function queue {
 				# change lockfile status
 				lockfileoption="running"
 				# execute mainscript again
+				echo "---------------------- Running queue ----------------------"
+				echo "Transfering id=$id, $(basename "$filepath")"
 				start_main --path="$filepath" --user="$username"
 			else
-				echo "Empty queue"
+				echo "----------------------- Empty queue -----------------------"
 				if [[ -f "$queue_file" ]]; then rm "$queue_file"; fi
 				echo "Program has ended"
 				cleanup end
@@ -499,33 +503,8 @@ function create_log_file {
 }
 
 function loadConfig {
-	# load config for default
-	if [[ -z "$user" ]] && [[ -f "$scriptdir/users/default/config" ]]; then
-		echo "INFO: Loading default config"
-		username="default"
-		config_name="$scriptdir/users/default/config"
-	# load config for <USER>
-	elif [[ -n "$user" ]] && [[ -f "$scriptdir/users/$user/config" ]]; then
-		echo "INFO: Loading config: $user"
-		source "$scriptdir/users/$user/config"
-		username="$user"
-	else
-		if [[ -z "$user" ]] && [[ ! -f "$scriptdir/users/default/config" ]]; then
-			echo -e "\e[00;31mERROR: No config found for default\e[00m"
-		elif [[ -n "$user" ]]; then
-			echo -e "\e[00;31mERROR: No config found for user=$user\e[00m"
-		fi
-		echo -e "\e[00;31mYou may want to have a look on help, --help\e[00m"
-		exit 1
-	fi
-	# confirm that config is most recent version
-	if [[ $config_version -lt "2" ]]; then
-		echo -e "\e[00;31mERROR: Config is out-dated, please update it. See --help for more info!\e[00m"
-		echo -e "\e[00;31mIt has to be version 2\e[00m"
-		cleanup session
-		cleanup end
-		exit 0
-	fi
+	# reload config
+	source "$scriptdir/users/$user/config"
 
 	#load paths to everything
 	setup
@@ -546,7 +525,7 @@ function check_setup {
 function lockfile {
 	case "$1" in
 		running )
-			echo "INFO: Lockfile exists"
+			true
 			;;
 		* ) # upon start no option is available, hence create lockfile
 			echo "INFO: Writing lockfile: $lockfile"
@@ -563,9 +542,9 @@ function lockfile {
 				else
 					echo -e "\e[00;31mINFO: The user $user is running something\e[00m"
 					echo "       The script running is: $mypid_script"
-					echo "       The transfere is: "$alreadyinprogres""
-					echo "       If that is wrong remove you need to remove $lockfile"
-					echo "       Wait for it to end, or kill it: kill -9 pidID"
+					echo "       The transfere is: $alreadyinprogres"
+					echo "       If that is wrong remove $lockfile"
+					echo "       Wait for it to end, or kill it: kill -9 $mypid_script"
 					if [[ $queue == "true" ]]; then
 							queue add end
 					else
@@ -616,11 +595,12 @@ get_size "$filepath" "exclude_array[@]"
 #Execute preexternal command
 if [[ -n "$exec_pre" ]]; then
 	if [[ $test_mode != "true" ]]; then
-			echo "INFO: Executing external command: \"$exec_pre\" "
+			echo "INFO: Executing external command - START: \"$exec_pre\" "
 			eval "$exec_pre"
 	else
 		echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_pre\"\e[00m"
 	fi
+	echo "INFO: Executing external command - ENDED"
 fi
 
 #Prepare login
@@ -732,6 +712,7 @@ if [[ -n $exec_post ]]; then
 		else
 			echo "INFO: Executing external command: \"$exec_post\" "
 			eval $exec_post
+			echo "INFO: Executing external command - ENDED"
 		fi
 	else
 		echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_post\"\e[00m"
@@ -775,54 +756,42 @@ case "$option" in
 		load_help; show_help; show_example; exit 0
 	;;
 	* ) # main program
-	
 		# confirm filepath
-		if [[ "$transferetype" == "downftp" ]]; then
-			# client
-			# assume path is OK
-			echo "INFO: Transfertype: $transferetype"
-		elif [[ "$transferetype" == "upftp" ]]; then
-			echo "INFO: Transfertype: $transferetype"
-			# server
-			if [[ ! -d "$filepath" ]] || [[ ! -f "$filepath" ]] && [[ -z $(find "$filepath" -type f) ]]; then
-				# make sure that path is real and contains something, else exit
-				# if not used, do nothing!
+		if [[ -z "$filepath" ]]; then
+			# if --path is not used, try and run queue
+			queue run
+		elif [[ ! -d "$filepath" ]] || [[ ! -f "$filepath" ]] && [[ -z $(find "$filepath" -type f 2>/dev/null) ]]; then
+			# file or path not found
+			if [[ "$transferetype" == "downftp" ]]; then
+				# server <-- client, assume path is OK
+				lockfile "$lockfileoption"
+				true
+			elif [[ "$transferetype" == "upftp" ]]; then		
+				# server --> client
 				echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m"
 				echo
-				cleanup session
-				cleanup end
 				exit 1
+			else
+				echo "INFO: Transfertype \"$transferetype\" not recognized. Have a look on your config"
+				echo
+				exit 1				
 			fi
-		else
-			echo "INFO: transfertype \"$transferetype\" not recognized. Have a look on your config"
-			cleanup session
-			cleanup end
-			exit 1			
 		fi
-		
-		# Looking for lockfile, create if not present, and if something new is added, add to queue if something
-		# running. If nothing is running continue
+		# Create lockfile
 		lockfile "$lockfileoption"
+		
+		echo "INFO: Transfertype: $transferetype"
 		
 		#Load dependencies
 		source "$scriptdir/dependencies/setup.sh"
 
 		#Check wether we have an external config, user config or no config at all
 		loadConfig
-		
-		if [[ -z "$filepath" ]]; then
-			# if --path is not used, try and run queue
-			queue run
-		fi
 
 		# OK nothing running and --path is real, lets continue
 		# fix spaces: "/This\ is\ a\ path"
 		# Note: The use of normal backslashes is NOT supported
 		filepath="$(echo "$filepath" | sed 's/\\./ /g')"
-		# Set source manually if it ins't set
-		if [[ -z $source ]]; then
-				source="CONSOLE"
-		fi
 
 		#start program
 		main "$filepath"
