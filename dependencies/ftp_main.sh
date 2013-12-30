@@ -775,6 +775,31 @@ case "$option" in
 		load_help; show_help; show_example; exit 0
 	;;
 	* ) # main program
+	
+		# confirm filepath
+		if [[ "$transferetype" == "downftp" ]]; then
+			# client
+			# assume path is OK
+			echo "INFO: Transfertype: $transferetype"
+		elif [[ "$transferetype" == "upftp" ]]; then
+			echo "INFO: Transfertype: $transferetype"
+			# server
+			if [[ ! -d "$filepath" ]] || [[ ! -f "$filepath" ]] && [[ -z $(find "$filepath" -type f) ]]; then
+				# make sure that path is real and contains something, else exit
+				# if not used, do nothing!
+				echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m"
+				echo
+				cleanup session
+				cleanup end
+				exit 1
+			fi
+		else
+			echo "INFO: transfertype \"$transferetype\" not recognized. Have a look on your config"
+			cleanup session
+			cleanup end
+			exit 1			
+		fi
+		
 		# Looking for lockfile, create if not present, and if something new is added, add to queue if something
 		# running. If nothing is running continue
 		lockfile "$lockfileoption"
@@ -788,29 +813,6 @@ case "$option" in
 		if [[ -z "$filepath" ]]; then
 			# if --path is not used, try and run queue
 			queue run
-		fi
-		
-		if [[ "$transferetype" == "downftp" ]]; then
-			# client
-			# assume path is OK
-			echo "INFO: Transfertype: $transferetype"
-		elif [[ "$transferetype" == "upftp" ]]; then
-			echo "INFO: Transfertype: $transferetype"
-			# server
-			if [[ ! -d "$filepath" ]] || [[ ! -f "$filepath" ]] && [[ -z $(find "$filepath" -type f) ]]; then
-				# make sure that path is real and contains something, else exit
-				# if not used, do nothing!
-				echo -e "\e[00;31mERROR: Option --path is required with existing path and has to contain file(s).\n       Remove it from queue manually. bash ftpauto.sh --user=$username --id=$id --forget \e[00m"
-				echo
-				cleanup session
-				cleanup end
-				exit 1
-			fi
-		else
-			echo "INFO: transfertype \"$transferetype\" not recognized. Have a look on your config"
-			cleanup session
-			cleanup end
-			exit 1			
 		fi
 
 		# OK nothing running and --path is real, lets continue

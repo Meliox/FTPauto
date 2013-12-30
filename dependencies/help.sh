@@ -2,18 +2,16 @@
 function write_config {
 #write show_example to config
 	echo -n "Preparing config ..."
-	if [[ -n "$user" ]]; then
-		user="$user"
-	else
+	if [[ -z "$username" ]]; then
 		user=default
 	fi
 	echo -e "\e[00;32m [OK]\e[00m"
-	local config="$scriptdir/users/$user/config"
+	local config="$scriptdir/users/$username/config"
 	if [[ ! -d "$scriptdir/users" ]]; then
 		mkdir "$scriptdir/users"
 	fi
-	if [[ ! -d "$scriptdir/users/$user" ]]; then
-		mkdir "$scriptdir/users/$user"
+	if [[ ! -d "$scriptdir/users/$username" ]]; then
+		mkdir "$scriptdir/users/$username"
 	fi
 	if [[ -f "$config" ]]; then
 		read -p " Config already exits($config), do you want to overwrite(y/n)? "

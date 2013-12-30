@@ -274,7 +274,6 @@ case "${option[0]}" in
 		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: User=\"$username\" edited." "0"
 	;;	
 	"remove" ) # remove all userfiles log files
-		confirm_lock_file "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Can't remove userfiles for $username while session is running." "1"
 		# remove all userfiles log files from /run and /user/$username/
 		rm -f "$scriptdir/run/$username*"
 		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Userfiles removed for $username." "0"
