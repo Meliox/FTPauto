@@ -265,7 +265,7 @@ source "$scriptdir/dependencies/setup.sh"
 setup
 
 # Execute the given option
-echo "INFO: Option: ${option[@]}"
+echo "INFO: Option(s): ${option[@]}"
 case "${option[0]}" in
 	"add" ) # add user
 		load_help; write_config
