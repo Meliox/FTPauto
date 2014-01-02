@@ -479,8 +479,8 @@ function logrotate {
 			totaldltime=$(echo "$totaldltime_seconds + $transferTime" | bc)
 			totaldltime=$(printf '%02dd:%02dh:%02dm:%02ds' "$(($totaldltime/(60*60*24)))" "$(($totaldltime/(60*60)%24))" "$((($totaldltime/60)%60))" "$(($totaldltime%60))")
 
-			sed "1s#.*#***************************	FTP AUTODOWNLOAD SCRIPT FOR FLEXGET - $s_version#" -i $logfile
-			sed "2s#.*#***************************	STATS: "$totaldl"MB in $totalrls releases in $totaldltime#" -i $logfile
+			sed "1s#.*#***************************	FTPauto - $s_version#" -i $logfile
+			sed "2s#.*#***************************	STATS: "$totaldl"MB in $totalrls transfers in $totaldltime#" -i $logfile
 			sed "4s#.*#***************************	LASTDL: $(date) - "$orig_name" at "$speed"MB/s#" -i $logfile
 			sed "5s#.*#***************************	#" -i $logfile
 		else
@@ -491,8 +491,8 @@ function logrotate {
 function create_log_file {
 	if [ ! -e "$logfile" ]; then
 		echo "INFO: First time used - logfile is created"
-		echo "***************************	FTP AUTODOWNLOAD SCRIPT FOR FLEXGET - $s_version" >> $logfile
-		echo "***************************	STATS: 0MB in 0 releases in 00d:00h:00m:00s" >> $logfile
+		echo "***************************	FTPauto - $s_version" >> $logfile
+		echo "***************************	STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> $logfile
 		if [[ $ftpsizemanagement == "true" ]]; then
 			echo "***************************	FTP INFO: 0/"$totalmb"MB (Free "$freemb"MB)" >> $logfile
 		else
