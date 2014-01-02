@@ -453,7 +453,7 @@ function logrotate {
 			transferTime2=$(printf '%02dh:%02dm:%02ds' "$(($transferTime/(60*60)))" "$((($transferTime/60)%60))" "$(($transferTime%60))")
 			speed=$(echo "scale=2; $size / $transferTime" | bc)
 			#Adds new info to 7th line, below everyhting statis
-			sed "7i $ScriptStartTime - $source - $orig_name, $size\MB, $transferTime2, $speed\MB/s" -i $logfile
+			sed "7i $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S') - $source - $orig_name, $size\MB, $transferTime2, $speed\MB/s" -i $logfile
 			lognumber=$((7 + $lognumber ))
 			#Add text to old file
 			if [[ $logrotate == "true" ]]; then
