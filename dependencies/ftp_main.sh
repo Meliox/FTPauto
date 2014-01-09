@@ -603,9 +603,9 @@ get_size "$filepath" "exclude_array[@]"
 #Execute preexternal command
 if [[ -n "$exec_pre" ]]; then
 	if [[ $test_mode != "true" ]]; then
-			echo "INFO: Executing external command - START"
-			echo "      $exec_pre"
-			eval "$exec_pre" | (while read; do echo "      $REPLY"; done)
+		echo "INFO: Executing external command - START"
+		echo "      $exec_pre"
+		eval "$exec_pre" | (while read; do echo "      $REPLY"; done)
 	else
 		echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_pre\"\e[00m"
 	fi
@@ -771,8 +771,8 @@ case "$option" in
 		if [[ -z "$filepath" ]]; then
 			# if --path is not used, try and run queue
 			queue run
-		elif [[ ! -d "$filepath" ]] || [[ ! -f "$filepath" ]] && [[ -z $(find "$filepath" -type f 2>/dev/null) ]]; then
-			# file or path not found
+		elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath" -type f 2>/dev/null) ]] || [[ -z $(find "$filepath" -type f 2>/dev/null) ]]; then
+			# path with files or file not found
 			if [[ "$transferetype" == "downftp" ]]; then
 				# server <-- client, assume path is OK
 				lockfile "$lockfileoption"
