@@ -67,8 +67,7 @@ function queue {
 	local option=$2
 	case "$1" in
 		"add" )
-			queue="true"
-			if [[ $queue_run != "true" ]]; then
+			if [[ $queue == "true" ]]; then
 				# figure out ID
 				if [[ -e "$queue_file" ]]; then
 					#get last id
@@ -79,16 +78,17 @@ function queue {
 				fi
 				get_size "$filepath" "exclude_array[@]" &> /dev/null
 				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
-					echo "INFO: Item already exists. Doing nothing."
+					echo "INFO: Item already in queue. Doing nothing..."
+					echo
 					exit 0
 				elif [[ "$option" == "end" ]]; then
 					source=$source"Q"
-					echo "INFO: Queue id: $id"
+					echo "INFO: Queueing: $(basename "$filepath"), id=$id"
 					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 					echo
 					exit 0
 				else
-					echo "INFO: Adding $(basename $filepath) to queue with id=$id"
+					echo "INFO: Queueid: $id"
 					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 				fi
 			fi
@@ -96,21 +96,31 @@ function queue {
 		"remove" )
 			#remove item acording to id
 			sed "/^"$id"\#/d" -i "$queue_file"
+			# if queue is true then continue to run else stop
+			if [[ $queue == "true" ]]; then
+				queue run
+			else
+				cleanup end
+			fi
 		;;
 		"run" )
+			# Create lockfile
+			if [[ $queue == "true" ]]; then
+				# change lockfile status			
+				lockfileoption="running"
+			fi			
+			lockfile "$lockfileoption"
 			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
-				echo "Running queue"
 				#load next item from top
 				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f1)
 				source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f2)
 				local filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f3)
-				queue_run="true"
-				# change lockfile status
-				lockfileoption="running"
 				# execute mainscript again
+				echo "---------------------- Running queue ----------------------"
+				echo "Transfering id=$id, $(basename "$filepath")"
 				start_main --path="$filepath" --user="$username"
 			else
-				echo "Empty queue"
+				echo "----------------------- Empty queue -----------------------"
 				if [[ -f "$queue_file" ]]; then rm "$queue_file"; fi
 				echo "Program has ended"
 				cleanup end
@@ -119,6 +129,28 @@ function queue {
 			fi
 		;;
 	esac
+}
+
+function ftp_transfer_process {
+case "$1" in
+	"start" ) #start progressbar and transfer
+	TransferStartTime=$(date +%s)
+	ftp_processbar $retry_option &
+	pid_f_process=$!
+	sed "3c $pid_f_process" -i "$lockfile"
+	echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $(date --date=@$TransferStartTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
+	$lftp -f "$ftptransfere_file" &> /dev/null &
+	pid_transfer=$!
+	sed "2c $pid_transfer" -i "$lockfile"
+	wait $pid_transfer
+	pid_transfer_status="$?"
+	TransferEndTime=$(date +%s)
+	;;
+	"stop-process-bar" )
+		kill -9 $pid_f_process &> /dev/null
+		kill -9 $(sed -n '4p' $lockfile) &> /dev/null	
+	;;
+esac
 }
 
 function ftp_transfere {
@@ -241,56 +273,35 @@ function ftp_transfere {
 	 #start transfering
 	{
 	if [[ $test_mode != "true" ]]; then
-		#start progressbar and transfer	
-			ftp_processbar $retry_option &
-			pid_f_process=$!
-			sed "3c $pid_f_process" -i "$lockfile"
-			$lftp -f "$ftptransfere_file" &> /dev/null &
-			pid_transfer=$!
-			sed "2c $pid_transfer" -i "$lockfile"
-			wait $pid_transfer
-			pid_transfer_status="$?"
+			ftp_transfer_process start
 			#did lftp end properly
-			if [[ $pid_transfer_status -eq 1 ]]; then
-				quittime=$(( $scriptstart + $retry_download_max*60*60 )) #hours
-			fi
 			while [[ $pid_transfer_status -eq 1 ]]; do
+				quittime=$(( $ScriptStartTime + $retry_download_max*60*60 )) #hours
 				if [[ $(date +%s) -gt $quittime ]]; then
 					echo -e "\e[00;31mERROR: FTP transfer failed after max retries($retry_download_max hours)!\e[00m"
 					echo "Program has ended"
-					kill -9 $pid_f_process &> /dev/null
-					kill -9 $(sed -n '4p' "$lockfile") &> /dev/null
+					#remove processbar processes
+					ftp_transfer_process "stop-process-bar"
 					cleanup session
 					cleanup end
 					exit 0
-					break
 				fi
 				echo -e "\e[00;31mERROR: FTP transfer failed for some reason!\e[00m"
-				echo "INFO: Keep trying until $(date --date=@$quittime)"
+				echo "INFO: Keep trying until $(date --date=@$quittime '+%d/%m/%y-%a-%H:%M:%S')"
 				# ok done, kill processbar
 				kill -9 $pid_f_process &> /dev/null
 				kill -9 $(sed -n '4p' "$lockfile") &> /dev/null
-				scriptend=$(date +%s)
 				echo -e "\e[00;31mTransfer terminated: $(date '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 				waittime=$(($retry_download*60))
 				echo "INFO: Pausing session and trying again $retry_download"mins" later"
 				sed "3s#.*#***************************	FTP INFO: DOWNLOAD POSTPONED! Trying again in "$retry_download"mins#" -i $logfile
 				sleep $waittime
 				# restart transfer
-					scriptstart=$(date +%s)
-					scriptstart2=$(date '+%d/%m/%y-%a-%H:%M:%S')
-					echo -e "\e[00;32mTransfer started: $scriptstart2\e[00m"
-					ftp_processbar $retry_option &> /dev/null &
-					pid_f_process=$!
-					sed "3c $pid_f_process" -i "$lockfile"
-					$lftp -f "$ftptransfere_file" &> /dev/null &
-					pid_transfer=$!
-					sed "2c $pid_transfer" -i "$lockfile"
-					wait $pid_transfer
+				ftp_transfer_process start
 			done
+			echo -e "\e[00;37mINFO: \e[00;32mTransfer ended: $(date --date=@$TransferEndTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 			#remove processbar processes
-			kill -9 $pid_f_process &> /dev/null
-			kill -9 $(sed -n '4p' $lockfile) &> /dev/null
+			ftp_transfer_process "stop-process-bar"
 			#confirm that transfer has been successfull
 				if [[ $confirm_transfer == "true" ]]; then
 					echo -e "\e[00;31mINFO: Confirming that everything has been transfered, please wait...\e[00m"
@@ -406,7 +417,7 @@ function ftp_processbar { #Showing how download is proceding
 					# checks tranfered size and converts til human readable sizes
 					if [[ -a $proccess_bar_file ]]; then
 						transfered=$(cat $proccess_bar_file | awk '{print $1}')
-						diff=$(( $(date +%s) - $scriptstart ))
+						diff=$(( $(date +%s) - $TransferStartTime ))
 						timediff=$(printf '%02dh:%02dm:%02ds' "$(($diff/(60*60)))" "$((($diff/60)%60))" "$(($diff%60))")		
 						# if not empty calculate values, if empty we know nothing
 						if [[ "$transfered" -ge "1" ]] && [[ "$transfered" =~ ^[0-9]+$ ]]; then
@@ -438,11 +449,11 @@ function ftp_processbar { #Showing how download is proceding
 
 function logrotate {
 	if [[ $test_mode != "true" ]]; then
-			diff=$(( $scriptend - $scriptstart ))
-			timediff=$(printf '%02dh:%02dm:%02ds' "$(($diff/(60*60)))" "$((($diff/60)%60))" "$(($diff%60))")
-			speed=$(echo "scale=2; $size / $diff" | bc)
+			transferTime=$(( $TransferEndTime - $TransferStartTime ))
+			transferTime2=$(printf '%02dh:%02dm:%02ds' "$(($transferTime/(60*60)))" "$((($transferTime/60)%60))" "$(($transferTime%60))")
+			speed=$(echo "scale=2; $size / $transferTime" | bc)
 			#Adds new info to 7th line, below everyhting statis
-			sed "7i $scriptstart2 - $source - $orig_name, $size\MB, $timediff, $speed\MB/s" -i $logfile
+			sed "7i $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S') - $source - $orig_name, $size\MB, $transferTime2, $speed\MB/s" -i $logfile
 			lognumber=$((7 + $lognumber ))
 			#Add text to old file
 			if [[ $logrotate == "true" ]]; then
@@ -465,11 +476,11 @@ function logrotate {
 			totalrls=$(echo "$totalrls + 1" | bc)
 			totaldltime=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' $logfile | cut -d' ' -f7)
 			totaldltime_seconds=$(awk 'BEGIN{split("'$totaldltime'",a,":"); print a[1]*(60*60*24)+a[2]*(60*60)+a[3]*60+a[4];}')
-			totaldltime=$(echo "$totaldltime_seconds + $diff" | bc)
+			totaldltime=$(echo "$totaldltime_seconds + $transferTime" | bc)
 			totaldltime=$(printf '%02dd:%02dh:%02dm:%02ds' "$(($totaldltime/(60*60*24)))" "$(($totaldltime/(60*60)%24))" "$((($totaldltime/60)%60))" "$(($totaldltime%60))")
 
-			sed "1s#.*#***************************	FTP AUTODOWNLOAD SCRIPT FOR FLEXGET - $s_version#" -i $logfile
-			sed "2s#.*#***************************	STATS: "$totaldl"MB in $totalrls releases in $totaldltime#" -i $logfile
+			sed "1s#.*#***************************	FTPauto - $s_version#" -i $logfile
+			sed "2s#.*#***************************	STATS: "$totaldl"MB in $totalrls transfers in $totaldltime#" -i $logfile
 			sed "4s#.*#***************************	LASTDL: $(date) - "$orig_name" at "$speed"MB/s#" -i $logfile
 			sed "5s#.*#***************************	#" -i $logfile
 		else
@@ -480,8 +491,8 @@ function logrotate {
 function create_log_file {
 	if [ ! -e "$logfile" ]; then
 		echo "INFO: First time used - logfile is created"
-		echo "***************************	FTP AUTODOWNLOAD SCRIPT FOR FLEXGET - $s_version" >> $logfile
-		echo "***************************	STATS: 0MB in 0 releases in 00d:00h:00m:00s" >> $logfile
+		echo "***************************	FTPauto - $s_version" >> $logfile
+		echo "***************************	STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> $logfile
 		if [[ $ftpsizemanagement == "true" ]]; then
 			echo "***************************	FTP INFO: 0/"$totalmb"MB (Free "$freemb"MB)" >> $logfile
 		else
@@ -499,33 +510,8 @@ function create_log_file {
 }
 
 function loadConfig {
-	# load config for default
-	if [[ -z "$user" ]] && [[ -f "$scriptdir/users/default/config" ]]; then
-		echo "INFO: Loading default config"
-		username="default"
-		config_name="$scriptdir/users/default/config"
-	# load config for <USER>
-	elif [[ -n "$user" ]] && [[ -f "$scriptdir/users/$user/config" ]]; then
-		echo "INFO: Loading config: $user"
-		source "$scriptdir/users/$user/config"
-		username="$user"
-	else
-		if [[ -z "$user" ]] && [[ ! -f "$scriptdir/users/default/config" ]]; then
-			echo -e "\e[00;31mERROR: No config found for default\e[00m"
-		elif [[ -n "$user" ]]; then
-			echo -e "\e[00;31mERROR: No config found for user=$user\e[00m"
-		fi
-		echo -e "\e[00;31mYou may want to have a look on help, --help\e[00m"
-		exit 1
-	fi
-	# confirm that config is most recent version
-	if [[ $config_version -lt "2" ]]; then
-		echo -e "\e[00;31mERROR: Config is out-dated, please update it. See --help for more info!\e[00m"
-		echo -e "\e[00;31mIt has to be version 2\e[00m"
-		cleanup session
-		cleanup end
-		exit 0
-	fi
+	# reload config
+	source "$scriptdir/users/$user/config"
 
 	#load paths to everything
 	setup
@@ -546,7 +532,7 @@ function check_setup {
 function lockfile {
 	case "$1" in
 		running )
-			echo "INFO: Lockfile exists"
+			true
 			;;
 		* ) # upon start no option is available, hence create lockfile
 			echo "INFO: Writing lockfile: $lockfile"
@@ -563,9 +549,9 @@ function lockfile {
 				else
 					echo -e "\e[00;31mINFO: The user $user is running something\e[00m"
 					echo "       The script running is: $mypid_script"
-					echo "       The transfere is: "$alreadyinprogres""
-					echo "       If that is wrong remove you need to remove $lockfile"
-					echo "       Wait for it to end, or kill it: kill -9 pidID"
+					echo "       The transfere is: $alreadyinprogres"
+					echo "       If that is wrong remove $lockfile"
+					echo "       Wait for it to end, or kill it: kill -9 $mypid_script"
 					if [[ $queue == "true" ]]; then
 							queue add end
 					else
@@ -601,7 +587,8 @@ orig_name=$(basename "$filepath")
 # Use change_name in script as it might change later on (largefile)
 changed_name="$orig_name"
 tempdir="$scriptdir/run/$username-temp-$orig_name/"
-
+ScriptStartTime=$(date +%s)
+echo "INFO: Process starttime: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
 echo "INFO: Preparing transfere: $filepath"
 echo "INFO: Lunched from: $source"
 
@@ -616,11 +603,13 @@ get_size "$filepath" "exclude_array[@]"
 #Execute preexternal command
 if [[ -n "$exec_pre" ]]; then
 	if [[ $test_mode != "true" ]]; then
-			echo "INFO: Executing external command: \"$exec_pre\" "
-			eval "$exec_pre"
+		echo "INFO: Executing external command - START"
+		echo "      $exec_pre"
+		eval "$exec_pre" | (while read; do echo "      $REPLY"; done)
 	else
 		echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_pre\"\e[00m"
 	fi
+	echo "INFO: Executing external command - ENDED"
 fi
 
 #Prepare login
@@ -688,22 +677,13 @@ fi
 # Delay transfer if needed
 delay
 
-#Transfere happens here
-scriptstart=$(date +%s)
-scriptstart2=$(date '+%d/%m/%y-%a-%H:%M:%S')
-echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $scriptstart2\e[00m"
-
 # Transfer files
 ftp_transfere
-
-scriptend=$(date +%s)
-echo -e "\e[00;37mINFO: \e[00;32mTransfer ended: $(date '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 
 # Checking for remaining space
 if [[ "$ftpsizemanagement" == "true" ]]; then
 	ftp_sizemanagement info # already loaded previously
 fi
-
 
 # Update logfile
 logrotate
@@ -711,14 +691,12 @@ logrotate
 # Clean up current session
 cleanup session
 
-echo "INFO: Finished \"$orig_name\", "$size"MB, in $timediff, "$speed"MB/s"
-
 #send push notification
 if [[ -n $push_user ]]; then
 	if [[ $test_mode != "true" ]]; then
-		source $scriptdir/plugins/pushover.sh "NEW STUFF: $orig_name, "$size"MB, in $timediff, "$speed"MB/s"
+		source "$scriptdir/plugins/pushover.sh" "NEW STUFF: $orig_name, "$size"MB, in $transferTime2, "$speed"MB/s"
 	else
-		echo -e "\e[00;31mTESTMODE: Would send notification \"NEW STUFF: $orig_name, "$size"MB, in $timediff, "$speed"MB/s\" to token=$push_token and user=$push_user \e[00m"
+		echo -e "\e[00;31mTESTMODE: Would send notification \"NEW STUFF: $orig_name, "$size"MB, in $transferTime2, "$speed"MB/s\" to token=$push_token and user=$push_user \e[00m"
 	fi
 fi
 echo
@@ -727,16 +705,31 @@ echo
 if [[ -n $exec_post ]]; then
 	if [[ $test_mode != "true" ]]; then
 		if [[ $allow_background == "true" ]]; then
-			echo "INFO: Executing external command(In background): \"$exec_post\" "
+			echo "INFO: Executing external command(In background) - START"
+			echo "      $exec_post"
 			eval $exec_post &
 		else
-			echo "INFO: Executing external command: \"$exec_post\" "
-			eval $exec_post
+			echo "INFO: Executing external command - START:"
+			echo "      $exec_post"
+			eval $exec_post | (while read; do echo "      $REPLY"; done)
+			echo "INFO: Executing external command - ENDED"
 		fi
 	else
 		echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_post\"\e[00m"
 	fi
 fi
+
+# final
+ScriptEndTime=$(date +%s)
+TotalTransferTime=$(( $ScriptEndTime - $ScriptStartTime ))
+echo -e "\e[00;37mINFO: \e[00;32mFinished\e[00m"
+echo "                       Name: $orig_name"
+echo "                       Size: $size MB"
+echo "                      Speed: $speed MB/s"
+echo "              Transfer time: $transferTime2"
+echo "                 Start time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
+echo "                   End time: $(date --date=@$ScriptEndTime '+%d/%m/%y-%a-%H:%M:%S')"
+echo "                 Total time: $(printf '%02dh:%02dm:%02ds' "$(($TotalTransferTime/(60*60)))" "$((($TotalTransferTime/60)%60))" "$(($TotalTransferTime%60))")"
 
 # Remove finished one
 queue remove
@@ -744,7 +737,6 @@ queue remove
 queue run
 }
 
-################################################### CODE BELOW #######################################################
 function start_main {
 #Look for which options has been used
 if (($# < 1 )); then echo; echo -e "\e[00;31mERROR: No option specified\e[00m"; echo "See --help for more information"; echo ""; exit 0; fi
@@ -775,52 +767,42 @@ case "$option" in
 		load_help; show_help; show_example; exit 0
 	;;
 	* ) # main program
-		# Looking for lockfile, create if not present, and if something new is added, add to queue if something
-		# running. If nothing is running continue
+		# confirm filepath
+		if [[ -z "$filepath" ]]; then
+			# if --path is not used, try and run queue
+			queue run
+		elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath" -type f 2>/dev/null) ]] || [[ -z $(find "$filepath" -type f 2>/dev/null) ]]; then
+			# path with files or file not found
+			if [[ "$transferetype" == "downftp" ]]; then
+				# server <-- client, assume path is OK
+				lockfile "$lockfileoption"
+				true
+			elif [[ "$transferetype" == "upftp" ]]; then		
+				# server --> client
+				echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m"
+				echo
+				exit 1
+			else
+				echo "INFO: Transfertype \"$transferetype\" not recognized. Have a look on your config"
+				echo
+				exit 1				
+			fi
+		fi
+		# Create lockfile
 		lockfile "$lockfileoption"
+		
+		echo "INFO: Transfertype: $transferetype"
 		
 		#Load dependencies
 		source "$scriptdir/dependencies/setup.sh"
 
 		#Check wether we have an external config, user config or no config at all
 		loadConfig
-		
-		if [[ -z "$filepath" ]]; then
-			# if --path is not used, try and run queue
-			queue run
-		fi
-		
-		if [[ "$transferetype" == "downftp" ]]; then
-			# client
-			# assume path is OK
-			echo "INFO: Transfertype: $transferetype"
-		elif [[ "$transferetype" == "upftp" ]]; then
-			echo "INFO: Transfertype: $transferetype"
-			# server
-			if [[ ! -d "$filepath" ]] || [[ ! -f "$filepath" ]] && [[ -z $(find "$filepath" -type f) ]]; then
-				# make sure that path is real and contains something, else exit
-				# if not used, do nothing!
-				echo -e "\e[00;31mERROR: Option --path is required with existing path and has to contain file(s).\n       Remove it from queue manually. bash ftpauto.sh --user=$username --id=$id --forget \e[00m"
-				echo
-				cleanup session
-				cleanup end
-				exit 1
-			fi
-		else
-			echo "INFO: transfertype \"$transferetype\" not recognized. Have a look on your config"
-			cleanup session
-			cleanup end
-			exit 1			
-		fi
 
 		# OK nothing running and --path is real, lets continue
 		# fix spaces: "/This\ is\ a\ path"
 		# Note: The use of normal backslashes is NOT supported
 		filepath="$(echo "$filepath" | sed 's/\\./ /g')"
-		# Set source manually if it ins't set
-		if [[ -z $source ]]; then
-				source="CONSOLE"
-		fi
 
 		#start program
 		main "$filepath"
