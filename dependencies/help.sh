@@ -184,3 +184,24 @@ function show_example {
 	echo	"push_token=\"\""
 	echo	"push_user=\"\""
 }
+
+function create_log_file {
+	if [ ! -e "$logfile" ]; then
+		echo "INFO: First time used - logfile is created"
+		echo "***************************	FTPauto - $s_version" >> $logfile
+		echo "***************************	STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> $logfile
+		if [[ $ftpsizemanagement == "true" ]]; then
+			echo "***************************	FTP INFO: 0/"$totalmb"MB (Free "$freemb"MB)" >> $logfile
+		else
+			echo "***************************	FTP INFO: not used yet" >> $logfile
+		fi
+		echo "***************************	LASTDL: nothing" >> $logfile
+		echo "***************************	" >> $logfile
+		echo "**********************************************************************************************************************************" >> $logfile
+		echo "" >> $logfile
+		else
+			echo "INFO: Logfile: $logfile"
+			# clean log file
+			echo "***************************	FTP INFO:" >> $logfile
+	fi
+}

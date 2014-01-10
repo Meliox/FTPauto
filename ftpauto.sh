@@ -1,5 +1,5 @@
 #!/bin/bash
-s_version="0.2.6"
+s_version="0.2.5"
 verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 script="$(readlink -f $0)"
 scriptdir=$(dirname $script)
@@ -261,9 +261,14 @@ echo "INFO: Information level: $verbose"
 # load user
 load_user
 
-#Load dependencies
+# Load dependencies
 source "$scriptdir/dependencies/setup.sh"
 setup
+
+# make sure user has a log file
+if [ ! -e "$logfile" ]; then
+	load_help; create_log_file
+fi
 
 # Execute the given option
 echo "INFO: Option(s): ${option[@]}"
@@ -275,7 +280,9 @@ case "${option[0]}" in
 			nano "$scriptdir/users/$username/config"
 		else
 			echo "You can edit the user, by editing \"$scriptdir/users/$username/config\""
-		fi		
+		fi
+		# create the user's logfile
+		create_log_file		
 		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: User=\"$username\" added." "0"
 	;;
 	"edit" ) # edit user config

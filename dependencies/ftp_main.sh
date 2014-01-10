@@ -489,27 +489,6 @@ function logrotate {
 	fi
 }
 
-function create_log_file {
-	if [ ! -e "$logfile" ]; then
-		echo "INFO: First time used - logfile is created"
-		echo "***************************	FTPauto - $s_version" >> $logfile
-		echo "***************************	STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> $logfile
-		if [[ $ftpsizemanagement == "true" ]]; then
-			echo "***************************	FTP INFO: 0/"$totalmb"MB (Free "$freemb"MB)" >> $logfile
-		else
-			echo "***************************	FTP INFO: not used yet" >> $logfile
-		fi
-		echo "***************************	LASTDL: nothing" >> $logfile
-		echo "***************************	" >> $logfile
-		echo "**********************************************************************************************************************************" >> $logfile
-		echo "" >> $logfile
-		else
-			echo "INFO: Logfile: $logfile"
-			# clean log file
-			echo "***************************	FTP INFO:" >> $logfile
-	fi
-}
-
 function loadConfig {
 	# reload config
 	source "$scriptdir/users/$user/config"
@@ -748,57 +727,49 @@ do
 		--source=* ) source="${1#--source=}"; shift;;
 		--sortto=* ) sortto="${1#--sortto=}"; shift;;
 		--example ) load_help; show_example; exit 0;;
-		--test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;		
-		-* ) echo -e "\e[00;31mInvalid option: $@\e[00m"; echo "See --help for more information"; echo ""; exit 1;;
-		* ) break ;;
-		--) shift; break;;
+		--test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;
 	esac
 done
 
-case "$option" in
-	"help" ) # Write out help
-		load_help; show_help; show_example; exit 0
-	;;
-	* ) # main program
-		# confirm filepath
-		if [[ -z "$filepath" ]]; then
-			# if --path is not used, try and run queue
-			queue run
-		elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath" -type f 2>/dev/null) ]] || [[ -z $(find "$filepath" -type f 2>/dev/null) ]]; then
-			# path with files or file not found
-			if [[ "$transferetype" == "downftp" ]]; then
-				# server <-- client, assume path is OK
-				lockfile "$lockfileoption"
-				true
-			elif [[ "$transferetype" == "upftp" ]]; then		
-				# server --> client
-				echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m"
-				echo
-				exit 1
-			else
-				echo "INFO: Transfertype \"$transferetype\" not recognized. Have a look on your config"
-				echo
-				exit 1				
-			fi
-		fi
-		# Create lockfile
+# main program starts here
+
+# confirm filepath
+if [[ -z "$filepath" ]]; then
+	# if --path is not used, try and run queue
+	queue run
+elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath" -type f 2>/dev/null) ]] || [[ -z $(find "$filepath" -type f 2>/dev/null) ]]; then
+	# path with files or file not found
+	if [[ "$transferetype" == "downftp" ]]; then
+		# server <-- client, assume path is OK
 		lockfile "$lockfileoption"
-		
-		echo "INFO: Transfertype: $transferetype"
-		
-		#Load dependencies
-		source "$scriptdir/dependencies/setup.sh"
+		true
+	elif [[ "$transferetype" == "upftp" ]]; then		
+		# server --> client
+		echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m"
+		echo
+		exit 1
+	else
+		echo "INFO: Transfertype \"$transferetype\" not recognized. Have a look on your config"
+		echo
+		exit 1				
+	fi
+fi
+# Create lockfile
+lockfile "$lockfileoption"
 
-		#Check wether we have an external config, user config or no config at all
-		loadConfig
+echo "INFO: Transfertype: $transferetype"
 
-		# OK nothing running and --path is real, lets continue
-		# fix spaces: "/This\ is\ a\ path"
-		# Note: The use of normal backslashes is NOT supported
-		filepath="$(echo "$filepath" | sed 's/\\./ /g')"
+#Load dependencies
+source "$scriptdir/dependencies/setup.sh"
 
-		#start program
-		main "$filepath"
-	;;
-esac
+#Check wether we have an external config, user config or no config at all
+loadConfig
+
+# OK nothing running and --path is real, lets continue
+# fix spaces: "/This\ is\ a\ path"
+# Note: The use of normal backslashes is NOT supported
+filepath="$(echo "$filepath" | sed 's/\\./ /g')"
+
+#start program
+main "$filepath"
 }
