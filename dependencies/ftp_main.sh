@@ -83,7 +83,7 @@ function queue {
 					exit 0
 				elif [[ "$option" == "end" ]]; then
 					source=$source"Q"
-					echo "INFO: The transfer $(basename "$filepath") has been added to queue with id=$id"
+					echo "INFO: Queueing: $(basename "$filepath"), id=$id"
 					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 					echo
 					exit 0
