@@ -17,9 +17,11 @@ version="0.2"
 #
 # As a default setting to programs send 3 magic packets incase one is lost. Can be changed
 # below
+# Use waittime to wait X seconds before finishing program as PC takes some time to start
 #settings
 quiet="false"
 packets="3"
+waitTime="0"
 
 
 #### code below
@@ -95,6 +97,10 @@ function sendwol {
 		sleep 1
 		let c++
 	done
+	# wait
+	if [[ $waitTime != 0 ]]; then
+		sleep $waitTime
+	fi
 }
 
 function show_help {
