@@ -43,15 +43,14 @@ If you find this tool helpful, a small donation would be appreciated! Thanks!
  * [Network Monitor](#network-monitor)
 * [3rd party uses](#3rd-party-uses)
  * [FlexGet](#flexget)
-  * [FlexGet](#flexget)
-   * [Download methods](#download-methods)
-    * [Server download](#server-download)
-    * [Clent RSS download](#cient-rss-download)
-    * [Clent FTP download](#cient-ftp-download)
-   * [Scheduling](#scheduling)
-    * [Cron](#cron)
-	* [Cron](#Daemon)
-	* [Multiple users](#multiple-users)
+  * [Download methods](#download-methods)
+   * [Server download](#server-download)
+   * [Clent RSS download](#cient-rss-download)
+   * [Clent FTP download](#cient-ftp-download)
+  * [Scheduling](#scheduling)
+   * [Cron](#cron)
+   * [Daemon](#Daemon)
+  * [Multiple users](#multiple-users)
 
 
 ## Requirements
@@ -416,7 +415,7 @@ $ bin/flexget --test check
 ```
 And it will show if the config passes or fails.
 
-#### Server-download
+#### Server download
 This is a serverside configuration, meaning the server that has the files transfers the files.
 
 ```yaml
@@ -435,7 +434,7 @@ tasks:
       for_accepted: 'sleep 5; bash ~/ftpauto.sh --path="{{location}}/" --user=<USER> --source=FLXDL &'
 ```
 
-#### Client-RSS-download
+#### Client RSS download
 This is a clientside configuration, meaning that the client looks for new files in order to transfer them.
 
 ```yaml
@@ -463,7 +462,7 @@ tasks:
         for_accepted: 'sleep 5; bash ~/ftpauto.sh --path="{{location}}/" --user=<USER> --source=FLXDL &'
 ```
 
-#### Client-FTP-download
+#### Client FTP download
 This is a clientside configuration, meaning that the client looks for new files in order to transfer them
 
 ```yaml
@@ -535,7 +534,7 @@ schedules:
 ```
 More information here [Flexget-daemon](http://flexget.com/wiki/Daemon)
 
-### Multiple-users
+### Multiple users
 Flexget only handle one user PER show, so if several users see the same you need several configs. An addition argument then has to be used with the cron, daemon or check option
 ```bash
 $ /bin/flexget -c ~<config path>
