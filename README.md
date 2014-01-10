@@ -37,6 +37,7 @@ If you find this tool helpful, a small donation would be appreciated! Thanks!
  * [Download single user](#download---single-user)
  * [Download multiple users](#download---multiple-users)
  * [Arguments](#arguments)
+ * [Debugging](#debugging) 
 * [Utils](#utils)
  * [Wakeonlan](#wakeonlan)
  * [Network Monitor](#network-monitor)
@@ -313,6 +314,16 @@ Here's an overview as well
 	  --test             | Shows what transfer is going to happen
       --verbose          | Debugs to console
 ```
+## Debugging
+If the script for some reason should fail, it is easy to debug. Debugging can either be permanently set if the error comes and goes. This setting can be in ftpauto.sh, but altering the following line:
+```bash
+verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
+```
+* Line #3
+
+Debugging into logfile will create a ftpscript logfile and a ftp logfile, so that everything can be looked at later. Debugging to console only will show script.
+
+Debugging can also be used as an argument, see [Arguments](#arguments)
 
 # Utils
 A few usefull bashscripts has been added to FTPauto...

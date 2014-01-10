@@ -21,6 +21,7 @@ function verbose {
 		set -x
 	elif [[ ! $quiet ]] && [[ $verbose == 2 ]]; then
 		#verbose
+		echo "INFO: Debugging. All input is redirected to logfile. Script is finished when console is idle again. Please wait!"
 		exec 2>> "$scriptdir/run/$username.ftpauto.debug"
 		echo "STARTING PID=$BASHPID"
 		set -x
