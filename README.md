@@ -43,6 +43,15 @@ If you find this tool helpful, a small donation would be appreciated! Thanks!
  * [Network Monitor](#network-monitor)
 * [3rd party uses](#3rd-party-uses)
  * [FlexGet](#flexget)
+  * [FlexGet](#flexget)
+   * [Download methods](#download-methods)
+    * [Server download](#server-download)
+    * [Clent RSS download](#cient-rss-download)
+    * [Clent FTP download](#cient-ftp-download)
+   * [Scheduling](#scheduling)
+    * [Cron](#cron)
+	* [Cron](#Daemon)
+	* [Multiple users](#multiple-users)
 
 
 ## Requirements
@@ -395,9 +404,21 @@ line="3"			# only for iptables
 # 3rd party uses
 FTPauto can be used in combination with other software. Here are a few examples listed.
 ## FlexGet
-First prerequisite is to install Flexget, which can be found here [FlexGet#Install](http://flexget.com/wiki/InstallWizard/Linux/Environment/). Then an appropiate config has to be written as the following example.
+First prerequisite is to install Flexget, which can be found here [FlexGet#Install](http://flexget.com/wiki/InstallWizard/Linux/Environment/). Then an appropiate config has to be written as the following examples. More info on FlexGet and how it work is not going to be explained as it is done so very nicely on their homepage, [FlexGet#Configuration](http://flexget.com/wiki/Configuration/)
 
-This is a serverside configuration!
+### Download methods
+There are a few ways of downloading with the use of Flexget, these are explained in the subsections below.
+
+One important thing to remember is to check if the config is writtten properly. Check it by
+```bash
+$ bin/flexget --test check
+2014-01-10 11:15 INFO     check                         Config passed check.
+```
+And it will show if the config passes or fails.
+
+#### Server-download
+This is a serverside configuration, meaning the server that has the files transfers the files.
+
 ```yaml
 tasks:
  download:
@@ -414,42 +435,108 @@ tasks:
       for_accepted: 'sleep 5; bash ~/ftpauto.sh --path="{{location}}/" --user=<USER> --source=FLXDL &'
 ```
 
-This is a clientside configuration!
+#### Client-RSS-download
+This is a clientside configuration, meaning that the client looks for new files in order to transfer them.
+
 ```yaml
 tasks:
- download:
-  rss:
-    url: http://some.url.rss
-  series:
-    720p:
-      - TVSHOW1
-      - TVSHOW2
-  manipulate:
-    SOMETHING IS MISSING HERE
-  exec:
-    fail_entries: yes
-    allow_background: yes
-    auto_escape: yes
-    on_output:
-      for_accepted: 'sleep 5; bash ~/ftpauto.sh --path="{{location}}/" --user=<USER> --source=FLXDL &'
+  download:
+    inputs:
+      - rss:
+          url: http://some.url.rss
+    series:
+      720p:
+        - TVSHOW1
+        - TVSHOW2
+    manipulate:
+        # Flexget can manipulate the url. If the url is made by flexget it usually has the original path written first.
+	    # This can before with this
+      - url:
+          replace:
+            regexp: 'file://<path before ftp path>/'
+            format: '/'
+    exec:
+      fail_entries: yes
+      allow_background: yes
+      auto_escape: yes
+      on_output:
+        for_accepted: 'sleep 5; bash ~/ftpauto.sh --path="{{location}}/" --user=<USER> --source=FLXDL &'
 ```
 
-Having written the config properly i.e. without it failing, i.e. pass
-```bash
-bin/flexget --check
-```
-and it may be added to crontab. Do this by
-```bash
-crontab -e
-```
-and add this entry
-```bash
-*/5 * * * * /home/ammin/flexget-download/bin/flexget --cron
-```
-, where 5 minutes is the interval checking for new files.
+#### Client-FTP-download
+This is a clientside configuration, meaning that the client looks for new files in order to transfer them
 
-NOTE: Flexget only handle one user PER show, so if several users see the same you need to add addtional configs to crontab like
-```bash
-*/5* * * * /home/ammin/flexget-rss/bin/flexget -c ~/flexget/config2.yml --cron\
+```yaml
+tasks:
+  download:
+    inputs:
+      - ftp_list:
+          config:
+            use-ssl: <yes/no>
+            name: <ftp name>
+            username: <username>
+            password: <password>
+            host: <host to connect>
+            port: <port>
+          dirs:
+            - <directory 1>
+            - <directory 2>
+    series:
+	  # will download series with name and quality
+	  720p:
+        - <Tv show 1>
+	    - <Tv show 2>
+    regexp:
+	  # will download anything that matches the giving regex
+      accept:
+	    - <regexp>:
+            from:
+              - title
+	  # will not download matches of the giving regex
+      accept:
+	    - <regexp>:
+            from:
+              - title
+    manipulate:
+      - url:
+          extract: (?:\:\d+\/)(.*)
+    exec:
+      fail_entries: yes
+      allow_background: yes
+      auto_escape: yes
+      on_output:
+        for_accepted: 'sleep 5; bash ~/ftpauto.sh --path="{{url}}/" --user=<USER> --source=FLXDL &'
 ```
-More info on FlexGet and how it work is not going to be explained as it is done so very nicely on their homepage, [FlexGet#Configuration]/http://flexget.com/wiki/Configuration/)
+Although flexget supports download from ftp also, FTPauto makes it possible to resume and sort downloads, also using the queue system and finally FTPauto can be used without Flexget.
+
+### Scheduling
+Flexget can be scheduled to run at specific times two different ways. Remember to make sure that your config passes check.
+
+#### Cron
+Add it to crontab and it may be added to crontab. Do this by and add this entry:
+```bash
+$ crontab -e
+# write
+*/5 * * * * ~/bin/flexget --cron
+```
+(Where 5 minutes is the interval checking for new files)
+
+#### Daemon
+Flexget also support daemon mode, which means that in can be run in the background, periodically running tasks on a schedule, or running the tasks initiated by another instance of FlexGet.
+
+The following should then be added to your config
+```yaml
+schedules:
+  - tasks: [list, of, tasks or * for all]
+    interval:
+      <weeks|days|hours|minutes>: <#>
+      on_day: <monday|tuesday...>
+      at_time: HH:MM [am|pm]  # 24h time can also be used
+```
+More information here [Flexget-daemon](http://flexget.com/wiki/Daemon)
+
+### Multiple-users
+Flexget only handle one user PER show, so if several users see the same you need several configs. An addition argument then has to be used with the cron, daemon or check option
+```bash
+$ /bin/flexget -c ~<config path>
+```
