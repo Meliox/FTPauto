@@ -77,6 +77,7 @@ function queue {
 					id="1"
 				fi
 				get_size "$filepath" "exclude_array[@]" &> /dev/null
+				
 				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
 					echo "INFO: Item already in queue. Doing nothing..."
 					echo
@@ -669,11 +670,6 @@ if [[ "$sort" == "true" ]]; then
 	source "$scriptdir/dependencies/sorting.sh" && sortFiles "$sortto"
 fi
 
-# Remove item from flexget config
-if [[ -n "$feed_name" ]]; then
-	source "$scriptdir/plugins/flexget.sh" && flexget_feed
-fi
-
 # Delay transfer if needed
 delay
 
@@ -743,9 +739,7 @@ if (($# < 1 )); then echo; echo -e "\e[00;31mERROR: No option specified\e[00m"; 
 while :
 do
 	case "$1" in
-		--help | -h ) option="help"; shift;;
 		--path=* ) filepath="${1#--path=}"; shift;;
-		--feed=* ) feed="${1#--feed=}"; shift;;
 		--user=* ) user="${1#--user=}"; shift;;
 		--exec_post=* ) exec_post="${1#--exec_post=}"; shift;;
 		--exec_pre=* ) exec_pre="${1#--exec_pre=}"; shift;;
@@ -754,7 +748,6 @@ do
 		--source=* ) source="${1#--source=}"; shift;;
 		--sortto=* ) sortto="${1#--sortto=}"; shift;;
 		--example ) load_help; show_example; exit 0;;
-		--freespace ) ftp_sizemanagement info; cleanup session; exit 0;;
 		--test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;		
 		-* ) echo -e "\e[00;31mInvalid option: $@\e[00m"; echo "See --help for more information"; echo ""; exit 1;;
 		* ) break ;;
