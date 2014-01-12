@@ -496,7 +496,6 @@ function loadConfig {
 	#load paths to everything
 	setup
 	check_setup
-	create_log_file
 }
 
 function check_setup {
@@ -728,6 +727,8 @@ do
 		--sortto=* ) sortto="${1#--sortto=}"; shift;;
 		--example ) load_help; show_example; exit 0;;
 		--test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;
+		* ) break ;;
+		--) shift; break;;
 	esac
 done
 

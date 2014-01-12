@@ -276,7 +276,7 @@ Here's an overview as well
       --user=<USER>      | Required at all times in multi user setup, can be omitted in single user setop
 == Session manipulation ==
       --pause            | Terminates transfer and leaves queue intact
-	  --start            | Begins transfer from queue and let it finish queue. Only to be used for sessions!
+      --start            | Begins transfer from queue and let it finish queue. Only to be used for sessions!
       --stop             | Terminates transfer and remove queue and current id
 
 == Item manipulation ==
@@ -285,41 +285,41 @@ Here's an overview as well
        --id=<id>         | Id for <PATH> you want to manipulate. Find them in the queuefile. See --list
       = Options =
        --clear           | Remove everything in queue
-	   --down            | Move <ID> down
-	   --forget          | Remove <ID> from queue
-	   --path=<PATH>     | <PATH> used to transfer now!
+       --down            | Move <ID> down
+       --forget          | Remove <ID> from queue
+       --path=<PATH>     | <PATH> used to transfer now!
        --queue           | Sends <PATH> to queue WITHOUT starting script if autostart=false in config.
-	                       NOTE that --path <ITEM> is required for this to work.
-						   Might also be used to start transfer in background if autostart=true	   
+                           NOTE that --path <ITEM> is required for this to work.
+                           Might also be used to start transfer in background if autostart=true	   
        --source=<SOURCE> | Source is used to show how the download has been started. The
                            following is possible:
                            MANDL=manual download(if nothing is used)
                            WEBDL=download from webpage
                            FLXDL=autodownload from flexget
-                           other can be used as well...						   
-	   --up              | Move <ID> Up
+                           other can be used as well...
+       --up              | Move <ID> Up
 
 == User manipulation ==
       --add              | Add user --add=<USER>
-	  --edit             | Edit <USER> config
+      --edit             | Edit <USER> config
       --purge            | Removes all user history and configs
-	  --remove           | Removes all user history
+      --remove           | Removes all user history
 
 == Server ==
       --freespace        | Checks how much free space is available (slow if on remote server)
-	  --online           | Checks if server is online and writeable
+      --online           | Checks if server is online and writeable
 
-	  == Optional ==
+== Optional ==
       --bg               | Transfer is done in background
-	  --debug            | Debugs to logfile
-	  --delay            | Delays transfer until X. Has to be in this format "01/01/2010 12:00" (Month/Day/Year 24h-time)
-	  --exec_post        | Execute commands after download
-	  --exec_pre         | Execute commands before download
-	  --force            | Transfer file despite something is running
-	  --help             | Print help info
-	  --progress         | While transfering, this will print out progress if enabled in config	
-	  --quiet            | Supresses all output
-	  --test             | Shows what transfer is going to happen
+      --debug            | Debugs to logfile
+      --delay            | Delays transfer until X. Has to be in this format "01/01/2010 12:00" (Month/Day/Year 24h-time)
+      --exec_post        | Execute commands after download
+      --exec_pre         | Execute commands before download
+      --force            | Transfer file despite something is running
+      --help             | Print help info
+      --progress         | While transfering, this will print out progress if enabled in config	
+      --quiet            | Supresses all output
+      --test             | Shows what transfer is going to happen
       --verbose          | Debugs to console
 ```
 ## Debugging

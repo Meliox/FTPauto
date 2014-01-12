@@ -1,5 +1,5 @@
 #!/bin/bash
-s_version="0.2.5"
+s_version="0.2.6"
 verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 script="$(readlink -f $0)"
 scriptdir=$(dirname $script)
@@ -41,81 +41,44 @@ function start_ftpmain {
 	elif [[ $verbose -eq 2 ]]; then
 		start_main "${download_argument[@]}" >> "$ftpmaindebugfile"
 	else
+		# run in background or run normal
 		if [[ $background == "true" ]]; then
-			download_argument+=("&> /dev/null &")
-		fi		
-		start_main "${download_argument[@]}"
+			start_main "${download_argument[@]}" &> /dev/null &
+		else
+			start_main "${download_argument[@]}"
+		fi
 	fi	
 }
 
-function confirm_queue_file {
-	if [[ ! -f "$queue_file" ]]; then
-		message "$1" "$2"
-	fi
-}
-
-function confirm_lock_file {
-	if [[ ! -f "$lockfile" ]]; then
-		message "$1" "1"
-	fi
+function confirm {
+	case "$1" in
+		queue_file )
+			if [[ ! -f "$queue_file" ]]; then
+				message "$2" "$3"
+			fi
+			;;
+		lock_file )
+			if [[ ! -f "$lockfile" ]]; then
+				message "$2" "3"
+			fi		
+		;;
+	esac
 }
 
 function message {
 	if [[ "$2" == "1" ]]; then
-		echo -e "\e[00;31m$1\e[00m"
+		echo -e "\e[00;31m$(date '+%d/%m/%y-%a-%H:%M:%S'): $1\e[00m"
 	else
-		echo -e "\e[00;32m$1\e[00m"
+		echo -e "\e[00;32m$(date '+%d/%m/%y-%a-%H:%M:%S'): $1\e[00m"
 	fi
 	echo
 	exit "$2"
 }
 
-function show_help {
-	echo ""
-	echo "Manual for controlscript"
-	echo "  The purpose of this controlscript is the control ftp_main i.e. do the"
-	echo "   following stuff instead easily. This is meant as an addon, but is not required for"
-	echo "   the use of ftp_main"
-	echo ""
-	echo "  The following arguments are available"
-	echo "  IMPORTANT: Controling the following"
-	echo "    Default is always used if none of the following is set"
-	echo "     --user=<USER> control the USER choosen"
-	echo ""
-	echo -e "\e[00;34m== Session manipulation ==\e[00m"	
-	echo "      --pause | Terminates ftp_main and leaves queue intact"
-	echo "      --stop | Terminates ftp_main and remove queue and current id"
-	echo "      --start | Executes ftp_main and let it finish queue"
-	echo "      --online | Returns if server is online or not"
-	echo ""
-	echo -e "\e[00;34m== Item manipulation ==\e[00m"
-	echo "      --list | Lists all items in queue"
-	echo "      = Required ="
-	echo "       --id=<id> | id for <ITEM> you want to manipulate. Find them in the queuefile. See --list "
-	echo "      = Options ="
-	echo "       --up | Move Id Up"
-	echo "       --down | Move Id down"
-	echo "       --forget | remove Id from queue"
-	echo "       --clear | Remove everything in queue"
-	echo "      --delay | Delays transfer until X. Has to be in this format \"01/01/2010 12:00\" (Month/Day/Year 24h-time)"
-	echo "       --queue | Sends <ITEM> to queue WITHOUT starting script if autostart=false in config. NOTE that --path <ITEM> is required for this to work"
-	echo "         --path=~/home | Only used for --queue"
-	echo -e "         --source <SOURCE> | Source is used to show how the download has been started. The\n           following is possible:\n           MANDL=manual download(if nothing is used)\n           WEBDL=download from webpage\n           FLXDL=autodownload from flexget\n           other can be used as well..."
-	echo ""
-	echo -e "\e[00;34m== User manipulation ==\e[00m"
-	echo "      --add | Add user --add=<USER>"
-	echo "      --remove | Removes all user history."
-	echo "      --purge | Removes all user history and configs."	
-	echo ""
-	echo -e "\e[00;34m== Optional ==\e[00m"	
-	echo "      --quiet | supresses all output"
-	echo ""
-	echo
-}
-
 function load_help {
 	if [[ -e "$scriptdir/dependencies/help.sh" ]]; then
 		source "$scriptdir/dependencies/help.sh"
+		show_help
 	else
 		echo -e "\e[00;31mError: /dependencies/help.sh is\n needed in order for this program to work\e[00m";
 		exit 1
@@ -231,10 +194,10 @@ do
 		--sort=* ) sortto=${1#--sort=}; download_argument+=("--sortto=$sortto"); shift;;
 		--path ) if (($# > 1 )); then option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; filepath="$2"; download_argument+=("--path=$filepath"); else invalid_arg "$@"; fi; shift 2;;
 		--path=* ) option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; filepath="${1#--path=}"; download_argument+=("--path=$filepath"); shift;;
-		--source=* ) source=${1#--source=}; download_argument+=("--source=$source"); if [[ -z $source ]]; then show_help; exit 1; fi; shift;;
+		--source=* ) source=${1#--source=}; download_argument+=("--source=$source"); if [[ -z $source ]]; then load_help; exit 1; fi; shift;;
 		--source | -s ) if (($# > 1 )); then source=\"$2\"; download_argument+=("--source=$source"); else invalid_arg "$@"; fi; shift 2;;
 		# Other
-		--help | -h ) show_help; exit 1;;
+		--help | -h ) load_help; exit 1;;
 		--verbose | -v) verbose=1; shift;;
 		--debug ) verbose=2; shift;;
 		--quiet) quiet=true; shift;;
@@ -283,49 +246,49 @@ case "${option[0]}" in
 		fi
 		# create the user's logfile
 		create_log_file		
-		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: User=\"$username\" added." "0"
+		message "User=$username added." "0"
 	;;
 	"edit" ) # edit user config
 		nano "$scriptdir/users/$username/config"	
-		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: User=\"$username\" edited." "0"
+		message "User=$username edited." "0"
 	;;	
 	"remove" ) # remove all userfiles log files
 		# remove all userfiles log files from /run and /user/$username/
 		rm -f "$scriptdir/run/$username*"
-		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Userfiles removed for $username." "0"
+		message "Userfiles removed for $username." "0"
 	;;
 	"purge" ) # remove all userfiles log files and config from /run and /user/$username/
-		confirm_lock_file "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Can't remove $username while session is running." "1"
+		confirm lock_file "Can't remove $username while session is running." "1"
 		rm -r -f "$scriptdir/users/$username"
 		rm -f "$scriptdir/run/$username"
-		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: User=\"$username\" removed." "0"
+		message "User=$username removed." "0"
 	;;
 	"pause" ) # Stop transfer
-		confirm_lock_file "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, lockfile couldn't be found. Nothing could be done!" "1"
+		confirm lock_file "Error, lockfile couldn't be found. Nothing could be done!" "1"
 		cleanup stop
 		cleanup session
 		cleanup end
-		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Session has been terminated." "0"
+		message "Session has been terminated." "0"
 	;;
 	"stop" ) # Stop transfer and remove queue
-		confirm_lock_file "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, lockfile couldn't be found. Nothing could be done!" "1"
+		confirm lock_file "Error, lockfile couldn't be found. Nothing could be done!" "1"
 		cleanup stop
 		cleanup session
 		cleanup end
 		rm "$queue_file"
-		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Session has been terminated." "0"
+		message "Session has been terminated." "0"
 	;;
 	"start" ) # start session from queue file
 		if [[ ! -e "$queue_file" ]]; then
-			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Nothing in queue." "1"
+			message "Nothing in queue." "1"
 		fi	
 		start_ftpmain
 		if [[ $background == "true" ]]; then
-			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Session has started." "0"
+			message "Session has started." "0"
 		elif [[ $? -eq 1 ]]; then
-			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Succeded." "0"
+			message "Succeded." "0"
 		else
-			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Failed." "1"
+			message "Failed." "1"
 		fi
 	;;	
 	"download" )
@@ -339,11 +302,11 @@ case "${option[0]}" in
 		if [[ ${option[1]} == "start" ]]; then
 			start_ftpmain
 			if [[ $background == "true" ]]; then
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Session in background has started." "0"
+				message "Session in background has started." "0"
 			elif [[ $? -eq 0 ]]; then
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Succeded." "0"
+				message "Succeded." "0"
 			else
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Failed." "1"
+				message "Failed." "1"
 			fi
 		# queue download
 		# TODO: Add options to queuefile as well
@@ -352,7 +315,7 @@ case "${option[0]}" in
 			if [[ $autostart == "true" ]]; then
 				background="true"
 				start_ftpmain
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Session has started." "0"
+				message "Session has started." "0"
 			else
 				# determine if item exists already
 				if [[ -e "$queue_file" ]]; then
@@ -369,19 +332,19 @@ case "${option[0]}" in
 					echo "INFO: Looking up size on ftp..."
 				elif [[ "$transferetype" == "upftp" ]]; then
 					if [[ ! -d "$filepath" ]] || [[ ! -f "$filepath" ]] && [[ -z $(find "$filepath" -type f) ]]; then
-						message "$(date '+%d/%m/%y-%a-%H:%M:%S'): ERROR: Option --path is required with existing path and has to contain file(s).\n See --help for more info!!" "1"
+						message "ERROR: Option --path is required with existing path and has to contain file(s).\n See --help for more info!!" "1"
 						exit 1
 					fi
 				fi
 				get_size "$filepath" "exclude_array[@]" &> /dev/null
 				
 				echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-				message "INFO: Adding $(basename "$filepath") to queue with id=$id" "0"
+				message "Adding $(basename "$filepath") to queue with id=$id" "0"
 			fi
 		fi
 	;;
 	"list" ) # list content of queue file
-		confirm_queue_file "$(date '+%d/%m/%y-%a-%H:%M:%S'): --$option: Empty queue!" "0"
+		confirm queue_file "Empty queue!" "0"
 		while read line; do
 			id=$(echo $line | cut -d'#' -f1)
 			source=$(echo $line | cut -d'#' -f2)
@@ -390,44 +353,44 @@ case "${option[0]}" in
 			time=$(echo $line | cut -d'#' -f5)
 			echo $id $source $path $size $time
 		done < "$queue_file"
-		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): List has been shown." "0"
+		message "List has been shown." "0"
 	;;	
 	"clear" ) # clear content of queue file
-		confirm_queue_file "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, queue could not be found." "1"
+		confirm queue_file "Error, queue could not be found." "1"
 		rm "$queue_file"
-		message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Queue removed." "0"
+		message "Queue removed." "0"
 	;;	
 	"forget" ) # remove item with <ID> from queue
-		confirm_queue_file "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, queuefile couldn't be found. Nothing could be removed!" "1"
+		confirm queue_file "Error, queuefile couldn't be found. Nothing could be removed!" "1"
 		if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id#") ]]; then
 			#make sure id exists and is present in queue
 			echo "Removing id=$id"
 			sed "/^"$id"\#/d" -i "$queue_file" #ex -s -c '%s/^[0-9]*//|wq' file.txt if your ex is actually symlinked to the installed vim, then you can use \d and \+
-			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Id=$id removed from queue."	"0"
+			message "Id=$id removed from queue."	"0"
 		else
-			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: No Id=$id selected/in queue." "1"
+			message "No Id=$id selected/in queue." "1"
 		fi
 	;;
 	"up" ) # Move item with <ID> 1 up in queue
-		confirm_queue_file "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, queuefile couldn't be found. Nothing could be moved!" "1"
+		confirm queue_file "Error, queuefile couldn't be found. Nothing could be moved!" "1"
 		if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id#") ]]; then
 			line_info=$(cat "$queue_file" | grep "^$id#")
 			line_number=$(cat "$queue_file" | grep -ne "^$id#" | cut -d':' -f1)			
 			previous_line_number=$(($line_number -1))
 			if [[ "$line_number" -lt "2" ]]; then
 				#if id is the first, keep it there
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Id, $id, is at top." "0"
+				message "Id, $id, is at top." "0"
 			else
 				sed "/^"$id"\#/d" -i "$queue_file"
 				sed "$previous_line_number i $line_info" -i "$queue_file"
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Moved Id=$id, up." "0"
+				message "Moved Id=$id, up." "0"
 			fi
 		else
-			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: No Id=$id, selected/in queue." "1"
+			message "No Id=$id, selected/in queue." "1"
 		fi		
 	;;
 	"down" ) # Move item with <ID> 1 down in queue
-		confirm_queue_file "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Error, queuefile couldn't be found. Nothing could be moved!" "1"
+		confirm queue_file "Error, queuefile couldn't be found. Nothing could be moved!" "1"
 		if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id#") ]]; then
 			line_info=$(cat "$queue_file" | grep "^$id#")
 			line_number=$(cat "$queue_file" | grep -ne "^$id#" | cut -d':' -f1)
@@ -437,18 +400,18 @@ case "${option[0]}" in
 				#add id to the end of file
 				sed "/^"$id"\#/d" -i "$queue_file"
 				echo $line_info >> "$queue_file"
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Id=$id, is at the buttom." "0"
+				message "Id=$id, is at the buttom." "0"
 			elif [[ $next_line_number -gt $last_line ]]; then
 				#if id is the last, do nothing
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Id=$id, is at the buttom." "1"
+				message ": Id=$id, is at the buttom." "1"
 			else
 				#any other cases
 				sed "/^"$id"\#/d" -i "$queue_file"
 				sed "$next_line_number i $line_info" -i "$queue_file"
-				message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Moved Id=$id, down." "0"
+				message "$option: Moved Id=$id, down." "0"
 			fi
 		else
-			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: No Id, $id, selected/in queue." "1"
+			message "$option: No Id, $id, selected/in queue." "1"
 		fi
 	;;
 	"online" ) # Perform server test
@@ -456,9 +419,9 @@ case "${option[0]}" in
 		source "$scriptdir/dependencies/ftp_online_test.sh" && online_test
 		cleanup session
 		if [[ $is_online -eq 0 ]]; then
-			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): Server is OK" "0"
+			message "Server is OK" "0"
 		else
-			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): Server is NOT OK" "1"
+			message "Server is NOT OK" "1"
 		fi
 	;;
 	"freespace" ) # check free space
@@ -466,12 +429,13 @@ case "${option[0]}" in
 		source "$scriptdir/dependencies/ftp_size_management.sh" && ftp_sizemanagement info
 		cleanup session
 		if [[ $is_online -eq 1 ]]; then
-			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Could " "1"
+			message "$option: Could " "1"
 		else
-			message "$(date '+%d/%m/%y-%a-%H:%M:%S'): $option: Server is responding" "0"
+			message "$option: Server is responding" "0"
 		fi
 	;;
 	"progress" ) # write out download progress
+		confirm lock_file "Error, lockfile couldn't be found. Nothing is being transfered!" "1"
 		echo "INFO: Keeps updating every 60 second. Exit with \"x\""
 		if [ -t 0 ]; then stty -echo -icanon time 0 min 0; fi
 		keypress=""
@@ -487,9 +451,9 @@ case "${option[0]}" in
 		done
 		if [ -t 0 ]; then stty sane; fi
 		echo -e '\n'
-		message "$(date '+%d/%m/%y-%a-%H:%M:%S'): Progress finished" "0"
+		message "Progress finished" "0"
 	;;	
 	* )
-		message "INFO: $(date '+%d/%m/%y-%a-%H:%M:%S'): No options selected." "1"
+		message "No options selected." "1"
 	;;
 esac
