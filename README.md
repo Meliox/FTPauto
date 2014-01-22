@@ -9,16 +9,16 @@ If you find this tool helpful, a small donation would be appreciated! Thanks!
 # Features
 * Send files easily with lftp
 * Highly customizables commandline
-* Monitor free space on server
+* Monitor free space at end-server
 * Progressbar of transfer
-* Packing/splitning directory/files into rar-files. Including sfv to verify files at receivers end.
-* Multiple user support
+* Packing/splitning directory/files into rar-files. Including sfv to verify files at end-server.
+* Multiple users support
 * Delay transfer to start at a specific time
 * Exec support pre/post transfer
 * Sorting (use of regex)
 * Exclution of files
 * Send push notification to phones etc. with [Pushover](https://pushover.net/)
-* Especially powerfull in combination with [FlexGet](http://flexget.com/)
+* Automatic transfers with the use of [FlexGet](http://flexget.com/)
 
 ![Pushover](https://pushover.net/assets/pushover-header-eaa79ef56c7041125acbe9fb9290b2fa.png)![FlexGet](http://flexget.com/chrome/site/FlexGet.png)
 
@@ -403,7 +403,7 @@ line="3"			# only for iptables
 # 3rd party uses
 FTPauto can be used in combination with other software. Here are a few examples listed.
 ## FlexGet
-First prerequisite is to install Flexget, which can be found here [FlexGet#Install](http://flexget.com/wiki/InstallWizard/Linux/Environment/). Then an appropiate config has to be written as the following examples. More info on FlexGet and how it work is not going to be explained as it is done so very nicely on their homepage, [FlexGet#Configuration](http://flexget.com/wiki/Configuration/)
+FlexGet is a multipurpose automation tool for content like torrents, nzbs, podcasts, comics, series, movies, etc. It can use different kinds of sources like RSS-feeds, html pages, csv files, search engines and there are even plugins for sites that do not provide any kind of useful feeds. Here we will use FlexGet to scan directories and let Flexget send the approved files. First prerequisite is to install Flexget, which can be found here [FlexGet#Install](http://flexget.com/wiki/InstallWizard/Linux/Environment/). Then an appropiate config has to be written as the following examples. More info on FlexGet and how it work is not going to be explained as it is done so very nicely on their homepage, [FlexGet#Configuration](http://flexget.com/wiki/Configuration/)
 
 ### Download methods
 There are a few ways of downloading with the use of Flexget, these are explained in the subsections below.
