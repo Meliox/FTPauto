@@ -56,7 +56,7 @@ function tranfere_timeframe {
 		kill -9 "$pid_transfer"
 		sleep_seconds=$(dateDiff -s "$(date +%T)" "$transfere_start+24:00")
 		echo "Time is $(date +%R), transfer is postponed until $transfere_start"
-		sed "5s#.*#***************************	Transfering: $orig_name - waiting to start at $transfere_Start  #" -i $logfile
+		sed "5s#.*#***************************	Transfering: "$orig_name" - waiting to start at $transfere_Start  #" -i $logfile
 		sleep $sleep_seconds
 		ftp_transfere
 	fi
@@ -67,30 +67,35 @@ function queue {
 	local option=$2
 	case "$1" in
 		"add" )
-			if [[ $queue == "true" ]]; then
-				# figure out ID
-				if [[ -e "$queue_file" ]]; then
-					#get last id
-					id=$(( $(tail -1 "$queue_file" | cut -d'#' -f1) + 1 ))
-				else
-					#assume this is the first one
-					id="1"
-				fi
-				get_size "$filepath" "exclude_array[@]" &> /dev/null
-				
-				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
-					echo "INFO: Item already in queue. Doing nothing..."
-					echo
-					exit 0
-				elif [[ "$option" == "end" ]]; then
-					source=$source"Q"
-					echo "INFO: Queueing: $(basename "$filepath"), id=$id"
-					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-					echo
-					exit 0
-				else
-					echo "INFO: Queueid: $id"
-					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+			if [[ $queue_running == "true" ]]; then
+				# task has been started from queue, no need to add it
+				true
+			else
+				if [[ $queue == "true" ]]; then
+					# figure out ID
+					if [[ -e "$queue_file" ]]; then
+						#get last id
+						id=$(( $(tail -1 "$queue_file" | cut -d'#' -f1) + 1 ))
+					else
+						#assume this is the first one
+						id="1"
+					fi
+					get_size "$filepath" "exclude_array[@]" &> /dev/null
+					
+					if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
+						echo "INFO: Item already in queue. Doing nothing..."
+						echo
+						exit 0
+					elif [[ "$option" == "end" ]]; then
+						source=$source"Q"
+						echo "INFO: Queueing: $(basename "$filepath"), id=$id"
+						echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+						echo
+						exit 0
+					else
+						echo "INFO: Queueid: $id"
+						echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+					fi
 				fi
 			fi
 		;;
@@ -117,6 +122,7 @@ function queue {
 				source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f2)
 				local filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f3)
 				# execute mainscript again
+				queue_running="true"
 				echo "---------------------- Running queue ----------------------"
 				echo "Transfering id=$id, $(basename "$filepath")"
 				start_main --path="$filepath" --user="$username"
@@ -400,7 +406,7 @@ function ftp_processbar { #Showing how download is proceding
 			while [[ "$loop" = "true" ]]; do
 				if [[ ${#changed_name[@]} -gt 2 ]]; then
 					echo "INFO: Progress not possible due to a lot of changing files"
-					sed "5s#.*#***************************	Transfering: $orig_name - x% in x at x MB/s. ETA: x  #" -i $logfile
+					sed "5s#.*#***************************	Transfering: "$orig_name" - x% in x at x MB/s. ETA: x  #" -i $logfile
 					break
 				else
 					if [[ $transferetype == "downftp" ]]; then
@@ -434,7 +440,7 @@ function ftp_processbar { #Showing how download is proceding
 								etatime="Unknown"
 						fi
 						#update file and output the current line
-						sed "5s#.*#***************************	Transfering: $orig_name - $procentage% in $timediff at $speed MB/s. ETA: $etatime  #" -i $logfile
+						sed "5s#.*#***************************	Transfering: "$orig_name" - $procentage% in $timediff at $speed MB/s. ETA: $etatime  #" -i $logfile
 						echo -ne  "$procentage% is done in $timediff at $speed MB/s. ETA: $etatime\r"
 					fi
 				fi
@@ -577,7 +583,7 @@ queue add
 echo "INFO: Simultaneous transferes: $parallel"
 
 #Checking transferesize
-get_size "$filepath" "exclude_array[@]"
+get_size "$filepath" "${exclude_array[@]}"
 
 #Execute preexternal command
 if [[ -n "$exec_pre" ]]; then
