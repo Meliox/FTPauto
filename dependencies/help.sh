@@ -26,72 +26,68 @@ function write_config {
 }
 
 function show_help {
-#displays help info
-	echo -e "     Homepage: \e[04;34mhttps://bitbucket.org/teamsilent/ftpautodownload/\e[00m"
-	echo
-	echo -e "\e[1;30m  What is this...\e[00m"
-	echo -e "  FTP AUTODOWNLOAD script is a simple commandline tool to send files from a local server to\n  a remote easily. Numerous options may be specified such a checking free space for \n  transfering, multiple user support, delay of transfer and category support. It is\n  especially powerfull in combination with \e[00;33mFlexget\e[00m which can be found at \e[04;34mhttp://flexget.com/\e[00m"
-	echo ""
-	echo -e "\e[1;30m  Arguments allowed are\e[00m"
-	echo "     --help or -h | displays help info"
-	echo "     --quiet | supresses all output"
-	echo "     --verbose or -v | displays debug info"
-	echo "     --path or -p ~/home/ or path=~/home"
-	echo "     --feed=<FLEXGETFEEDNAME> or --feed=name | When using flexget to invoke this script, option to remove item from flexget config"
-	echo "     --user or -u username or --user=name"
-	echo "     --force or -f | Ignores lockfile"
-	echo "     --online | Returns if server is online or not"
-	echo "     --freespace | Returns how much freespace is available on server. Requires ftpsizemanagement=\"true\" in config"
-	echo "     --category=<CAT> | Save to custom category in a subdirectory in ftpcomplete directory set below"
-	echo "     --delay=\"01/01/2010 12:00\" | Has to be in this format!"
-	echo "     --example | Prints configuration example"
-	echo "     --test | Try the script without actual transfer. Usefull for testing purposes!"
-	echo "     --exec_post | see exec_pre further explanation"
-	echo "       allow_background=\"yes\" might be used in config so that ftp_main will not wait for it to finish"	
-	echo "     --exec_pre | Execute an external command. Be sure to use '' to qoute the command."
-	echo "       Please note that the command has to be written correctly in order to be carried out properly"
-	echo "       The following can be used:"
-	echo "         "'$user'": States to user being used"
-	echo "         "'$size'": States to total transfer size"
-	echo "         "'$orig_name'": States the transfername"
-	echo "         "'$source'": States the source used for the transfer"
-	echo "         "'$ftpcomplete'": States the complete directory"
-	echo "         "'$ftpincomplete'": States the incomplete directory"
-	echo -e "         --source <SOURCE> | Source is used to show how the download has been started. The\n           following is possible:\n           MANDL=manual download(if nothing is used)\n           WEBDL=download from webpage\n           FLXDL=autodownload from flexget\n           other can be used as well..."
-	echo
-	echo -e "\e[00;31m     Remember quotes for all possible cases!\e[00m"
-	echo ""
-	echo ""
-	echo -e "\e[1;30m  Examples of use\e[00m"
-	echo "      Example of single user support"
-	echo "      bash ftp_main.sh --path="~/path/" --delay=\"01/01/2010 12:00\" --cat=\"TV\""
-	echo ""
-	echo "      Example of multiuser support"
-	echo -e "      bash ftp_main.sh --user=\"admin\" --path="~/path/"\n      --delay=\"01/01/2010 12:00\" --cat=\"TV\""
-	echo -e "       Almost the same af single user, but the config setup is different as the\n       config has to be here ~/users/USERNAME/config. The whole transprocess, lockfiles etc.\n       are to be found in ~/run for all users"
-	echo ""
-	echo -e "      Using \e[00;33mFlexget\e[00m"
-	echo -e "      First prerequisite is to install Flexget, which can be found here:\n      \e[04;34mhttp://flexget.com/wiki/InstallWizard/Linux/Environment/\e[00m\n      Then an appropiate config has to be written as the following example. How Flexget\n      config works is not going to be explained as it is done so very nicely on their\n      homepage, \e[04;34mhttp://flexget.com/wiki/Configuration\e[00m"
-	echo ""
-	echo "         Flexget config:"
-	echo "         -------------------------"
-	echo "            tasks:"
-	echo "              USER:"
-	echo "                listdir: [~/TV/, ~/path2/]"
-	echo "                series:"
-	echo "                  720p:"
-	echo "                    - TVSHOW1"
-	echo "                    - TVSHOW2"
-	echo "                exec:"
-	echo "                  fail_entries: yes"
-	echo "                  allow_background: yes"
-	echo "                  auto_escape: yes"
-	echo "                  on_output:"
-	echo -e "                    for_accepted: 'sleep 5; bash ~/ftp_main.sh \n         --path="{{location}}/" --user=USER --source=FLXDL &'"
-	echo "         -------------------------"
-	echo -e "         Having written the config properly i.e. without it failing\n         \"bin/flexget --check\", it may be added to crontab. Do this by crontab -e and write\n         \"*/5 * * * * /home/ammin/flexget-download/bin/flexget --cron\". 5, minutes, is\n         the interval checking for new files. \e[00;33mINFO\e[00m: Flexget only handle one user PER show,\n         so if several users see the same you need to add addtional configs to crontab like\n         \"*/5* * * * /home/ammin/flexget-rss/bin/flexget -c ~/flexget/config2.yml --cron\""
-	echo
-	exit 0
+echo -e "
+\033[1mHomepage\033[0m
+\e[04;34mhttps://bitbucket.org/teamsilent/ftpautodownload/\e[00m
+
+\033[1mDescription\033[0m
+  FTPauto is a bash commandline tool to send files from a local server to\n  a remote easily. Numerous options may be specified such a checking free space for \n  transfering, multiple user support, delay of transfer and category support. It is\n  especially powerfull in combination with Flexget
+
+  For more information read the README or see homepage.
+  
+IMPORTANT: Default is always used if --user isn't used!
+
+\033[1mOptions\033[0m
+== Required ==
+	--user=<USER>      | Required at all times in multi user setup, can be omitted in single user setop
+== Session manipulation ==
+	--pause            | Terminates transfer and leaves queue intact
+	--start            | Begins transfer from queue and let it finish queue. Only to be used for sessions!
+	--stop             | Terminates transfer and remove queue and current id
+
+== Item manipulation ==
+	--list             | Lists all items in queue
+	= Required =
+	  --id=<id>         | Id for <PATH> you want to manipulate. Find them in the queuefile. See --list
+	= Options =
+	  --clear           | Remove everything in queue
+	  --down            | Move <ID> down
+	  --forget          | Remove <ID> from queue
+	  --path=<PATH>     | <PATH> used to transfer now!
+	  --queue           | Sends <PATH> to queue WITHOUT starting script if autostart=false in config.
+						   NOTE that --path <ITEM> is required for this to work.
+						   Might also be used to start transfer in background if autostart=true	   
+	  --source=<SOURCE> | Source is used to show how the download has been started. The
+						   following is possible:
+						   MANDL=manual download(if nothing is used)
+						   WEBDL=download from webpage
+						   FLXDL=autodownload from flexget
+						   other can be used as well...
+	  --up              | Move <ID> Up
+
+== User manipulation ==
+	--add              | Add user --add=<USER>
+	--edit             | Edit <USER> config
+	--purge            | Removes all user history and configs
+	--remove           | Removes all user history
+
+== Server ==
+	--freespace        | Checks how much free space is available (slow if on remote server)
+	--online           | Checks if server is online and writeable
+
+== Optional ==
+	--bg               | Transfer is done in background
+	--debug            | Debugs to logfile
+	--delay            | Delays transfer until X. Has to be in this format "01/01/2010 12:00" (Month/Day/Year 24h-time)
+	--exec_post        | Execute commands after download
+	--exec_pre         | Execute commands before download
+	--force            | Transfer file despite something is running
+	--help             | Print help info
+	--progress         | While transfering, this will print out progress if enabled in config	
+	--quiet            | Supresses all output
+	--test             | Shows what transfer is going to happen
+	--verbose          | Debugs to console
+  "
 }
 
 function show_example {
@@ -183,4 +179,25 @@ function show_example {
 	echo	" # Leave push_user empty if you don't use it"
 	echo	"push_token=\"\""
 	echo	"push_user=\"\""
+}
+
+function create_log_file {
+	if [ ! -e "$logfile" ]; then
+		echo "INFO: First time used - logfile is created"
+		echo "***************************	FTPauto - $s_version" >> $logfile
+		echo "***************************	STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> $logfile
+		if [[ $ftpsizemanagement == "true" ]]; then
+			echo "***************************	FTP INFO: 0/"$totalmb"MB (Free "$freemb"MB)" >> $logfile
+		else
+			echo "***************************	FTP INFO: not used yet" >> $logfile
+		fi
+		echo "***************************	LASTDL: nothing" >> $logfile
+		echo "***************************	" >> $logfile
+		echo "**********************************************************************************************************************************" >> $logfile
+		echo "" >> $logfile
+		else
+			echo "INFO: Logfile: $logfile"
+			# clean log file
+			echo "***************************	FTP INFO:" >> $logfile
+	fi
 }

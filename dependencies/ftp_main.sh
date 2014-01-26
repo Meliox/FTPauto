@@ -56,7 +56,7 @@ function tranfere_timeframe {
 		kill -9 "$pid_transfer"
 		sleep_seconds=$(dateDiff -s "$(date +%T)" "$transfere_start+24:00")
 		echo "Time is $(date +%R), transfer is postponed until $transfere_start"
-		sed "5s#.*#***************************	Transfering: $orig_name - waiting to start at $transfere_Start  #" -i $logfile
+		sed "5s#.*#***************************	Transfering: "$orig_name" - waiting to start at $transfere_Start  #" -i $logfile
 		sleep $sleep_seconds
 		ftp_transfere
 	fi
@@ -67,29 +67,35 @@ function queue {
 	local option=$2
 	case "$1" in
 		"add" )
-			if [[ $queue == "true" ]]; then
-				# figure out ID
-				if [[ -e "$queue_file" ]]; then
-					#get last id
-					id=$(( $(tail -1 "$queue_file" | cut -d'#' -f1) + 1 ))
-				else
-					#assume this is the first one
-					id="1"
-				fi
-				get_size "$filepath" "exclude_array[@]" &> /dev/null
-				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
-					echo "INFO: Item already in queue. Doing nothing..."
-					echo
-					exit 0
-				elif [[ "$option" == "end" ]]; then
-					source=$source"Q"
-					echo "INFO: Queueing: $(basename "$filepath"), id=$id"
-					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-					echo
-					exit 0
-				else
-					echo "INFO: Queueid: $id"
-					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+			if [[ $queue_running == "true" ]]; then
+				# task has been started from queue, no need to add it
+				true
+			else
+				if [[ $queue == "true" ]]; then
+					# figure out ID
+					if [[ -e "$queue_file" ]]; then
+						#get last id
+						id=$(( $(tail -1 "$queue_file" | cut -d'#' -f1) + 1 ))
+					else
+						#assume this is the first one
+						id="1"
+					fi
+					get_size "$filepath" "exclude_array[@]" &> /dev/null
+					
+					if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
+						echo "INFO: Item already in queue. Doing nothing..."
+						echo
+						exit 0
+					elif [[ "$option" == "end" ]]; then
+						source=$source"Q"
+						echo "INFO: Queueing: $(basename "$filepath"), id=$id"
+						echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+						echo
+						exit 0
+					else
+						echo "INFO: Queueid: $id"
+						echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+					fi
 				fi
 			fi
 		;;
@@ -116,6 +122,7 @@ function queue {
 				source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f2)
 				local filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f3)
 				# execute mainscript again
+				queue_running="true"
 				echo "---------------------- Running queue ----------------------"
 				echo "Transfering id=$id, $(basename "$filepath")"
 				start_main --path="$filepath" --user="$username"
@@ -399,7 +406,7 @@ function ftp_processbar { #Showing how download is proceding
 			while [[ "$loop" = "true" ]]; do
 				if [[ ${#changed_name[@]} -gt 2 ]]; then
 					echo "INFO: Progress not possible due to a lot of changing files"
-					sed "5s#.*#***************************	Transfering: $orig_name - x% in x at x MB/s. ETA: x  #" -i $logfile
+					sed "5s#.*#***************************	Transfering: "$orig_name" - x% in x at x MB/s. ETA: x  #" -i $logfile
 					break
 				else
 					if [[ $transferetype == "downftp" ]]; then
@@ -433,7 +440,7 @@ function ftp_processbar { #Showing how download is proceding
 								etatime="Unknown"
 						fi
 						#update file and output the current line
-						sed "5s#.*#***************************	Transfering: $orig_name - $procentage% in $timediff at $speed MB/s. ETA: $etatime  #" -i $logfile
+						sed "5s#.*#***************************	Transfering: "$orig_name" - $procentage% in $timediff at $speed MB/s. ETA: $etatime  #" -i $logfile
 						echo -ne  "$procentage% is done in $timediff at $speed MB/s. ETA: $etatime\r"
 					fi
 				fi
@@ -488,27 +495,6 @@ function logrotate {
 	fi
 }
 
-function create_log_file {
-	if [ ! -e "$logfile" ]; then
-		echo "INFO: First time used - logfile is created"
-		echo "***************************	FTPauto - $s_version" >> $logfile
-		echo "***************************	STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> $logfile
-		if [[ $ftpsizemanagement == "true" ]]; then
-			echo "***************************	FTP INFO: 0/"$totalmb"MB (Free "$freemb"MB)" >> $logfile
-		else
-			echo "***************************	FTP INFO: not used yet" >> $logfile
-		fi
-		echo "***************************	LASTDL: nothing" >> $logfile
-		echo "***************************	" >> $logfile
-		echo "**********************************************************************************************************************************" >> $logfile
-		echo "" >> $logfile
-		else
-			echo "INFO: Logfile: $logfile"
-			# clean log file
-			echo "***************************	FTP INFO:" >> $logfile
-	fi
-}
-
 function loadConfig {
 	# reload config
 	source "$scriptdir/users/$user/config"
@@ -516,7 +502,6 @@ function loadConfig {
 	#load paths to everything
 	setup
 	check_setup
-	create_log_file
 }
 
 function check_setup {
@@ -598,7 +583,7 @@ queue add
 echo "INFO: Simultaneous transferes: $parallel"
 
 #Checking transferesize
-get_size "$filepath" "exclude_array[@]"
+get_size "$filepath" "${exclude_array[@]}"
 
 #Execute preexternal command
 if [[ -n "$exec_pre" ]]; then
@@ -667,11 +652,6 @@ fi
 # Try to sort files
 if [[ "$sort" == "true" ]]; then
 	source "$scriptdir/dependencies/sorting.sh" && sortFiles "$sortto"
-fi
-
-# Remove item from flexget config
-if [[ -n "$feed_name" ]]; then
-	source "$scriptdir/plugins/flexget.sh" && flexget_feed
 fi
 
 # Delay transfer if needed
@@ -743,9 +723,7 @@ if (($# < 1 )); then echo; echo -e "\e[00;31mERROR: No option specified\e[00m"; 
 while :
 do
 	case "$1" in
-		--help | -h ) option="help"; shift;;
 		--path=* ) filepath="${1#--path=}"; shift;;
-		--feed=* ) feed="${1#--feed=}"; shift;;
 		--user=* ) user="${1#--user=}"; shift;;
 		--exec_post=* ) exec_post="${1#--exec_post=}"; shift;;
 		--exec_pre=* ) exec_pre="${1#--exec_pre=}"; shift;;
@@ -754,58 +732,51 @@ do
 		--source=* ) source="${1#--source=}"; shift;;
 		--sortto=* ) sortto="${1#--sortto=}"; shift;;
 		--example ) load_help; show_example; exit 0;;
-		--freespace ) ftp_sizemanagement info; cleanup session; exit 0;;
-		--test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;		
-		-* ) echo -e "\e[00;31mInvalid option: $@\e[00m"; echo "See --help for more information"; echo ""; exit 1;;
+		--test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;
 		* ) break ;;
 		--) shift; break;;
 	esac
 done
 
-case "$option" in
-	"help" ) # Write out help
-		load_help; show_help; show_example; exit 0
-	;;
-	* ) # main program
-		# confirm filepath
-		if [[ -z "$filepath" ]]; then
-			# if --path is not used, try and run queue
-			queue run
-		elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath" -type f 2>/dev/null) ]] || [[ -z $(find "$filepath" -type f 2>/dev/null) ]]; then
-			# path with files or file not found
-			if [[ "$transferetype" == "downftp" ]]; then
-				# server <-- client, assume path is OK
-				lockfile "$lockfileoption"
-				true
-			elif [[ "$transferetype" == "upftp" ]]; then		
-				# server --> client
-				echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m"
-				echo
-				exit 1
-			else
-				echo "INFO: Transfertype \"$transferetype\" not recognized. Have a look on your config"
-				echo
-				exit 1				
-			fi
-		fi
-		# Create lockfile
+# main program starts here
+
+# confirm filepath
+if [[ -z "$filepath" ]]; then
+	# if --path is not used, try and run queue
+	queue run
+elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath" -type f 2>/dev/null) ]] || [[ -z $(find "$filepath" -type f 2>/dev/null) ]]; then
+	# path with files or file not found
+	if [[ "$transferetype" == "downftp" ]]; then
+		# server <-- client, assume path is OK
 		lockfile "$lockfileoption"
-		
-		echo "INFO: Transfertype: $transferetype"
-		
-		#Load dependencies
-		source "$scriptdir/dependencies/setup.sh"
+		true
+	elif [[ "$transferetype" == "upftp" ]]; then		
+		# server --> client
+		echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m"
+		echo
+		exit 1
+	else
+		echo "INFO: Transfertype \"$transferetype\" not recognized. Have a look on your config"
+		echo
+		exit 1				
+	fi
+fi
+# Create lockfile
+lockfile "$lockfileoption"
 
-		#Check wether we have an external config, user config or no config at all
-		loadConfig
+echo "INFO: Transfertype: $transferetype"
 
-		# OK nothing running and --path is real, lets continue
-		# fix spaces: "/This\ is\ a\ path"
-		# Note: The use of normal backslashes is NOT supported
-		filepath="$(echo "$filepath" | sed 's/\\./ /g')"
+#Load dependencies
+source "$scriptdir/dependencies/setup.sh"
 
-		#start program
-		main "$filepath"
-	;;
-esac
+#Check wether we have an external config, user config or no config at all
+loadConfig
+
+# OK nothing running and --path is real, lets continue
+# fix spaces: "/This\ is\ a\ path"
+# Note: The use of normal backslashes is NOT supported
+filepath="$(echo "$filepath" | sed 's/\\./ /g')"
+
+#start program
+main "$filepath"
 }
