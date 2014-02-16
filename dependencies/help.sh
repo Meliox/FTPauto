@@ -94,7 +94,7 @@ function show_example {
 #shows an example for configuration
 	echo
 	echo	"#This the the configuration file for ftpautodownload"
-	echo	"config_version=\"2\""
+	echo	"config_version=\"3\""
 	echo	"#Place the file in $scriptdir/run/'$username'/config and load with --user='$username' or"
 	echo	"# just load it with --config=config_path"
 	echo
