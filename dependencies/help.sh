@@ -142,7 +142,7 @@ function show_example {
 	echo
 	echo	"## General settings"
 	echo	"parallel=\"3\" # how many simultaneous transferes to download with"
-	echo	"queue=\"true\" # if script is executed while something is running, the task is queued"
+	echo	"continue_queue=\"true\" # Script will continue downloading if something is queued"
 	echo	"retries=\"3\" # How many times should the transfer be tried, before giving up"
 	echo 	"retry_download=\"10\" # retry again in minutes after minimum space is reached OR server is offline."
 	echo	"retry_download_max=\"10\" # retry for how many hours, before quitting"	
@@ -170,9 +170,6 @@ function show_example {
 	echo	"exec_post=\"\" #Execute external command upon finish. See --help exec_pre for more info"
 	echo	"allow_background=\"yes\" # don't wait for exec to finish. ONLY for exec_post"
 	echo	"exec_pre=\"\" #Execute external command before starting. See --help for more info"
-	echo
-	echo	"#### Used for controlscript only ####"
-	echo	"autostart=\"true\" # Autostart download when adding something to queue"
 	echo
 	echo	"#### Push notificaions ####"
 	echo	" # Create a user at https://pushover.net/ and enter data below"

@@ -1,5 +1,5 @@
 #!/bin/bash
-s_version="0.2.8"
+s_version="0.2.6"
 verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 script="$(readlink -f $0)"
 scriptdir=$(dirname $script)
@@ -78,7 +78,6 @@ function message {
 function load_help {
 	if [[ -e "$scriptdir/dependencies/help.sh" ]]; then
 		source "$scriptdir/dependencies/help.sh"
-		show_help
 	else
 		echo -e "\e[00;31mError: /dependencies/help.sh is\n needed in order for this program to work\e[00m";
 		exit 1
@@ -130,7 +129,7 @@ function load_user {
 		fi
 	fi
 	# confirm that config is most recent version
-	if [[ $config_version -lt "2" ]]; then
+	if [[ $config_version -lt "3" ]] && [[ $option != "add" ]]; then
 		echo -e "\e[00;31mERROR: Config is out-dated, please update it. See --help for more info!\e[00m"
 		echo -e "\e[00;31mIt has to be version 2\e[00m"
 		cleanup session
@@ -155,86 +154,8 @@ else
 	exit 1
 fi
 }
-################################################### CODE BELOW #######################################################
 
-echo
-echo -e "\e[00;34mFTPauto script - $s_version\e[00m"
-echo
-
-
-download_argument=()
-if (($# < 1 )); then echo -e "\e[00;31mERROR: No option specified\e[00m"; echo "See --help for more information"; echo ""; exit 0; fi
-while :
-do
-	case "$1" in
-		# Session
-		--pause ) option_manage pause; shift;;
-		--stop ) option_manage stop; shift;;
-		--start ) option_manage start; shift;;
-		# User
-		--add ) option_manage add; shift;;
-		--edit ) option_manage edit; shift;;
-		--purge ) option_manage purge; shift;;
-		--user ) if (($# > 1 )); then user=$2; download_argument+=("--username=$username"); else invalid_arg "$@"; fi; shift 2;;
-		--user=* ) username=${1#--user=}; download_argument+=("--user=$username"); shift;;		
-		# Item
-		--forget ) option_manage forget; shift;;
-		--list ) option_manage list; shift;;
-		--remove ) option_manage remove; shift;;
-		--up ) option_manage up; shift;;
-		--down ) option_manage down; shift;;
-		--id ) if (($# > 1 )); then id=$2; else invalid_arg "$@"; fi; shift 2;;
-		--id=* ) id=${1#--id=}; shift;;		
-		--clear ) option_manage clear; shift;;
-		# Options
-		--queue ) option[1]=queue; shift;;
-		--delay ) if (($# > 1 )); then delay=\"$2\"; download_argument+=("--delay=$delay"); else invalid_arg "$@"; fi; shift 2;;
-		--delay=* ) delay=${1#--delay=}; download_argument+=("--delay=$delay"); shift;;
-		--sort ) if (($# > 1 )); then sortto="$2"; download_argument+=("--sortto=$sortto"); else invalid_arg "$@"; fi; shift 2;;
-		--sort=* ) sortto=${1#--sort=}; download_argument+=("--sortto=$sortto"); shift;;
-		--path ) if (($# > 1 )); then option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; filepath="$2"; download_argument+=("--path=$filepath"); else invalid_arg "$@"; fi; shift 2;;
-		--path=* ) option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; filepath="${1#--path=}"; download_argument+=("--path=$filepath"); shift;;
-		--source=* ) source=${1#--source=}; download_argument+=("--source=$source"); if [[ -z $source ]]; then load_help; exit 1; fi; shift;;
-		--source | -s ) if (($# > 1 )); then source=\"$2\"; download_argument+=("--source=$source"); else invalid_arg "$@"; fi; shift 2;;
-		# Other
-		--help | -h ) load_help; exit 1;;
-		--verbose | -v) verbose=1; shift;;
-		--debug ) verbose=2; shift;;
-		--quiet) quiet=true; shift;;
-		--bg) background=true; shift;;
-		--progress) option=progress; shift;;
-		--online ) option=online; shift;;
-		--force ) download_argument+=("--force"); shift;;
-		--freespace ) option=freespace; shift;;
-		--exec_post=* ) exec_post="${1#--exec_post=}"; download_argument+=("--exec_post"); shift;;
-		--exec_post ) if (($# > 1 )); then exec_post="$2"; download_argument+=("--exec_post"); else invalid_arg "$@"; fi; shift 2;;
-		--exec_pre=* ) exec_pre="${1#--exec_pre=}"; download_argument+=("--exec_pre"); shift;;
-		--exec_pre ) if (($# > 1 )); then exec_pre="$2"; download_argument+=("--exec_pre"); else invalid_arg "$@"; fi; shift 2;;		
-		--test ) option=( "download" "start"); download_argument+=("--test"); shift;;
-		-* ) echo -e "\e[00;31mInvalid option: $@\e[00m"; echo "Try viewing --help"; exit 0;;
-		* ) break ;;
-		--) shift; break;;
-	esac
-done
-
-# load verbose level
-verbose
-echo "INFO: Information level: $verbose"
-
-# load user
-load_user
-
-# Load dependencies
-source "$scriptdir/dependencies/setup.sh"
-setup
-
-# make sure user has a log file
-if [ ! -e "$logfile" ]; then
-	load_help; create_log_file
-fi
-
-# Execute the given option
-echo "INFO: Option(s): ${option[@]}"
+function main {
 case "${option[0]}" in
 	"add" ) # add user
 		load_help; write_config
@@ -312,14 +233,14 @@ case "${option[0]}" in
 		# TODO: Add options to queuefile as well
 		elif [[ ${option[1]} == "queue" ]]; then
 			# If autostart is used, then try and execute main script. Always in background
-			if [[ $autostart == "true" ]]; then
+			if [[ $continue_queue == "true" ]]; then
 				background="true"
 				start_ftpmain
 				message "Session has started." "0"
 			else
 				# determine if item exists already
 				if [[ -e "$queue_file" ]]; then
-					if [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
+					if [[ -n $(cat "$queue_file" | grep $(basename "$path")) ]]; then
 						message "INFO: Item already exists. Doing nothing. Exiting..." "1"
 					fi
 					# find id to <ITEM>
@@ -331,15 +252,15 @@ case "${option[0]}" in
 				if [[ "$transferetype" == "downftp" ]]; then
 					echo "INFO: Looking up size on ftp..."
 				elif [[ "$transferetype" == "upftp" ]]; then
-					if [[ ! -d "$filepath" ]] || [[ ! -f "$filepath" ]] && [[ -z $(find "$filepath" -type f) ]]; then
+					if [[ ! -d "$path" ]] || [[ ! -f "$path" ]] && [[ -z $(find "$path" -type f) ]]; then
 						message "ERROR: Option --path is required with existing path and has to contain file(s).\n See --help for more info!!" "1"
 						exit 1
 					fi
 				fi
-				get_size "$filepath" "exclude_array[@]" &> /dev/null
+				get_size "$path" "exclude_array[@]" &> /dev/null
 				
-				echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-				message "Adding $(basename "$filepath") to queue with id=$id" "0"
+				echo "$id#$source#$path#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+				message "Adding $(basename "$path") to queue with id=$id" "0"
 			fi
 		fi
 	;;
@@ -452,8 +373,96 @@ case "${option[0]}" in
 		if [ -t 0 ]; then stty sane; fi
 		echo -e '\n'
 		message "Progress finished" "0"
+	;;
+	"dir" ) # list content of ftpserver and download it
+		source "$scriptdir/dependencies/ftp_list.sh" && ftp_list
+		message "Closing FTP-server" "0"
 	;;	
 	* )
 		message "No options selected." "1"
 	;;
 esac
+}
+################################################### CODE BELOW #######################################################
+
+echo
+echo -e "\e[00;34mFTPauto script - $s_version\e[00m"
+echo
+
+
+download_argument=()
+if (($# < 1 )); then echo -e "\e[00;31mERROR: No option specified\e[00m"; echo "See --help for more information"; echo ""; exit 0; fi
+while :
+do
+	case "$1" in
+		# Session
+		--pause ) option_manage pause; shift;;
+		--stop ) option_manage stop; shift;;
+		--start ) option_manage start; shift;;
+		# User
+		--add ) option_manage add; shift;;
+		--edit ) option_manage edit; shift;;
+		--purge ) option_manage purge; shift;;
+		--user ) if (($# > 1 )); then user=$2; download_argument+=("--user=$username"); else invalid_arg "$@"; fi; shift 2;;
+		--user=* ) username=${1#--user=}; download_argument+=("--user=$username"); shift;;		
+		# Item
+		--forget ) option_manage forget; shift;;
+		--list ) option_manage list; shift;;
+		--remove ) option_manage remove; shift;;
+		--up ) option_manage up; shift;;
+		--down ) option_manage down; shift;;
+		--id ) if (($# > 1 )); then id=$2; else invalid_arg "$@"; fi; shift 2;;
+		--id=* ) id=${1#--id=}; shift;;		
+		--clear ) option_manage clear; shift;;
+		# Options
+		--queue ) option[1]=queue; shift;;
+		--delay ) if (($# > 1 )); then delay=\"$2\"; download_argument+=("--delay=$delay"); else invalid_arg "$@"; fi; shift 2;;
+		--delay=* ) delay=${1#--delay=}; download_argument+=("--delay=$delay"); shift;;
+		--sort ) if (($# > 1 )); then sortto="$2"; download_argument+=("--sortto=$sortto"); else invalid_arg "$@"; fi; shift 2;;
+		--sort=* ) sortto=${1#--sort=}; download_argument+=("--sortto=$sortto"); shift;;
+		--path ) if (($# > 1 )); then option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; path="$2"; download_argument+=("--path=$path"); else invalid_arg "$@"; fi; shift 2;;
+		--path=* ) option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; path="${1#--path=}"; download_argument+=("--path=$path"); shift;;
+		--source=* ) source=${1#--source=}; download_argument+=("--source=$source"); if [[ -z $source ]]; then invalid_arg "$@"; exit 1; fi; shift;;
+		--source | -s ) if (($# > 1 )); then source=\"$2\"; download_argument+=("--source=$source"); else invalid_arg "$@"; fi; shift 2;;
+		# Other
+		--help | -h ) load_help; show_help; exit 1;;
+		--verbose | -v) verbose=1; shift;;
+		--debug ) verbose=2; shift;;
+		--quiet) quiet=true; shift;;
+		--bg) background=true; shift;;
+		--progress) option=progress; shift;;
+		--online ) option=online; shift;;
+		--dir=* ) dir=${1#--dir=}; option=dir; shift;;
+		--dir ) option=dir; if (($# > 1 )); then dir="$2"; fi; shift;;
+		--force ) download_argument+=("--force"); shift;;
+		--freespace ) option=freespace; shift;;
+		--exec_post=* ) exec_post="${1#--exec_post=}"; download_argument+=("--exec_post"); shift;;
+		--exec_post ) if (($# > 1 )); then exec_post="$2"; download_argument+=("--exec_post"); else invalid_arg "$@"; fi; shift 2;;
+		--exec_pre=* ) exec_pre="${1#--exec_pre=}"; download_argument+=("--exec_pre"); shift;;
+		--exec_pre ) if (($# > 1 )); then exec_pre="$2"; download_argument+=("--exec_pre"); else invalid_arg "$@"; fi; shift 2;;		
+		--test ) option=( "download" "start"); download_argument+=("--test"); shift;;
+		-* ) echo -e "\e[00;31mInvalid option: $@\e[00m"; echo "Try viewing --help"; exit 0;;
+		* ) break;;
+		--) shift; break;;
+	esac
+done
+
+# load verbose level
+verbose
+echo "INFO: Information level: $verbose"
+
+# load user
+load_user
+
+# Load dependencies
+source "$scriptdir/dependencies/setup.sh"
+setup
+
+# make sure user has a log file
+if [ ! -e "$logfile" ]; then
+	load_help; create_log_file
+fi
+
+# Execute the given option
+echo "INFO: Option(s): ${option[@]}"
+main

@@ -71,31 +71,29 @@ function queue {
 				# task has been started from queue, no need to add it
 				true
 			else
-				if [[ $queue == "true" ]]; then
-					# figure out ID
-					if [[ -e "$queue_file" ]]; then
-						#get last id
-						id=$(( $(tail -1 "$queue_file" | cut -d'#' -f1) + 1 ))
-					else
-						#assume this is the first one
-						id="1"
-					fi
-					get_size "$filepath" "exclude_array[@]" &> /dev/null
-					
-					if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
-						echo "INFO: Item already in queue. Doing nothing..."
-						echo
-						exit 0
-					elif [[ "$option" == "end" ]]; then
-						source=$source"Q"
-						echo "INFO: Queueing: $(basename "$filepath"), id=$id"
-						echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-						echo
-						exit 0
-					else
-						echo "INFO: Queueid: $id"
-						echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-					fi
+				# figure out ID
+				if [[ -e "$queue_file" ]]; then
+					#get last id
+					id=$(( $(tail -1 "$queue_file" | cut -d'#' -f1) + 1 ))
+				else
+					#assume this is the first one
+					id="1"
+				fi
+				get_size "$filepath" "exclude_array[@]" &> /dev/null
+				
+				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
+					echo "INFO: Item already in queue. Doing nothing..."
+					echo
+					exit 0
+				elif [[ "$option" == "end" ]]; then
+					source=$source"Q"
+					echo "INFO: Queueing: $(basename "$filepath"), id=$id"
+					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+					echo
+					exit 0
+				else
+					echo "INFO: Queueid: $id"
+					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 				fi
 			fi
 		;;
@@ -103,18 +101,15 @@ function queue {
 			#remove item acording to id
 			sed "/^"$id"\#/d" -i "$queue_file"
 			# if queue is true then continue to run else stop
-			if [[ $queue == "true" ]]; then
+			if [[ $continue_queue == "true" ]]; then
 				queue run
 			else
 				cleanup end
 			fi
 		;;
 		"run" )
-			# Create lockfile
-			if [[ $queue == "true" ]]; then
-				# change lockfile status			
-				lockfileoption="running"
-			fi			
+			# change lockfile status			
+			lockfileoption="running"		
 			lockfile "$lockfileoption"
 			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
 				#load next item from top
@@ -536,11 +531,7 @@ function lockfile {
 					echo "       The transfere is: $alreadyinprogres"
 					echo "       If that is wrong remove $lockfile"
 					echo "       Wait for it to end, or kill it: kill -9 $mypid_script"
-					if [[ $queue == "true" ]]; then
-							queue add end
-					else
-						exit 1
-					fi
+					queue add end
 				fi
 			fi
 			#allocate pids

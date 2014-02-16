@@ -26,6 +26,8 @@ function setup {
 	lftptransfersize="$scriptdir/run/$username.ftptransfersize"
 	transfersize="$scriptdir/run/$username.transfersize"
 	lftptransfersize2="$scriptdir/run/$username.lftptransfersize2"
+	ftplist_file="$scriptdir/run/$username.lftplist"
+	ftp_content="$scriptdir/run/$username.ftpcontent"
 }
 
 function get_size {
