@@ -236,10 +236,12 @@ function install_1 {
 				echo "You have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\""
 				echo "... Exiting"; echo ""; exit 0
 			fi
-			echo -e "\e[00;32m [OK]\e[00m"
+			echo -n "Checking $i ..."
+			if [[ -n $(builtin type -p $i) ]]; then
+				echo -e "\e[00;32m [OK]\e[00m"
 			else
 				echo -e "\e[00;31mScript will not work without... exiting\e[00m"; echo ""
-				exit 0
+				exit 0			
 			fi
 		else
 			echo -e "\e[00;32m [OK]\e[00m"
