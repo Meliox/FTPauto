@@ -13,6 +13,15 @@ else
 	i_version=0
 fi
 
+control_c() {
+	# run if user hits control-c
+	echo -ne '\n'
+	echo -e " \e[00;31mUser hit CTRL+C, exiting...\e[00m"
+	echo " Run install.sh --uninstall to remove created files before trying again!"; echo ""
+	exit 0
+}
+trap control_c SIGINT
+
 #programs
 function version_compare {
 	local IFS=.
@@ -28,26 +37,28 @@ function version_compare {
 }
 
 function lftp_update {
-	if [[ -z $(builtin type -p lftp) ]]; then
+	if [[ -n $(builtin type -p lftp) ]]; then
 		echo -n "Removing old version ..."
 		sudo apt-get -y remove lftp &> /dev/null
+		# remove compiled version
+		sudo rm -rf "$scriptdir/dependencies/lftp*"
 	fi
-	cd "$scriptdir/dependencies"
 	sudo apt-get -y install checkinstall libreadline-dev &> /dev/null
 	# find latest lftp
+	cd "$scriptdir/dependencies"	
 	local lftpversion=$(curl --silent http://lftp.yar.ru/ftp/ | egrep -o '>lftp.(.*).+tar.gz' | tail -1)
 	lftpversion=${lftpversion#\>lftp\-}
 	lftpversion=${lftpversion%.tar.gz}
-	wget http://lftp.yar.ru/ftp/lftp-$lftpversion.tar.gz &> /dev/null
+	wget "http://lftp.yar.ru/ftp/lftp-$lftpversion.tar.gz" &> /dev/null
+	tar -xzvf "lftp-$lftpversion.tar.gz" &> /dev/null
 	rm "$scriptdir/dependencies/lftp-$lftpversion.tar.gz"
-	tar -xzvf lftp-$lftpversion.tar.gz &> /dev/null
-	cd lftp-$lftpversion && ./configure --with-openssl --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
+	cd "lftp-$lftpversion" && ./configure --with-openssl --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
 }
 
 function install_lftp {
 	echo -n "Checking lftp ..."
-	if [[ -z $(which lftp) ]]; then
-		echo -e " [\e[00;31mERROR\e[00m] \"lftp\" is not installed! lftp is needed for FTPauto to work!"
+	if [[ -z $(builtin type -p lftp) ]]; then
+		echo -e " [\e[00;31mERROR\e[00m] lftp is not installed! lftp is needed for FTPauto to work!"
 		read -p " Do you want to install it(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
 			read -p " Do you want latest version(y)(needs to be compiled - SLOW - Any installed version will be removed) or the package from repo(y/n)? "
@@ -61,9 +72,14 @@ function install_lftp {
 					echo "... Exiting"; echo ""; exit 1
 				fi
 			fi
+			echo -n "Checking lftp .."
 			if [[ -z $(builtin type -p $i) ]]; then
 				echo -e " \e[00;32m [OK]\e[00m"
 			fi
+		else
+			echo "FTPauto installation cannot continue without that. Exiting..."
+			echo " Run install.sh --uninstall to remove created files";	echo ""
+			exit 0
 		fi
 	else
 		# get online lftp version
@@ -87,42 +103,9 @@ function install_lftp {
 	fi
 }
 
-# main programs needed
-function install {
-	update
-	read -p " Do you wish to install(y/n)? "
-	if [[ "$REPLY" == "n" ]]; then
-		echo "... Exiting"; echo ""; exit 0
-	fi
-
-	echo "Installing required tools ..."
+function install_2 {
 	# lftp
 	install_lftp
-	# other programs that is needed
-	programs=( "bc" )
-	for i in "${programs[@]}"; do
-		echo -n "Checking $i ..."
-		if [[ -z $(builtin type -p $i) ]]; then
-			echo -e "\e[00;31m[ERROR]\e[00m \"$i\" is not installed. $i is needed for FTPauto to work!"
-			read -p " Do you want to install it(y/n)? "
-			if [[ "$REPLY" == "y" ]]; then
-				sudo apt-get -y install $i &> /dev/null
-				if [[ $? -eq 1 ]]; then
-					echo "INFO: Could not install program using sudo."
-					echo "You have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\""
-					echo "... Exiting"; echo ""; exit 0
-				fi
-				if [[ -z $(builtin type -p $i) ]]; then
-					echo -e " \e[00;32m [OK]\e[00m"
-				fi
-			else
-				echo -e "\e[00;31mScript will not work without... exiting\e[00m"; echo ""
-				exit 0
-			fi
-		else
-			echo -e "\e[00;32m [OK]\e[00m"
-		fi
-	done
 	echo "Installing optional tools ..."
 	# split files
 	programs=( "rar" "cksfv" )
@@ -181,21 +164,16 @@ function install {
 	else
 		echo -e "\e[00;32m [OK]\e[00m"
 	fi
-	# create directories
-	echo "Finalizing ..."
-	echo -n "Creating directories ..."
-	if [[ ! -d "$scriptdir/run" ]]; then mkdir "$scriptdir/run"; fi;
-	if [[ ! -d "$scriptdir/users" ]]; then mkdir "$scriptdir/users"; fi;
-	echo -e "\e[00;32m [OK]\e[00m"
-	# Confirm all files are present
 	echo -n "Checking needed files ..."
-	local main_files=("ftpauto.sh" "dependencies/ftp_online_test.sh" "dependencies/ftp_size_management.sh" "dependencies/help.sh" "dependencies/largefile.sh" "dependencies/setup.sh" "dependencies/sorting.sh")
+	local main_files=("ftpauto.sh" "dependencies/ftp_online_test.sh" "dependencies/ftp_list.sh" "dependencies/ftp_size_management.sh" "dependencies/help.sh" "dependencies/largefile.sh" "dependencies/setup.sh" "dependencies/sorting.sh")
+	# Confirm all files are present
 	for i in "${main_files[@]}"; do
 		if [[ ! -f "$scriptdir/$i" ]]; then
-			echo "$i not found."; echo -e "\e[00;31mScript will not work without... exiting\e[00m"; echo ""; exit 1;
+			echo "$i not found."; echo -e "\e[00;31mScript will not work without... Try reinstalling it. Exiting...\e[00m"; echo ""; exit 1;
 		fi
 	done
 	echo -e "\e[00;32m [OK]\e[00m"
+	echo "Finalizing ..."
 	# Install default user
 	read -p " Do you want to install a user? (You can add user later on)(y/n)? "
 	if [[ "$REPLY" == "y" ]]; then
@@ -227,19 +205,64 @@ function install {
 	fi
 
 	echo ""
-	echo -e "\e[00;32m [Installation done]\e[00m Enyoy! Start using ftpautodownload by using ftpauto.sh --help"
+	echo -e "\e[00;32m [Installation done]\e[00m Enyoy! Start using FTPauto by using ftpauto.sh --help"
 	echo ""
 	exit 0
 }
+function install_1 {
+	read -p " Do you wish to install(y/n)? "
+	if [[ "$REPLY" == "n" ]]; then
+		echo "... Exiting"; echo ""; exit 0
+	fi
+	echo ""
+	
+	# create directories
+	echo -n "Creating directories ..."
+	if [[ ! -d "$scriptdir/run" ]]; then mkdir "$scriptdir/run"; fi;
+	if [[ ! -d "$scriptdir/users" ]]; then mkdir "$scriptdir/users"; fi;
+	echo -e "\e[00;32m [OK]\e[00m"	
+	
+	# Install mandatory things that is needed for rest to work
+	echo "Installing required tools ..."
+	programs=( "bc" "curl" "openssl" )
+	for i in "${programs[@]}"; do
+		echo -n "Checking $i ..."
+		if [[ -z $(builtin type -p $i) ]]; then
+			echo -e "\e[00;31m[Not found]\e[00m"
+			echo -n "Checking $i ..."
+			sudo apt-get -y install $i &> /dev/null
+			if [[ $? -eq 1 ]]; then
+				echo "INFO: Could not install program using sudo."
+				echo "You have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\""
+				echo "... Exiting"; echo ""; exit 0
+			fi
+			echo -e "\e[00;32m [OK]\e[00m"
+			else
+				echo -e "\e[00;31mScript will not work without... exiting\e[00m"; echo ""
+				exit 0
+			fi
+		else
+			echo -e "\e[00;32m [OK]\e[00m"
+		fi
+	done
+	# ok we know have the required tools to update script
+	update
+	# continue  part2 of the installation
+	install_2
+}
 function uninstall {
-	local programs=("lftp" "bc" "rar" "cksfv" "rarfs" "subversion" "automake1.9" "fuse-utils" "libfuse-dev" "checkinstall" "libreadline-dev")
+	local programs=("lftp" "bc" "rar" "cksfv" "rarfs" "subversion" "automake1.9" "fuse-utils" "libfuse-dev" "checkinstall" "libreadline-dev" "curl" "openssl")
 	echo "The following will be removed: ${programs[@]}"
 	read -p " Do you want to remove all or one by one(y/n)? "
 	if [[ "$REPLY" == "y" ]]; then
-		for i in "${programs[@]}"; do
-			sudo apt-get -y remove $i &> /dev/null
-		done
-			echo -e "\e[00;32m [REMOVED]\e[00m"
+		echo ""; echo -e "\e[00;31mWARNING: THIS WILL REMOVE ALL PROGRAMS, SOME MIGHT ALSO BE NEEDED BY OTHER PROGRAMS ON YOUR SYSTEMT.\e[00m"; echo "";
+		read -p " ARE YOU SURE?(y/n)? "
+		if [[ "$REPLY" == "y" ]]; then
+			for i in "${programs[@]}"; do
+				sudo apt-get -y remove $i &> /dev/null
+				echo -e "$i \e[00;32m[REMOVED]\e[00m"
+			done
+		fi
 	else
 		for i in "${programs[@]}"; do
 			if builtin type -p $i &>/dev/null; then
@@ -255,12 +278,17 @@ function uninstall {
 		done
 	fi
 	echo -n "Removing sourcefiles ..."
-	sudo rm -rf $scriptdir/dependencies/rarfs-0.1.1
-	sudo rm -rf $scriptdir/dependencies/lftp-4.4.8
+	sudo rm -rf "$scriptdir/dependencies/"
+	sudo rm -rf "$scriptdir/plugins/"
+	sudo rm -rf "$scriptdir/utils/"
+	rm -f "$scriptdir/ftpauto.sh"
+	rm -f "$scriptdir/LICENCE"
+	rm -f "$scriptdir/README.md"
+	rm -f "$scriptdir/ftpauto.sh"
 	echo -e "\e[00;32m [OK]\e[00m"
 	echo -n "Removing userfiles ..."
-	rm -rf $scriptdir/run
-	rm -rf $scriptdir/users
+	rm -rf "$scriptdir/run"
+	rm -rf "$scriptdir/users"
 	echo -e "\e[00;32m [OK]\e[00m"
 	echo ""
 	echo "Removal complete!"
@@ -268,7 +296,7 @@ function uninstall {
 	exit 0
 }
 function download {
-	echo "Downloading ..."
+	echo -n " Downloading ..."
 	wget -q "https://github.com/Meliox/FTPauto/archive/FTPauto-v$release_version.tar.gz"
 	echo -e "\e[00;32m [OK]\e[00m"
 	tar -xzf "$scriptdir"/FTPauto-v"$release_version.tar.gz" --overwrite --strip-components 1
@@ -276,12 +304,11 @@ function download {
 	echo " Updated to v$release_version"
 	echo -n "Extracting ..."
 	echo -e "\e[00;32m [OK]\e[00m"
-	clear
-	bash "$scriptdir/install.sh" install
+	bash "$scriptdir/install.sh" "install2"
 }
 function update {
 	# get most recent stable version
-	echo -n "Checking for new stable version ..."
+	echo -n "Checking FTPauto ..."
 	local release=$(curl --silent https://github.com/Meliox/FTPauto/releases | egrep -o 'FTPauto-v(.*)+tar.gz' | sort -n | tail -1)
 	release_version=${release#$"FTPauto-v"}
 	release_version=${release_version%.tar.gz}
@@ -305,15 +332,19 @@ function update {
 	fi
 }
 
-echo ""
-echo "Autoinstaller v$i_version for FTPauto"
-echo ""
+function startupmessage {
+	echo ""
+	echo "Autoinstaller of FTPauto v$i_version"
+	echo ""
+}
+
 case "$1" in
-	uninstall)	uninstall;;
-	install)	install;;
+	uninstall)	startupmessage; uninstall;;
+	install)	startupmessage; install_1;;
+	install2)	install_2;;
 	update)	update;;
 	*)
-		echo ""; echo "Usage: $0 (install | uninstall | update)"; echo "";
+		startupmessage; echo ""; echo "Usage: $0 (install | uninstall | update)"; echo "Run uninstall first to clean up everything if you have any problems."; echo "";
 		exit 1
 		;;
 esac
