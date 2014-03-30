@@ -43,7 +43,8 @@ function lftp_update {
 		# remove compiled version
 		sudo rm -rf "$scriptdir/dependencies/lftp*"
 	fi
-	sudo apt-get -y install checkinstall libreadline-dev &> /dev/null
+	sudo apt-get -y build-dep lftp # mangler jeg en masse?????
+	sudo apt-get -y install checkinstall libreadline-dev build-essential libssl-dev libsocks4 libsocksd0-dev ncurses-dev &> /dev/null
 	# find latest lftp
 	cd "$scriptdir/dependencies"	
 	local lftpversion=$(curl --silent http://lftp.yar.ru/ftp/ | egrep -o '>lftp.(.*).+tar.gz' | tail -1)
@@ -229,7 +230,6 @@ function install_1 {
 		echo -n "Checking $i ..."
 		if [[ -z $(builtin type -p $i) ]]; then
 			echo -e "\e[00;31m[Not found]\e[00m"
-			echo -n "Checking $i ..."
 			sudo apt-get -y install $i &> /dev/null
 			if [[ $? -eq 1 ]]; then
 				echo "INFO: Could not install program using sudo."

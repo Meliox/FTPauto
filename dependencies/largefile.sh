@@ -9,7 +9,7 @@ function f_split {
 		echo "INFO: Splitting files into $tempdir"
 		sed "5s#.*#***************************	Transfering: "$orig_name" - large file detected, splitting in progress #" -i $logfile
 		mkdir "$tempdir"
-		rar a -r -v"$splitsize"M -vn -m0 "$tempdir$orig_name".rar "$(basename $split_file)" &> /dev/null
+		rar a -r -v"$splitsize"M -vn -m0 "$tempdir$orig_name".rar "$(basename "$split_file")" &> /dev/null
 		filepath+=( "$tempdir" )
 		changed_name+=( "$(basename "$tempdir")" )
 		echo "INFO: Splitting done"
@@ -37,7 +37,7 @@ function largefile {
 			if [[ $(stat --printf="%s" "$dir") -gt $(( $rarsplitlimit * 1024 *1024 )) ]]; then
 				echo -ne "\e[00;32m found\e[00m \r"
 				echo "INFO: Splitting transfer into $rarsplitlimit MB files..."
-				cd "$(dirname $orig_path)"
+				cd "$(dirname "$orig_path")"
 				f_split "$dir"
 			fi
 		else
@@ -47,7 +47,7 @@ function largefile {
 					for i in "${var[@]}"; do
 						exp+=(-iname $i)
 					done
-					exp="( ${exp[@]} -prune -o -type f )"
+					exp="( "${exp[@]}" -prune -o -type f )"
 				fi
 			# look for large files
 				while IFS= read -r -d $'\0' file; do
