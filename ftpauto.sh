@@ -129,11 +129,9 @@ function load_user {
 		fi
 	fi
 	# confirm that config is most recent version
-	if [[ $config_version -lt "3" ]] && [[ $option != "add" ]]; then
+	if [[ $config_version -lt "4" ]] && [[ $option != "add" ]] && [[ $option != "edit" ]]; then
 		echo -e "\e[00;31mERROR: Config is out-dated, please update it. See --help for more info!\e[00m"
-		echo -e "\e[00;31mIt has to be version 2\e[00m"
-		cleanup session
-		cleanup end
+		echo -e "\e[00;31mIt has to be version 4\e[00m"; echo ""
 		exit 0
 	fi	
 }

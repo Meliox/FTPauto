@@ -94,7 +94,7 @@ function show_example {
 #shows an example for configuration
 	echo
 	echo	"#This the the configuration file for ftpautodownload"
-	echo	"config_version=\"3\""
+	echo	"config_version=\"4\""
 	echo	"#Place the file in $scriptdir/run/'$username'/config and load with --user='$username' or"
 	echo	"# just load it with --config=config_path"
 	echo
@@ -104,7 +104,7 @@ function show_example {
 	echo	" # If you just want the server to send <ITEM> to your ftp, edit the options below"
 	echo	"transferetype=\"upftp or downftp or fxp\" # Determine how to transfere file: Either send or receive from ftp or fxp them to another server"	
 	echo	""
-	echo	" # These directories are where you want to download/send the item" 
+	echo	" # These directories are where you want to download/send the item"
 	echo	"ftpincomplete=\"/shares/USB_Storage/temp/\" # incomplete directory. Remember trailing slash!"
 	echo	"ftpcomplete=\"/shares/USB_Storage/Download/\" # complete directory. Remember trailing slash!"
 	echo	""
@@ -132,11 +132,12 @@ function show_example {
 	echo
 	echo	"### Filehandling"
 	echo	" # Splitting files if filesize exceed MB. Some FTP servers disconnect after a certain amount of time is there is no"
-	echo	" # aparent activity"
-	echo	"split_files=\"false\" # Set to true for enabling filesplitting"	
-	echo 	"rarsplitlimit=\"1500\""
+	echo	" # activity. These settings only work if the server handling the script also sends the files, i.e. in upftp and upfxp mode!"
+	echo    "send_option=\"(video|split|default)\" # Can be configured to send only videofile, split files according to settings or simply transfer the , default. If videofile or sizelimit are not met, then the files will be transfered as default - without any modifications."
+	echo    "video_file_to_complete=\"false\" # Transfer videofile directly to complete directory"	
+	echo 	"rarsplitlimit=\"1500\" Determine how large files are allowed before the files are split"
 	echo	"splitsize=\"100\" # How large the rarparts should be in MB"
-	echo	"create_sfv=\"true\" # Create sfv for splittet files"
+	echo	"create_sfv=\"true\" # Create sfv for rarfiles"
 	echo	""
 	echo	"### Transfer settings"
 	echo
@@ -155,8 +156,8 @@ function show_example {
 	echo
 	echo	"## Extra settings"
 	echo	" # To enable FTP space info, ftpsizemanagement has to be set to true"
-	echo	"ftpsizemanagement=\"false\" # will confirm enough free space in dir acording to settings"
 	echo	"totalmb=\"14950\" # total ftp space"
+	echo	"ftpsizemanagement=\"false\" # will confirm enough free space in dir acording to settings"
 	echo	"critical=\"100\" # minimum space before aborting transfere"	
 	echo
 	echo	"## Processbar settings"
@@ -165,14 +166,13 @@ function show_example {
 	echo	"sleeptime=\"60\"  # how often to check transferproces. Time in seconds"
 	echo
 	echo	"## Miscellaneous settings"
-	echo 	"sort=\"true\" # Sort files into DVD/TV/etc/ or like defined in --cat=CATEGORY. The folders has to exists on server. Changes can be made in /dependencies/sorting.sh"
-	echo    "video_file_only=\"false\" # Try to transfer ONLY videofiles, nothing else will be send"	
 	echo	"exec_post=\"\" #Execute external command upon finish. See --help exec_pre for more info"
 	echo	"allow_background=\"yes\" # don't wait for exec to finish. ONLY for exec_post"
 	echo	"exec_pre=\"\" #Execute external command before starting. See --help for more info"
+	echo 	"sort=\"true\" # Sort files into DVD/TV/etc/ or like defined in --cat=CATEGORY. The folders has to exists on server. Changes can be made in the file /dependencies/sorting.sh"
 	echo
 	echo	"#### Push notificaions ####"
-	echo	" # Create a user at https://pushover.net/ and enter data below"
+	echo	" # Create a user at https://pushover.net/ and enter details below"
 	echo	" # Leave push_user empty if you don't use it"
 	echo	"push_token=\"\""
 	echo	"push_user=\"\""

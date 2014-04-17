@@ -214,19 +214,25 @@ function ftp_transfere {
 		for ((i=0;i<${#filepath[@]};i++)); do
 			if [[ ! -d "${filepath[$i]}" ]]; then
 				# files
-				if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
-					# make sure that directory only is created once
-					if [[ $i -eq 0 ]]; then 
-						echo "mkdir -p \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
-					fi
-					echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
-				elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
+				# make sure that directory only is created once
+				if [[ $video_file_to_complete == "true" ]]; then
 					echo "queue put -O \"$ftpcomplete${orig_name[$i]}\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+				else
+					if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+						if [[ $i -eq 0 ]]; then 
+							echo "mkdir -p \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
+						fi
+						echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+					elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
+						echo "queue put -O \"$ftpcomplete${orig_name[$i]}\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+					fi
 				fi
 				echo "wait" >> "$ftptransfere_file"
 			else 
 				# directories
-				if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+				if [[ $video_file_to_complete == "true" ]]; then
+					echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"${filepath[$i]}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+				elif [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
 					echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"${filepath[$i]}\" \"$ftpincomplete\"" >> "$ftptransfere_file"
 				elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
 					echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"${filepath[$i]}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
@@ -235,7 +241,7 @@ function ftp_transfere {
 			fi
 		done
 		# moving part, remotely
-		if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+		if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]] && [[ $video_file_to_complete != "true" ]]; then
 			for n in "${changed_name[@]}"; do #using several directories, like in mount
 				if [[ "$n" == "$orig_name" ]]; then
 					echo "queue mv \"$ftpincomplete$n/\" \"$ftpcomplete\"" >> "$ftptransfere_file"
@@ -313,7 +319,11 @@ function ftp_transfere {
 		echo "Would transfer:"
 		i=0
 		for n in "${changed_name[@]}"; do
-			echo "${filepath[$i]} --> $ftpincomplete and move that to $ftpcomplete${orig_name[$i]}"
+			if [[ $video_file_to_complete == "true" ]]; then
+				echo "	${filepath[$i]} --> to $ftpcomplete${orig_name[$i]}"
+			else
+				echo "	${filepath[$i]} --> $ftpincomplete and move that to $ftpcomplete${orig_name[$i]}"
+			fi
 			let i++
 		done
 	fi
@@ -561,7 +571,7 @@ orig_path="$filepath"
 orig_name=$(basename "$filepath")
 # Use change_name in script as it might change later on (largefile)
 changed_name="$orig_name"
-tempdir="$scriptdir/run/$username-temp-$orig_name/"
+tempdir="$scriptdir/run/$username-temp/$orig_name/"
 ScriptStartTime=$(date +%s)
 echo "INFO: Process starttime: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
 echo "INFO: Preparing transfere: $filepath"
@@ -573,7 +583,7 @@ queue add
 echo "INFO: Simultaneous transferes: $parallel"
 
 #Checking transferesize
-get_size "$filepath" "${exclude_array[@]}"
+get_size "$filepath"
 
 #Execute preexternal command
 if [[ -n "$exec_pre" ]]; then
@@ -613,8 +623,10 @@ if [[ "$ftpsizemanagement" == "true" ]]; then
 	fi
 fi
 
+## Sendoption
+echo "INFO: Sendoption: $send_option"
 #Is largest file too large
-if [[ "$split_files" == "true" ]] && [[ "$video_file_only" != "true" ]]; then
+if [[ "$send_option" == "split" ]]; then
 	if [[ -n $(builtin type -p rar) ]] || [[ -n $(builtin type -p cksfv) ]]; then
 		if [[ $transferetype == "upftp" ]]; then
 			source "$scriptdir/dependencies/largefile.sh" && largefile "$filepath" "exclude_array[@]"
@@ -624,10 +636,8 @@ if [[ "$split_files" == "true" ]] && [[ "$video_file_only" != "true" ]]; then
 	else
 		echo -e "\e[00;33mERROR: split_files is not supported as rar or cksfv is missing. Continuing without ...\e[00m"
 	fi
-fi
-
 # Try to only send videofile
-if [[ "$video_file_only" == "true" ]] && [[ "$split_files" != "true" ]]; then
+elif [[ "$send_option" == "video" ]]; then
 	if [[ -n $(builtin type -p rarfs) ]]; then
 		if [[ $transferetype == "upftp" ]]; then
 			source "$scriptdir/plugins/videofile.sh" && videoFile
@@ -636,7 +646,7 @@ if [[ "$video_file_only" == "true" ]] && [[ "$split_files" != "true" ]]; then
 		fi
 	else
 		echo -e "\e[00;33mERROR: split_files is not supported as rarfs is missing. Continuing without ...\e[00m"
-	fi		
+	fi
 fi
 
 # Try to sort files
