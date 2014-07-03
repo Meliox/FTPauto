@@ -1,23 +1,30 @@
 #!/bin/bash
 
 function videoFile {
-	found_file=$(find "$filepath" $exclude_expression -size 50M -type f -iname "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" | sort -n | head -n 1 | cut -d' ' -f2)
+	found_file=( "$(find "$filepath" $exclude_expression -size 50M -type f -iname "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" | sort -n )" )
 	if [[ -n $found_file ]]; then
-		found_file_size=$(echo $(du -bs "$found_file") | awk '{print $1}')
-		found_file_percentage=$(echo "scale=1; $found_file_size / $directorysize * 100" | bc)
-		#calculate percentage
+		found_file_size_total="0"
+		for n in "${found_file}"; do
+			found_file_size=$(echo $(du -bs "$n") | awk '{print $1}')
+			found_file_size_total=$(echo "$found_file_size_total + $found_file_size" | bc)
+			echo "INFO: Found $(basename "$n") $(echo "$found_file_size / (1024*1024)" | bc)MB"
+			# save found files in variable
+			tempdir=( "$n" )
+		done
+		echo "INFO: Found total size: $(echo "$found_file_size_total / (1024*1024)" | bc)MB. "
+		echo "INFO: Confirming that it is >80% of the total transfere"
+		found_file_percentage=$(echo "scale=1; $found_file_size_total / $directorysize * 100" | bc)
 		if [[ $found_file_percentage > 80 ]]; then
-			echo "INFO: Mount not needed, found $(basename $found_file)"
-			filepath="$found_file"
-			# trying file only and it is supposed to end in a folder to $orig_name is needed"
-			ftpincomplete="$ftpincomplete$orig_name"
+			echo "INFO: Is "$found_file_percentage"%. Everything OK"
+			# update paths to main path --> temp path where everything is mounted
+			filepath=( "$tempdir" )
 			#Update filesize to be transfered
-			size=$(echo "scale=2; "$found_file_size" / (1024*1024)" | bc)
+			size="$(echo "$found_file_size_total / (1024*1024)" | bc)"
 			echo "INFO: Updated size to transfere(video file): "$size"MB"
 		else
 			echo "INFO: No videofile found. Trying mount..."
 			mountsystem mount
-		fi
+		fi		
 	else
 		echo "INFO: No videofile found. Trying mount..."
 		mountsystem mount
@@ -33,13 +40,13 @@ function mountsystem {
 				rarset=( $(find "$filepath" $exclude_expression -name '*.rar' | sort -n) )
 				if [[ ! -z "$rarset" ]]; then
 					# used to exclude mouting same video, part01.rar, part02.rar, ..., in same folder
-					# only use first one					
+					# only use first one
 					for n in "${rarset[@]}"; do
 						dirname="$(basename $(dirname $n))"
 						if [[ "$old_dirname" != "$dirname" ]]; then
 								temp_rarset+=($n)
 								old_dirname="$dirname"
-						fi							
+						fi
 					done
 					rarset=( "${temp_rarset[@]}" )
 					echo "INFO: Found ${#rarset[@]} rarfile(s), trying to find videofile(s)..."
