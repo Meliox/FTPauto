@@ -111,11 +111,17 @@ function get_size {
 		echo "INFO: Size to transfere: "$size"MB"
 		if [[ -n "${exclude_array[@]}" ]]; then
 			exclude_expression=()
+			local n="1"
 			for i in "${exclude_array[@]}"; do
-				exclude_expression+=("! -iname *$i*")
+				exclude_expression+=("-iname *$i*")
+				#add -or if not finished
+				if [[ "$n" -eq "${#exclude_expression[@]}" ]]; then
+					exclude_expression+=("-or")
+				fi
+				let n++
 			done
 			exclude_expression=${exclude_expression[@]}
-			size=$(find "$dir" $exclude_expression -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}')
+			size=$(find "$dir" \! \( $exclude_expression \) -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}')
 			size=$(echo "scale=2; "$size" / (1024*1024)" | bc)
 			echo "INFO: Updated size to transfere(filter used): "$size"MB"
 		fi

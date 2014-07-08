@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function videoFile {
-	found_file=( "$(find "$filepath" $exclude_expression -size 50M -type f -iname "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" | sort -n )" )
+	found_file=( "$(find "$filepath" \( -size +50M -type f \) -and \( -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" \) -and \! \( $exclude_expression \) | sort -n )" )
 	if [[ -n $found_file ]]; then
 		found_file_size_total="0"
 		for n in "${found_file}"; do
@@ -9,7 +9,7 @@ function videoFile {
 			found_file_size_total=$(echo "$found_file_size_total + $found_file_size" | bc)
 			echo "INFO: Found $(basename "$n") $(echo "$found_file_size / (1024*1024)" | bc)MB"
 			# save found files in variable
-			tempdir=( "$n" )
+			local tempdir=( "$n" )
 		done
 		echo "INFO: Found total size: $(echo "$found_file_size_total / (1024*1024)" | bc)MB. "
 		echo "INFO: Confirming that it is >80% of the total transfere"
@@ -37,7 +37,7 @@ function mountsystem {
 		"mount" )
 			local temp_rarset rarset old_dirname dirname npath file fileset temp_name temppathset
 			if [[ -d "$filepath" ]]; then
-				rarset=( $(find "$filepath" $exclude_expression -name '*.rar' | sort -n) )
+				rarset=( $(find "$filepath" \! \( $exclude_expression \) -and \( -name '*.rar' \) | sort -n) )
 				if [[ ! -z "$rarset" ]]; then
 					# used to exclude mouting same video, part01.rar, part02.rar, ..., in same folder
 					# only use first one
