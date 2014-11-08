@@ -79,8 +79,7 @@ function queue {
 					#assume this is the first one
 					id="1"
 				fi
-				get_size "$filepath" "exclude_array[@]" &> /dev/null
-				
+				get_size "$filepath" &> /dev/null
 				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
 					echo "INFO: Item already in queue. Doing nothing..."
 					echo
@@ -108,8 +107,8 @@ function queue {
 			fi
 		;;
 		"run" )
-			# change lockfile status			
-			lockfileoption="running"		
+			# change lockfile status
+			lockfileoption="running"
 			lockfile "$lockfileoption"
 			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
 				#load next item from top
@@ -150,7 +149,7 @@ case "$1" in
 	;;
 	"stop-process-bar" )
 		kill -9 $pid_f_process &> /dev/null
-		kill -9 $(sed -n '4p' $lockfile) &> /dev/null	
+		kill -9 $(sed -n '4p' $lockfile) &> /dev/null
 	;;
 esac
 }
