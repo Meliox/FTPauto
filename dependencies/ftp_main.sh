@@ -6,27 +6,27 @@ scriptdir=${scriptdir%/dependencies}
 
 function delay {
 # if --delay is set, wait until it ends. If start/end time is set in config use them. Delay overrules everything
-		if [[ -n $delay ]]; then
-			current_epoch=$(date +%s)
-			target_epoch=$(date -d "$delay" +%s)
-			if [[ $target_epoch -gt $current_epoch ]]; then
-				sleep_seconds=$(( $target_epoch - $current_epoch ))
-				if [[ $test_mode != "true" ]]; then
-					echo "INFO: Transfere has been postponed until $delay"
-					timediff=$(printf '%2d:%2d:%2d' "$(($sleep_seconds/(60*60)))" "$((($sleep_seconds/60)%60))" "$(($sleep_seconds%60))")
-					countdown "$timediff"
-				else
-					echo -e "\e[00;31mTESTMODE: Would delay until $delay\e[00m"
-				fi
+	if [[ -n $delay ]]; then
+		current_epoch=$(date +%s)
+		target_epoch=$(date -d "$delay" +%s)
+		if [[ $target_epoch -gt $current_epoch ]]; then
+			sleep_seconds=$(( $target_epoch - $current_epoch ))
+			if [[ $test_mode != "true" ]]; then
+				echo "INFO: Transfere has been postponed until $delay"
+				timediff=$(printf '%2d:%2d:%2d' "$(($sleep_seconds/(60*60)))" "$((($sleep_seconds/60)%60))" "$(($sleep_seconds%60))")
+				countdown "$timediff"
 			else
-				echo "Error: Time is older than current time, now $(date '+%m/%d/%y %H:%M') vs. delay $delay . Format is mm/dd/yy hh:mm. Delay could not be used."
-				cleanup session
-				cleanup end
-				exit 1
+				echo -e "\e[00;31mTESTMODE: Would delay until $delay\e[00m"
 			fi
-		elif [[ -n $transfer_start ]] && [[ -n $transfer_end ]] && [[ $force == "false" ]]; then
-			tranfere_timeframe
+		else
+			echo "Error: Time is older than current time, now $(date '+%m/%d/%y %H:%M') vs. delay $delay . Format is mm/dd/yy hh:mm. Delay could not be used."
+			cleanup session
+			cleanup end
+			exit 1
 		fi
+	elif [[ -n $transfer_start ]] && [[ -n $transfer_end ]] && [[ $force == "false" ]]; then
+		tranfere_timeframe
+	fi
 }
 
 function countdown {
@@ -79,8 +79,7 @@ function queue {
 					#assume this is the first one
 					id="1"
 				fi
-				get_size "$filepath" "exclude_array[@]" &> /dev/null
-				
+				get_size "$filepath" &> /dev/null
 				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
 					echo "INFO: Item already in queue. Doing nothing..."
 					echo
@@ -108,8 +107,8 @@ function queue {
 			fi
 		;;
 		"run" )
-			# change lockfile status			
-			lockfileoption="running"		
+			# change lockfile status
+			lockfileoption="running"
 			lockfile "$lockfileoption"
 			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
 				#load next item from top
