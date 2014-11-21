@@ -25,6 +25,10 @@
 # See your output by iptables -nx -vL <OUTPUT|INPUT>
 #
 
+# USAGE
+# Following argument can be used: start, stop.
+# start for starting networkmonitor
+# stop for stopping a running networkmonitor
 #
 # Settings below
 #
@@ -35,16 +39,18 @@ lockfile="networkmonitor.lock"
 log="networkmonitor.log"
 shutdown_command="poweroff"	#command to execute for shutdown
 
-method="iptables" 	# iptables or netcard
+method="netcard" 	# iptables or netcard
 interface="eth0" 	# only for netcard.
 line="3"		# only for iptables
+
+enable="0" 		# 1 the shutdown command is evaluated, 0 for testing purposes
 
 ################# CODE BELOW ################3
 
 control_c() {
 	# run if user hits control-c
 	rm "$lockfile"
-	exit 1
+	exit 0
 }
 trap control_c SIGINT
 
@@ -162,11 +168,13 @@ while :; do
 			fi
 			let low_times++
 			echo "too low traffic, $low_times times.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
-			if [[ $low_times -eq $times  ]]; then
+			if [ $low_times -eq $times  ]; then
 				echo "time for shutdown"
 				rm "$lockfile"
 				echo "$(date): No network activity, shutting down.!" >> "$log"
-				eval "$shutdown_command"
+				if [ $enable -eq 1 ]; then
+					eval "$shutdown_command"
+				fi
 				exit 0
 			fi
 		else
@@ -197,6 +205,20 @@ else
 fi
 }
 
-lockfile
-shutdowntimer
-#printresults
+case $1 in
+	start)
+	lockfile
+	shutdowntimer
+	#printresults
+	;;
+	stop)
+	if [ -f "$lockfile" ]; then
+		mypid_script=$(sed -n 1p "$lockfile")
+	        kill -9 $mypid_script
+		rm "$lockfile"
+	else
+		echo "Not running"
+	fi
+	exit 0
+	;;
+esac
