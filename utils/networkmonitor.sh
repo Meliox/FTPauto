@@ -6,7 +6,9 @@
 
 # Do you want to monitor your netcard or the firewall? The netcard cannot see more traffic than
 # allow by the bit of your system, i.e. 2^32 = 4gb. So 32bit is limited. A wrap has been used to
-# fix this, but total traffic cannot be seen. Proper traffic count can be seen with iptables, but
+# fix this, but total traffic cannot be seen. Find the correct interface/network to use using ifconfig.
+#
+# Proper traffic count can be seen with iptables, but
 # this requires to set op iptables rules like below
 # Add monitor for INPUT and OUTPUT. REQUIRED!
 # iptables -A INPUT -j ACCEPT
@@ -19,7 +21,7 @@
 # 627   183690 ACCEPT     all  --  eth0   *       0.0.0.0/0            0.0.0.0/0
 # 0        0 ACCEPT     all  --  eth0   *       0.0.0.0/0            0.0.0.0/0
 # 0        0 ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0
-# 
+#
 # See your output by iptables -nx -vL <OUTPUT|INPUT>
 #
 
@@ -28,14 +30,14 @@
 #
 threshold=10 		# MB per interval
 monitor_time=5 		# mins per inverval
-times=3 			# number of times it should be below threshold in each interval
-lockfile="/volume3/homes/admin/scripts/networkmonitor.lock"
-log="/volume3/homes/admin/scripts/networkmonitor.log"
-shutdown_command="poweroff"	#command to execute
+times=3 		# number of times it should be below threshold in each interval
+lockfile="networkmonitor.lock"
+log="networkmonitor.log"
+shutdown_command="poweroff"	#command to execute for shutdown
 
 method="iptables" 	# iptables or netcard
-interface="eth0" 	# only for netcard
-line="3"			# only for iptables
+interface="eth0" 	# only for netcard.
+line="3"		# only for iptables
 
 ################# CODE BELOW ################3
 
@@ -113,7 +115,7 @@ while [ "$counter" -ge 0 ] ; do
 		echo "RXbytes = $(bytestohuman $(($rxbytes - $oldrxbytes))) $(bytestohumanunit $(($rxbytes - $oldrxbytes)))	TXbytes = $(bytestohuman $(($txbytes - $oldtxbytes))) $(bytestohumanunit $(($txbytes - $oldtxbytes)))"
 	else
 		echo "Monitoring $interface every $sleep seconds. (RXbyte total = $(bytestohuman $rxbytes) $(bytestohumanunit $(($rxbytes - $oldrxbytes))) TXbytes total = $(bytestohuman $txbytes)) $(bytestohumanunit $(($txbytes - $oldtxbytes)))"
-	fi 
+	fi
 	#sleep "$monitor_time"
 	sleep 20
 done
@@ -141,13 +143,13 @@ while :; do
 		rxbytes_diff=$(bytestohuman $(($rxbytes - $oldrxbytes)))
 		txunit=$(bytestohumanunit $(($txbytes - $oldtxbytes)))
 		txbytes_diff=$(bytestohuman $(($txbytes - $oldtxbytes)))
-		
+
 		# wrap around 2^32 count limit on 32bit systems. Reseting counter if lower!
 		if [ $rxbytes -lt $oldtxbytes ] || [ $txbytes -lt $oldtxbytes ]; then
 			low_times=0
 			echo "Too high traffic.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
 			sleep $(( $monitor_time * 60 ))
-			continue		
+			continue
 		fi
 		# low activty counter
 		if [ $rxunit == "Mb" -o $rxunit == "Kb" -o $rxunit == "b" ] && [ $txunit == "Mb" -o $txunit == "Kb" -o $txunit == "b" ]; then
@@ -164,8 +166,8 @@ while :; do
 				echo "time for shutdown"
 				rm "$lockfile"
 				echo "$(date): No network activity, shutting down.!" >> "$log"
+				eval "$shutdown_command"
 				exit 0
-				#eval "$shutdown_command"
 			fi
 		else
 			low_times=0
@@ -179,8 +181,8 @@ done
 }
 
 lockfile(){
-if [[ -f ""$lockfile"" ]]; then
-	mypid_script=$(sed -n 1p ""$lockfile"")
+if [[ -f "$lockfile" ]]; then
+	mypid_script=$(sed -n 1p "$lockfile")
 	kill -0 $mypid_script
 	if [[ $? -eq 1 ]]; then
 		echo "Network monitor is not running"
