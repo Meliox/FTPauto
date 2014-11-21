@@ -1,11 +1,11 @@
 #!/bin/sh
-
+version="0.5"
 # Network traffic monitor
 # Purpose is to shut down server or do anything else if network traffic is below threshold due to
 # low activity
 
 # Do you want to monitor your netcard or the firewall? The netcard cannot see more traffic than
-# allow by the bit of your system, i.e. 2^32 = 4gb. So 32bit is limited. A wrap has been used to
+# allow by the bit of your system, i.e. 2^32 = 4gb. (32bit limit, 64bit goes to 2.3exabytes). A wrap has been used to
 # fix this, but total traffic cannot be seen. Find the correct interface/network to use using ifconfig.
 #
 # Proper traffic count can be seen with iptables, but
@@ -25,6 +25,9 @@
 # See your output by iptables -nx -vL <OUTPUT|INPUT>
 #
 
+# Another option is to monitor if certain ips are online, enter those in hosts. This setting overwrites
+# the minimum traffic treshold! This is meant as an addon.
+
 # USAGE
 # Following argument can be used: start, stop.
 # start for starting networkmonitor
@@ -42,6 +45,10 @@ shutdown_command="poweroff"	#command to execute for shutdown
 method="netcard" 	# iptables or netcard
 interface="eth0" 	# only for netcard.
 line="3"		# only for iptables
+add_iptables="no"	# add iptables -A INPUT -j ACCEPT and iptables -A OUTPUT -j ACCEPT to
+			# iptables upon script start
+
+hosts=""		# iphosts, seperate with :. Leave empty if not used. Format 192.168.1.1
 
 enable="0" 		# 1 the shutdown command is evaluated, 0 for testing purposes
 
@@ -133,55 +140,69 @@ bytestomegabyts(){
 }
 
 shutdowntimer(){
-echo "Monitoring network card in order to shutdown when there's no traffic."
-echo "Threshold=$threshold MB per interval $monitor_time mins. Times below threshold in order to shut down $times times"
-echo "Monitoring $interface"
+# Write startup message
+echo "Networking monitor $version"
+echo ""
+echo "Monitoring networkcard=$interface for traffic."
+if [[ -n $hosts ]]; then
+	echo "Monitoring for online hosts: $hosts"
+fi
+echo "Settings: Threshold=$threshold MB. Interval $monitor_time mins. Treshold $times times."
+echo
 low_times=0
 while :; do
-	if [ "$rxbytes" ] ; then
-		oldrxbytes="$rxbytes"
-		oldtxbytes="$txbytes"
-	fi
-	rxbytes=$(printrxbytes)
-	txbytes=$(printtxbytes)	
-	if [ "$oldrxbytes" -a "$rxbytes" -a "$oldtxbytes" -a "$txbytes" ] ; then
-		rxunit=$(bytestohumanunit $(($rxbytes - $oldrxbytes)))
-		rxbytes_diff=$(bytestohuman $(($rxbytes - $oldrxbytes)))
-		txunit=$(bytestohumanunit $(($txbytes - $oldtxbytes)))
-		txbytes_diff=$(bytestohuman $(($txbytes - $oldtxbytes)))
-
-		# wrap around 2^32 count limit on 32bit systems. Reseting counter if lower!
-		if [ $rxbytes -lt $oldtxbytes ] || [ $txbytes -lt $oldtxbytes ]; then
-			low_times=0
-			echo "Too high traffic.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
-			sleep $(( $monitor_time * 60 ))
-			continue
+	# first check if any online ip's
+	checkip
+	# only if the one ip is online reset counter and skip traffic calculation
+	if  [[ $iponline == "yes" ]]; then
+		echo "Online hosts found: $ipfound"
+		low_times=0
+	else
+		if [ "$rxbytes" ] ; then
+			oldrxbytes="$rxbytes"
+			oldtxbytes="$txbytes"
 		fi
-		# low activty counter
-		if [ $rxunit == "Mb" -o $rxunit == "Kb" -o $rxunit == "b" ] && [ $txunit == "Mb" -o $txunit == "Kb" -o $txunit == "b" ]; then
-			if [ $rxbytes_diff -gt "$threshold" -a $rxunit == "Mb" ] || [ $txbytes_diff -gt "$threshold" -a $txunit == "Mb" ]; then
-				# Too much traffic
+		rxbytes=$(printrxbytes)
+		txbytes=$(printtxbytes)
+		if [ "$oldrxbytes" -a "$rxbytes" -a "$oldtxbytes" -a "$txbytes" ] ; then
+			rxunit=$(bytestohumanunit $(($rxbytes - $oldrxbytes)))
+			rxbytes_diff=$(bytestohuman $(($rxbytes - $oldrxbytes)))
+			txunit=$(bytestohumanunit $(($txbytes - $oldtxbytes)))
+			txbytes_diff=$(bytestohuman $(($txbytes - $oldtxbytes)))
+
+			# wrap around 2^32 count limit on 32bit systems. Reseting counter if lower!
+			if [ $rxbytes -lt $oldtxbytes ] || [ $txbytes -lt $oldtxbytes ]; then
 				low_times=0
 				echo "Too high traffic.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
 				sleep $(( $monitor_time * 60 ))
 				continue
 			fi
-			let low_times++
-			echo "too low traffic, $low_times times.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
-			if [ $low_times -eq $times  ]; then
-				echo "time for shutdown"
-				rm "$lockfile"
-				echo "$(date): No network activity, shutting down.!" >> "$log"
-				if [ $enable -eq 1 ]; then
-					eval "$shutdown_command"
+			# low activty counter
+			if [ $rxunit == "Mb" -o $rxunit == "Kb" -o $rxunit == "b" ] && [ $txunit == "Mb" -o $txunit == "Kb" -o $txunit == "b" ]; then
+				if [ $rxbytes_diff -gt "$threshold" -a $rxunit == "Mb" ] || [ $txbytes_diff -gt "$threshold" -a $txunit == "Mb" ]; then
+					# Too much traffic
+					low_times=0
+					echo "Too high traffic.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
+					sleep $(( $monitor_time * 60 ))
+					continue
 				fi
-				exit 0
+				let low_times++
+				echo "too low traffic, $low_times times.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
+				if [ $low_times -eq $times  ]; then
+					echo "time for shutdown"
+					rm "$lockfile"
+					echo "$(date): No network activity, shutting down.!" >> "$log"
+					if [ $enable -eq 1 ]; then
+						eval "$shutdown_command"
+					fi
+					exit 0
+				fi
+			else
+				low_times=0
+				echo "Too high traffic.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
+				sleep $(( $monitor_time * 60 ))
+				continue
 			fi
-		else
-			low_times=0
-			echo "Too high traffic.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
-			sleep $(( $monitor_time * 60 ))
-			continue
 		fi
 	fi
 	sleep $(( $monitor_time * 60 ))
@@ -203,6 +224,43 @@ if [[ -f "$lockfile" ]]; then
 else
 	echo $$ > "$lockfile"
 fi
+if [[ $add_iptables == "yes" ]] && [[ $method == "iptables" ]]; then
+	iptables_add
+fi
+}
+
+checkip(){
+ipfound=""
+iponline="no" # assume none is online
+old_ifs=$IFS
+IFS=:
+for ip in $hosts ; do
+	IFS=$old_ifs
+	ping "$ip" -w 2 &> /dev/null
+	if [[ $? -eq 0 ]]; then
+		iponline="yes"
+		ipfound="$ip"
+		break
+	else
+		iponline="no"
+	fi
+done
+IFS=$Old_ifs
+}
+
+# New to add the iptables
+iptables_add(){
+	# check if rules exists
+	local var=$(iptables --list-rules | grep "\-A INPUT -j ACCEPT")
+	if [[ -z "$var" ]]; then
+		iptables -A INPUT -j ACCEPT
+	fi
+	unset var
+	local var=$(iptables --list-rules | grep "\-A OUTPUT -j ACCEPT")
+	if [[ -z "$var" ]]; then
+		iptables -A OUTPUT -j ACCEPT
+	fi
+	unset var
 }
 
 case $1 in
