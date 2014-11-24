@@ -1,5 +1,5 @@
 #!/bin/sh
-version="0.5"
+version="0.6"
 # Network traffic monitor
 # Purpose is to shut down server or do anything else if network traffic is below threshold due to
 # low activity
@@ -171,7 +171,7 @@ while :; do
 			txbytes_diff=$(bytestohuman $(($txbytes - $oldtxbytes)))
 
 			# wrap around 2^32 count limit on 32bit systems. Reseting counter if lower!
-			if [ $rxbytes -lt $oldtxbytes ] || [ $txbytes -lt $oldtxbytes ]; then
+			if [ $rxbytes -lt $oldrxbytes ] || [ $txbytes -lt $oldtxbytes ]; then
 				low_times=0
 				echo "Too high traffic.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
 				sleep $(( $monitor_time * 60 ))
