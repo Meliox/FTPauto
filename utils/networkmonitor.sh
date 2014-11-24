@@ -1,12 +1,13 @@
 #!/bin/sh
-version="0.6"
+version="0.7"
 # Network traffic monitor
 # Purpose is to shut down server or do anything else if network traffic is below threshold due to
 # low activity
 
 # Do you want to monitor your netcard or the firewall? The netcard cannot see more traffic than
 # allow by the bit of your system, i.e. 2^32 = 4gb. (32bit limit, 64bit goes to 2.3exabytes). A wrap has been used to
-# fix this, but total traffic cannot be seen. Find the correct interface/network to use using ifconfig.
+# fix this while using netcard, but total traffic cannot be seen for fast speeds. At low speeds the purpose of the
+# script works. For correct transfer, the 64bit system is required or the use of iptables.
 #
 # Proper traffic count can be seen with iptables, but
 # this requires to set op iptables rules like below
@@ -158,7 +159,7 @@ while :; do
 		echo "Online hosts found: $ipfound"
 		low_times=0
 	else
-		if [ "$rxbytes" ] ; then
+		if [ "$rxbytes" ]; then
 			oldrxbytes="$rxbytes"
 			oldtxbytes="$txbytes"
 		fi
@@ -173,7 +174,13 @@ while :; do
 			# wrap around 2^32 count limit on 32bit systems. Reseting counter if lower!
 			if [ $rxbytes -lt $oldrxbytes ] || [ $txbytes -lt $oldtxbytes ]; then
 				low_times=0
-				echo "Too high traffic.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
+				if [ $rxbytes_diff -gt 0 ] && [ $txbytes_diff -gt 0 ]; then
+					echo "too high traffic.. RXbytes = adaptor reset N/A TXbytes = adaptor reset N/A"
+				elif [ $rxbytes_diff -gt 0 ] && [ $txbytes_diff -lt 0 ]; then
+					 echo "too high traffic.. RXbytes = $rxbytes_diff $rxunit TXbytes = adaptor reset N/A"
+				elif [ $rxbytes_diff -lt 0 ] && [ $txbytes_diff -gt 0 ]; then
+					 echo "too high traffic.. RXbytes = adaptor reset N/A TXbytes = $txbytes_diff $txunit"
+				fi
 				sleep $(( $monitor_time * 60 ))
 				continue
 			fi
@@ -182,7 +189,7 @@ while :; do
 				if [ $rxbytes_diff -gt "$threshold" -a $rxunit == "Mb" ] || [ $txbytes_diff -gt "$threshold" -a $txunit == "Mb" ]; then
 					# Too much traffic
 					low_times=0
-					echo "Too high traffic.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
+					echo "too high traffic.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
 					sleep $(( $monitor_time * 60 ))
 					continue
 				fi
@@ -199,7 +206,7 @@ while :; do
 				fi
 			else
 				low_times=0
-				echo "Too high traffic.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
+				echo "too high traffic.. RXbytes = $rxbytes_diff $rxunit TXbytes = $txbytes_diff $txunit"
 				sleep $(( $monitor_time * 60 ))
 				continue
 			fi
