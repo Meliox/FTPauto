@@ -308,11 +308,6 @@ function ftp_transfere {
 		echo -e "\e[00;37mINFO: \e[00;32mTransfer ended: $(date --date=@$TransferEndTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 		#remove processbar processes
 		ftp_transfer_process "stop-process-bar"
-		#confirm that transfer has been successfull
-			if [[ $confirm_transfer == "true" ]]; then
-				echo -e "\e[00;31mINFO: Confirming that everything has been transfered, please wait...\e[00m"
-				ftp_transfere_check main
-			fi
 	else
 		echo -e "\e[00;31mTESTMODE: LFTP-transfer NOT STARTED\e[00m"
 		echo "Would transfer:"
@@ -327,60 +322,6 @@ function ftp_transfere {
 		done
 	fi
 	}
-}
-
-function ftp_transfere_check { #confirm that everything has been transfered
-case "$1" in
-	"main" )
-		if [[ -n $retry_count ]]; then #first time set variables
-			retry_count=0
-			ftp_transfere_check_file="$scriptdir/run/$username.ftptransfercheckfile"
-			temp_check="$scriptdir/run/$username.tempcheckfile"
-			final_check="$scriptdir/run/$username.finalcheckfile"
-		fi
-		while [[ $final_check_size -lt $directorysize ]]; do
-			cat "$ftplogin_file" >> "$ftp_transfere_check_file"	
-			echo "du -s \"$ftpincomplete${changed_name[$i]}\" > ~/../..$temp_check " >> "$ftp_transfere_check_file"
-			echo "du -s \"$ftpcomplete${changed_name[$i]}\" > ~/../..$final_check " >> "$ftp_transfere_check_file"
-			echo "exit" >> "$ftp_transfere_check_file"
-			$lftp -f "$ftp_transfere_check_file" &> /dev/null
-			if [[ -f "$ftp_transfere_check_file" ]]; then rm "$ftp_transfere_check_file"; fi
-			if [[ -a $final_check ]]; then
-				echo "INFO: Item found in complete directory. Attempt $retry_count"
-				ftp_transfere_check complete
-			elif [[ -a $temp_check ]]; then
-				echo "INFO: Item not found in incomplete directory. Attempt $retry_count"
-				ftp_transfere_check incomplete
-			fi
-		done
-		if [[ -f "$temp_check" ]]; then rm "$temp_check"; fi
-		if [[ -f "$final_check" ]]; then rm "$final_check"; fi
-	;;
-	"incomplete" )
-		echo "INFO: Complete directory is found too small, $temp_check_size. Should be $directorysize Trying to retransfer..."
-		retry_option="incomplete"
-		ftp_transfere
-		# check file size and retransfer
-		rm "$temp_check"
-		if [[ $retry_count -eq $retries ]]; then
-			echo -e "\e[00;31mERROR: Full transfer unsuccessfull\e[00m"
-			break
-		fi
-		let retry_count++
-	;;
-	"complete" )
-		final_check_size=$(cat "$final_check" | awk '{print $1}')
-		echo "INFO: Complete directory is found too small, $final_check_size bytes. Should be $directorysize bytes Trying to retransfer..."
-		retry_option="complete"
-		ftp_transfere #retry transfer
-		rm "$final_check"
-		if [[ $retry_count -eq $retries ]]; then
-			echo -e "\e[00;31mERROR: Full transfer unsuccessfull\e[00m"
-			break
-		fi
-		let retry_count++
-	;;
-esac
 }
 
 function ftp_processbar { #Showing how download is proceding
