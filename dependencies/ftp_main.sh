@@ -275,7 +275,7 @@ function ftp_transfere {
 	fi
 	echo "quit" >> "$ftptransfere_file"
 	}
-	 #start transfering
+	 #start transferring
 	{
 	if [[ $test_mode != "true" ]]; then
 		ftp_transfer_process start
@@ -324,68 +324,92 @@ function ftp_transfere {
 }
 
 function ftp_processbar { #Showing how download is proceeding
-	if [[ "$processbar" == "true" ]]; then
-		if [[ $test_mode != "true" ]]; then
-			sleep 5 #wait for transfer to start
-			loop="true"
-			if [[ $transferetype == "downftp" ]]; then
-				local transfered_size="du -s \"$ftpincomplete$changed_name\" > \"$proccess_bar_file\""
-			elif [[ $transferetype == "upftp" ]]; then
-				#Create configfile for lftp processbar
-				cat "$ftplogin_file" >> "$ftptransfere_processbar"
-				# ~ is /home/USER/
-				echo "du -s \"$ftpincomplete$changed_name\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
-				echo "quit" >> "$ftptransfere_processbar"
-			fi
-			{ #run processbar loop
-			while [[ "$loop" = "true" ]]; do
-				if [[ ${#changed_name[@]} -gt 2 ]]; then
-					echo "INFO: Progress not possible due to a lot of changing files"
-					sed "5s#.*#***************************	Transferring: "$orig_name" - x% in x at x MB/s. ETA: x  #" -i $logfile
-					break
-				else
-					if [[ $transferetype == "downftp" ]]; then
-						sleep 5
-						eval $transfered_size
-					elif [[ $transferetype == "upftp" ]]; then
-						sleep $sleeptime
-						$lftp -f "$ftptransfere_processbar" &> /dev/null &
-						pid_process=$!
-						sed "4c $pid_process" -i $lockfile
-						wait $pid_process
-					fi
-				fi
-				if [[ $? -eq 0 ]]; then #require feedback from server!
-					# checks transferred size and converts to human readable sizes
-					if [[ -a $proccess_bar_file ]]; then
-						transferred=$(cat $proccess_bar_file | awk '{print $1}')
-						diff=$(( $(date +%s) - $TransferStartTime ))
-						timediff=$(printf '%02dh:%02dm:%02ds' "$(($diff/(60*60)))" "$((($diff/60)%60))" "$(($diff%60))")		
-						# if not empty calculate values, if empty we know nothing
-						if [[ "$transferred" -ge "1" ]] && [[ "$transferred" =~ ^[0-9]+$ ]]; then
-								transferred=$(echo "scale=2; "$transferred" / (1024)" | bc)
-								procentage=$(echo "scale=4; "$transferred" / "$size" * 100" | bc)
-								procentage=$(echo $procentage | sed 's/\(.*\)../\1/')
-								speed=$(echo "scale=2; ( $transferred ) / $diff" | bc)
-								eta=$(echo "( $size - $transferred ) / $speed" | bc)
-								etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))")
-							else
-								speed="x"
-								procentage="0"
-								etatime="Unknown"
-						fi
-						#update file and output the current line
-						sed "5s#.*#***************************	Transferring: "$orig_name" - $procentage% in $timediff at $speed MB/s. ETA: $etatime  #" -i $logfile
-						echo -ne  "$procentage% is done in $timediff at $speed MB/s. ETA: $etatime\r"
-					fi
-				fi
-			done
-			}
-			#new line
-			echo -ne '\n'
-		else
-			echo -e "\e[00;31mTESTMODE: LFTP-processbar NOT STARTED\e[00m"
+	if [[ $test_mode != "true" ]]; then
+		sleep 5 #wait for transfer to start
+		if [[ $transferetype == "downftp" ]]; then
+			local transfered_size="du -s \"$ftpincomplete$changed_name\" > \"$proccess_bar_file\""
+		elif [[ $transferetype == "upftp" ]]; then
+			#Create configfile for lftp processbar
+			cat "$ftplogin_file" >> "$ftptransfere_processbar"
+			# ~ is /home/USER/
+			echo "du -s \"$ftpincomplete$changed_name\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
+			echo "quit" >> "$ftptransfere_processbar"
 		fi
+		{ #run processbar loop
+		while :; do
+			if [[ ${#changed_name[@]} -gt 2 ]]; then
+				echo "INFO: Progress not possible due to a lot of changing files"
+				sed "5s#.*#***************************	Transferring: "$orig_name" - x% in x at x MB/s. ETA: x  #" -i $logfile
+				break
+			fi
+			if [[ $transferetype == "downftp" ]]; then
+				eval $transfered_size
+			elif [[ $transferetype == "upftp" ]]; then
+				$lftp -f "$ftptransfere_processbar" &> /dev/null &
+				pid_process=$!
+				sed "4c $pid_process" -i $lockfile
+				wait $pid_process
+			fi
+			# get first time and size. First time, set time, restart loop
+			if [[ ! -a $proccess_bar_file ]]; then
+				# no transferred information
+				continue
+			elif [[ -z $TransferredOld ]] && [[ -a $proccess_bar_file ]]; then
+				# transferred information available
+				TransferredOld=$(cat $proccess_bar_file | awk '{print $1}')
+				ProgressTimeOld=$(date +%s)
+				rm $proccess_bar_file
+				continue
+			fi
+			# Feedback received
+			if [[ -a $proccess_bar_file ]]; then
+				# set current time
+				ProgressTimeNew=$(date +%s)
+				# Get new transferred information
+				TransferredNew=$(cat $proccess_bar_file | awk '{print $1}')
+				
+				# calculate data
+				SizeDiff=$(( $TransferredNew - $TransferredOld ))
+				Diff=$(( $ProgressTimeNew - $ProgressTimeOld ))
+				TimeDiff=$(printf '%02dh:%02dm:%02ds' "$(($Diff/(60*60)))" "$((($Diff/60)%60))" "$(($Diff%60))")
+				
+				# Ensure value are valid
+				if [[ "$SizeDiff" -ge "1" ]] && [[ "$SizeDiff" =~ ^[0-9]+$ ]]; then
+						SizeDiff=$(echo "scale=2; "$SizeDiff" / (1024)" | bc)
+						procentage=$(echo "scale=4; "$SizeDiff" / "$size" * 100" | bc)
+						procentage=$(echo $procentage | sed 's/\(.*\)../\1/')
+						speed=$(echo "scale=2; ( $SizeDiff ) / $Diff" | bc)
+						eta=$(echo "( $size - $SizeDiff ) / $speed" | bc)
+						etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))")
+						
+						# Calculate average speed. Needs to be calculated each time as transfer stops ftp_processbar
+						SpeedOld+=( "$speed" )
+						if [[ "${#SpeedOld[@]}" -gt 1 ]]; then
+							sum="0"
+							for i in "${SpeedOld[@]}"; do
+								sum=$(echo "( $sum + $i )" | bc)
+							done
+							SpeedAverage=$(echo "scale=2; $sum / ${#SpeedOld[@]}" | bc)
+						fi
+					else
+						speed="x"
+						procentage="0"
+						etatime="Unknown"
+				fi
+				#update file and output the current line
+				sed "5s#.*#***************************	Transferring: "$orig_name" - $procentage% in $TimeDiff at $speed MB/s(current). ETA: $etatime  #" -i $logfile
+				echo -ne  "$procentage% is done in $TimeDiff at $speed MB/s. ETA: $etatime\r"
+			fi
+			# update variables and wait
+			TransferredOld="$TransferredNew"
+			ProgressTimeOld="$ProgressTimeNew"
+			sleep $sleeptime
+		done
+		}
+		#new line
+		echo -ne '\n'
+	else
+		echo -e "\e[00;31mTESTMODE: LFTP-processbar NOT STARTED\e[00m"
 	fi
 }
 
@@ -605,9 +629,9 @@ cleanup session
 #send push notification
 if [[ -n $push_user ]]; then
 	if [[ $test_mode != "true" ]]; then
-		source "$scriptdir/plugins/pushover.sh" "NEW STUFF: $orig_name, "$size"MB, in $transferTime2, "$speed"MB/s"
+		source "$scriptdir/plugins/pushover.sh" "NEW STUFF: $orig_name, "$size"MB, in $transferTime2, "$SpeedAverage"MB/s"
 	else
-		echo -e "\e[00;31mTESTMODE: Would send notification \"NEW STUFF: $orig_name, "$size"MB, in $transferTime2, "$speed"MB/s\" to token=$push_token and user=$push_user \e[00m"
+		echo -e "\e[00;31mTESTMODE: Would send notification \"NEW STUFF: $orig_name, "$size"MB, in $transferTime2, "$SpeedAverage"MB/s\" to token=$push_token and user=$push_user \e[00m"
 	fi
 fi
 echo
@@ -636,7 +660,7 @@ TotalTransferTime=$(( $ScriptEndTime - $ScriptStartTime ))
 echo -e "\e[00;37mINFO: \e[00;32mFinished\e[00m"
 echo "                       Name: $orig_name"
 echo "                       Size: $size MB"
-echo "                      Speed: $speed MB/s"
+echo "                      Speed: $SpeedAverage MB/s"
 echo "              Transfer time: $transferTime2"
 echo "                 Start time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
 echo "                   End time: $(date --date=@$ScriptEndTime '+%d/%m/%y-%a-%H:%M:%S')"

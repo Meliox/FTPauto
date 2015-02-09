@@ -162,7 +162,6 @@ function show_example {
 	echo
 	echo	"## Processbar settings"
 	echo	" # Processbar shows how the transfer is proceeding, gives eta. etc."
-	echo 	"processbar=\"true\" #shows progressbar for transfer"
 	echo	"sleeptime=\"60\"  # how often to check transferproces. Time in seconds"
 	echo
 	echo	"## Miscellaneous settings"
