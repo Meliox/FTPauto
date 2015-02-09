@@ -136,7 +136,7 @@ function ftp_transfer_process {
 case "$1" in
 	"start" ) #start progressbar and transfer
 		TransferStartTime=$(date +%s)
-		ftp_processbar $retry_option &
+		ftp_processbar &
 		pid_f_process=$!
 		sed "3c $pid_f_process" -i "$lockfile"
 		echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $(date --date=@$TransferStartTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
@@ -181,25 +181,25 @@ function ftp_transfere {
 		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 		# from get_size we know if its a file or a path!
 		if [[ "$transfer_type" == "file" ]]; then
-			if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+			if [[ -n $ftpincomplete ]]; then
 				echo "!mkdir -p \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
 				echo "queue get -c -O \"$ftpincomplete$changed_name\" \"$filepath\"" >> "$ftptransfere_file"
-			elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
+			elif [[ -z $ftpincomplete ]]; then
 				echo "queue get -c -O \"$ftpcomplete$orig_name\" \"$filepath\"" >> "$ftptransfere_file"
 			fi
 			echo "wait" >> "$ftptransfere_file"
 		elif [[ "$transfer_type" == "directory" ]]; then
-			if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+			if [[ -n $ftpincomplete ]]; then
 				echo "queue mirror --no-umask -p --parallel=$parallel -c \"$filepath\" \"$ftpincomplete\"" >> "$ftptransfere_file"
-			elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
+			elif [[ -z $ftpincomplete ]]; then
 				echo "queue mirror --no-umask -p --parallel=$parallel -c \"$filepath\" \"$ftpcomplete\"" >> "$ftptransfere_file"
 			fi
 			echo "wait" >> "$ftptransfere_file"
 		fi
 		# moving part, locally
-		if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+		if [[ -n $ftpincomplete ]]; then
 			echo "queue !mv \"$ftpincomplete$filepath\" \"$ftpcomplete\"" >> "$ftptransfere_file"
-		elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
+		elif [[ -z $ftpincomplete ]]; then
 			echo "queue !mv \"$ftpincomplete$filepath\" \"$ftpcomplete$orig_name\"" >> "$ftptransfere_file"
 		fi
 		echo "wait" >> "$ftptransfere_file"
@@ -217,12 +217,12 @@ function ftp_transfere {
 				if [[ $video_file_to_complete == "true" ]]; then
 					echo "queue put -O \"$ftpcomplete${orig_name[$i]}\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
 				else
-					if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+					if [[ -n $ftpincomplete ]]; then
 						if [[ $i -eq 0 ]]; then 
 							echo "mkdir -p \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
 						fi
 						echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
-					elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
+					elif [[ -z $ftpincomplete ]]; then
 						echo "queue put -O \"$ftpcomplete${orig_name[$i]}\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
 					fi
 				fi
@@ -231,16 +231,16 @@ function ftp_transfere {
 				# directories
 				if [[ $video_file_to_complete == "true" ]]; then
 					echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"${filepath[$i]}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
-				elif [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+				elif [[ -n $ftpincomplete ]]; then
 					echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"${filepath[$i]}\" \"$ftpincomplete\"" >> "$ftptransfere_file"
-				elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
+				elif [[ -z $ftpincomplete ]]; then
 					echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"${filepath[$i]}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
 				fi
 				echo "wait" >> "$ftptransfere_file"
 			fi
 		done
 		# moving part, remotely
-		if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]] && [[ $video_file_to_complete != "true" ]]; then
+		if [[ -n $ftpincomplete ]] && [[ $video_file_to_complete != "true" ]]; then
 			for n in "${changed_name[@]}"; do #using several directories, like in mount
 				if [[ "$n" == "$orig_name" ]]; then
 					echo "queue mv \"$ftpincomplete$n/\" \"$ftpcomplete\"" >> "$ftptransfere_file"
@@ -250,7 +250,6 @@ function ftp_transfere {
 				echo "wait" >> "$ftptransfere_file"
 			done
 		fi
-		 # else assume $retry_option == "complete"
 	elif [[ $transferetype == "fxp" ]]; then #NOT WORKING
 		ftppath=${filepath##*/ftp/}
 		ftppath=${ftppath%%/$orig_name/}
@@ -324,33 +323,25 @@ function ftp_transfere {
 	}
 }
 
-function ftp_processbar { #Showing how download is proceding
+function ftp_processbar { #Showing how download is proceeding
 	if [[ "$processbar" == "true" ]]; then
 		if [[ $test_mode != "true" ]]; then
 			sleep 5 #wait for transfer to start
 			loop="true"
 			if [[ $transferetype == "downftp" ]]; then
-				if [[ -z $1 ]] || [[ $retry_option == "incomplete" ]]; then
-					local transfered_size="du -s \"$ftpincomplete$changed_name\" > \"$proccess_bar_file\""
-				elif [[ $retry_option == "complete" ]]; then
-					local transfered_size="du -s \"$ftpcomplete$changed_name\" > \"$proccess_bar_file\""
-				fi
+				local transfered_size="du -s \"$ftpincomplete$changed_name\" > \"$proccess_bar_file\""
 			elif [[ $transferetype == "upftp" ]]; then
 				#Create configfile for lftp processbar
 				cat "$ftplogin_file" >> "$ftptransfere_processbar"
 				# ~ is /home/USER/
-				if [[ -z $1 ]] || [[ $retry_option == "incomplete" ]]; then
-					echo "du -s \"$ftpincomplete$changed_name\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
-				elif [[ $retry_option == "complete" ]]; then
-					echo "du -s \"$ftpcomplete$changed_name\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
-				fi
+				echo "du -s \"$ftpincomplete$changed_name\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
 				echo "quit" >> "$ftptransfere_processbar"
 			fi
 			{ #run processbar loop
 			while [[ "$loop" = "true" ]]; do
 				if [[ ${#changed_name[@]} -gt 2 ]]; then
 					echo "INFO: Progress not possible due to a lot of changing files"
-					sed "5s#.*#***************************	Transfering: "$orig_name" - x% in x at x MB/s. ETA: x  #" -i $logfile
+					sed "5s#.*#***************************	Transferring: "$orig_name" - x% in x at x MB/s. ETA: x  #" -i $logfile
 					break
 				else
 					if [[ $transferetype == "downftp" ]]; then
@@ -365,18 +356,18 @@ function ftp_processbar { #Showing how download is proceding
 					fi
 				fi
 				if [[ $? -eq 0 ]]; then #require feedback from server!
-					# checks tranfered size and converts til human readable sizes
+					# checks transferred size and converts to human readable sizes
 					if [[ -a $proccess_bar_file ]]; then
-						transfered=$(cat $proccess_bar_file | awk '{print $1}')
+						transferred=$(cat $proccess_bar_file | awk '{print $1}')
 						diff=$(( $(date +%s) - $TransferStartTime ))
 						timediff=$(printf '%02dh:%02dm:%02ds' "$(($diff/(60*60)))" "$((($diff/60)%60))" "$(($diff%60))")		
 						# if not empty calculate values, if empty we know nothing
-						if [[ "$transfered" -ge "1" ]] && [[ "$transfered" =~ ^[0-9]+$ ]]; then
-								transfered=$(echo "scale=2; "$transfered" / (1024)" | bc)
-								procentage=$(echo "scale=4; "$transfered" / "$size" * 100" | bc)
+						if [[ "$transferred" -ge "1" ]] && [[ "$transferred" =~ ^[0-9]+$ ]]; then
+								transferred=$(echo "scale=2; "$transferred" / (1024)" | bc)
+								procentage=$(echo "scale=4; "$transferred" / "$size" * 100" | bc)
 								procentage=$(echo $procentage | sed 's/\(.*\)../\1/')
-								speed=$(echo "scale=2; ( $transfered ) / $diff" | bc)
-								eta=$(echo "( $size - $transfered ) / $speed" | bc)
+								speed=$(echo "scale=2; ( $transferred ) / $diff" | bc)
+								eta=$(echo "( $size - $transferred ) / $speed" | bc)
 								etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))")
 							else
 								speed="x"
@@ -384,7 +375,7 @@ function ftp_processbar { #Showing how download is proceding
 								etatime="Unknown"
 						fi
 						#update file and output the current line
-						sed "5s#.*#***************************	Transfering: "$orig_name" - $procentage% in $timediff at $speed MB/s. ETA: $etatime  #" -i $logfile
+						sed "5s#.*#***************************	Transferring: "$orig_name" - $procentage% in $timediff at $speed MB/s. ETA: $etatime  #" -i $logfile
 						echo -ne  "$procentage% is done in $timediff at $speed MB/s. ETA: $etatime\r"
 					fi
 				fi
