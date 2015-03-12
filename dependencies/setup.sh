@@ -6,7 +6,7 @@ function setup {
 	# programs
 	lftp=$(which lftp)
 	rarfs=$(which rar2fs)
-	# paths  
+	# paths
 	queue_file="$scriptdir/run/$username.queue"
 	lockfile="$scriptdir/run/$username.lck"
 	logfile="$scriptdir/users/$username/log"
