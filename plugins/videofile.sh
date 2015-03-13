@@ -24,7 +24,7 @@ function videoFile {
 		else
 			echo "INFO: No videofile found. Trying mount..."
 			mountsystem mount
-		fi
+		fi		
 	else
 		echo "INFO: No videofile found. Trying mount..."
 		mountsystem mount
@@ -71,7 +71,7 @@ function mountsystem {
 						else
 							# Remove the noncontaining folder
 							echo -e "\e[00;31mINFO: $(basename $n) doesn't contain any videofiles\e[00m"
-							umount -u "$npath"
+							fusermount -u "$npath"
 							local retries=0
 							while [[ $? -eq 1 ]]; do
 								let retries++
@@ -80,7 +80,7 @@ function mountsystem {
 									break
 								fi
 								sleep 3
-								mount -u "$npath"
+								fusermount -u "$npath"
 							done
 							rm -r "$npath"
 						fi
@@ -100,13 +100,14 @@ function mountsystem {
 		;;
 		"umount" )
 			for n in "${tempmountset[@]}"; do
-				umount -u "$n"
+				fusermount -u "$n"
 			done
 			unset n
 			echo -e "\e[00;32mINFO: Evertyhing has been unmounted\e[00m"
 		;;
 		esac
 	else
-		echo -e "\e[00;31mERROR: Rar2fs not found. Ignoring mount and transfering everything as normal\e[00m"
+		echo -e "\e[00;31mERROR: Rarfs not found. Ignoring mount and transfering everything as normal\e[00m"
+		echo -e "\e[00;36mINFO: See http://ubuntuforums.org/showthread.php?t=573307 or install by apt-get install subversion automake1.9 fuse-utils libfuse-dev && cd rarfs && ./configure && make && make install && adduser <user> fuse && chgrp fuse /dev/fuse && chgrp fuse /bin/fusermount && chmod u+s /bin/fusermount\e[00m"
 	fi
 }

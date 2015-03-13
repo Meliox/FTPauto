@@ -5,8 +5,13 @@ function setup {
 	PATH=$HOME/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 	# programs
 	lftp=$(which lftp)
+<<<<<<< HEAD
 	rarfs=$(which rar2fs)
 	# paths
+=======
+	rarfs=$(which rarfs)
+	# paths  
+>>>>>>> parent of 12eb4e5... Started work to change from rarfs to rar2fs
 	queue_file="$scriptdir/run/$username.queue"
 	lockfile="$scriptdir/run/$username.lck"
 	logfile="$scriptdir/users/$username/log"

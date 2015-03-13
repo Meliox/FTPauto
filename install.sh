@@ -46,7 +46,7 @@ function lftp_update {
 	sudo apt-get -y build-dep lftp # mangler jeg en masse?????
 	sudo apt-get -y install checkinstall libreadline-dev build-essential libssl-dev libsocks4 libsocksd0-dev ncurses-dev &> /dev/null
 	# find latest lftp
-	cd "$scriptdir/dependencies"
+	cd "$scriptdir/dependencies"	
 	local lftpversion=$(curl --silent http://lftp.yar.ru/ftp/ | egrep -o '>lftp.(.*).+tar.gz' | tail -1)
 	lftpversion=${lftpversion#\>lftp\-}
 	lftpversion=${lftpversion%.tar.gz}
@@ -133,35 +133,33 @@ function install_2 {
 		fi
 	done
 	# for mouting to work
-	echo -n "Checking rar2fs ..."
-	if [[ -z $(which rar2fs) ]]; then
-		echo ""; echo -n " \"rar2fs\" is not installed! It is needed to send videofile only. The file will be transfered as normally otherwise"
+	echo -n "Checking rarfs ..."
+	if [[ -z $(which rarfs) ]]; then
+		echo ""; echo -n " \"rarfs\" is not installed! It is needed to send videofile only. The file will be transfered as normally otherwise"
 		read -p " Do you want to install it(needs to be compiled - SLOW)(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
-			sudo apt-get -y install libfuse-dev checkinstall &> /dev/null
+			sudo apt-get -y install subversion automake1.9 fuse-utils libfuse-dev checkinstall &> /dev/null
 			if [[ $? -eq 1 ]]; then
 				echo "INFO: Could not install program using sudo."
 				echo "You have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\""
 				echo "... Exiting"; echo ""; exit 0
 			else
 				cd "$scriptdir/dependencies/"
-				# get unrar
-				wget http://www.rarlab.com/rar/unrarsrc-5.1.1.tar.gz
-				tar zxvf unrarsrc-5.1.1.tar.gz
-				cd unrar
-				make && sudo make install
-				make lib && sudo make install-lib
-				rm unrarsrc-5.1.1.tar.gz
-				cd "$scriptdir/dependencies/"
-				wget https://googledrive.com/host/0B-2uEqYiZg3zR1F0b0tmRktiaXc -O rar2fs-1.20.0.tar.gz &> /dev/null
-				tar zxvf rar2fs-1.20.0.tar.gz &> /dev/null
-				cd rar2fs-1.20.0 && ./configure --silent --with-unrar=../unrar --with-unrar-lib=/usr/lib/ && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
-				rm rar2fs-1.20.0.tar.gz
+				wget http://downloads.sourceforge.net/project/rarfs/rarfs/0.1.1/rarfs-0.1.1.tar.gz &> /dev/null
+				tar -xzvf rarfs-0.1.1.tar.gz &> /dev/null
+				cd rarfs-0.1.1 && ./configure --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
+				rm "$scriptdir/dependencies/rarfs-0.1.1.tar.gz"
+				read -p "Which user would you like to run this program at(no spaces)? "
+				sudo adduser $REPLY fuse &> /dev/null
+				sudo chgrp fuse /dev/fuse &> /dev/null
+				sudo chgrp fuse /dev/fuse &> /dev/null
+				sudo chgrp fuse /bin/fusermount &> /dev/null
+				sudo chmod u+s /bin/fusermount &> /dev/null
 			fi
 		else
-			echo -e "Checking rar2fs ... [\e[00;33mSKIPPED\e[00m] NOTE: \"videofile_only\" will not work"
+			echo -e "Checking rarfs ... [\e[00;33mSKIPPED\e[00m] NOTE: \"videofile_only\" will not work"
 		fi
-		if [[ -z $(builtin type -p rar2fs) ]]; then
+		if [[ -z $(builtin type -p rarfs) ]]; then
 			echo -e " \e[00;32m [OK]\e[00m"
 		fi
 	else
@@ -218,12 +216,13 @@ function install_1 {
 		echo "... Exiting"; echo ""; exit 0
 	fi
 	echo ""
-
+	
 	# create directories
 	echo -n "Creating directories ..."
 	if [[ ! -d "$scriptdir/run" ]]; then mkdir "$scriptdir/run"; fi;
 	if [[ ! -d "$scriptdir/users" ]]; then mkdir "$scriptdir/users"; fi;
-	echo -e "\e[00;32m [OK]\e[00m"
+	echo -e "\e[00;32m [OK]\e[00m"	
+	
 	# Install mandatory things that is needed for rest to work
 	echo "Installing required tools ..."
 	programs=( "bc" "curl" "openssl" )
@@ -242,7 +241,7 @@ function install_1 {
 				echo -e "\e[00;32m [OK]\e[00m"
 			else
 				echo -e "\e[00;31mScript will not work without... exiting\e[00m"; echo ""
-				exit 0
+				exit 0			
 			fi
 		else
 			echo -e "\e[00;32m [OK]\e[00m"
@@ -254,7 +253,7 @@ function install_1 {
 	install_2
 }
 function uninstall {
-	local programs=("lftp" "bc" "rar" "cksfv" "rar2fs" "subversion" "automake1.9" "fuse-utils" "libfuse-dev" "checkinstall" "libreadline-dev" "curl" "openssl")
+	local programs=("lftp" "bc" "rar" "cksfv" "rarfs" "subversion" "automake1.9" "fuse-utils" "libfuse-dev" "checkinstall" "libreadline-dev" "curl" "openssl")
 	echo "The following will be removed: ${programs[@]}"
 	read -p " Do you want to remove all or one by one(y/n)? "
 	if [[ "$REPLY" == "y" ]]; then
@@ -307,9 +306,7 @@ function download {
 	echo " Updated to v$release_version"
 	echo -n "Extracting ..."
 	echo -e "\e[00;32m [OK]\e[00m"
-	echo "Rerun bash install.sh"
-	echo "Exiting...."
-	exit 0
+	bash "$scriptdir/install.sh" "install2"
 }
 function update {
 	# get most recent stable version
