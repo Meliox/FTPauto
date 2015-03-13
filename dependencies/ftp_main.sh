@@ -524,6 +524,10 @@ function main {
 filepath="$1"
 orig_path="$filepath"
 orig_name=$(basename "$filepath")
+# correct for fileextension of file if it is not a directory
+if [[ ! -d "$filepath" ]]; then
+	orig_name=${orig_name%.*}
+fi
 # Use change_name in script as it might change later on (largefile)
 changed_name="$orig_name"
 tempdir="$scriptdir/run/$username-temp/$orig_name/"
