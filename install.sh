@@ -332,8 +332,6 @@ function update {
 		fi
 	else
 		echo -e "\e[00;32m [lastest]\e[00m"
-		echo
-		exit 0
 	fi
 }
 
