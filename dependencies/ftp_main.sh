@@ -209,36 +209,48 @@ function ftp_transfere {
 		echo "mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
 		# fail if transfers fails. IMPORTANT that it is after mkdir as it will fail if path exists
 		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
-		# continue, reverse, locale, remote 
+		# handle files for transfer
 		for ((i=0;i<${#filepath[@]};i++)); do
 			if [[ ! -d "${filepath[$i]}" ]]; then
-				# files
-				# make sure that directory only is created once
-				if [[ $video_file_to_complete == "true" ]]; then
-					echo "queue put -O \"$ftpcomplete${orig_name[$i]}\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+				# found files
+				if [[ $video_file_to_complete == "true" ]] && [[ $send_option == "true" ]]; then
+					# If file is found in directory rename file to basedirectory
+					if [[ -n "${mountdirnames[$i]}" ]]; then
+						echo "queue put -O \"$ftpcomplete\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
+					else
+						echo "queue put -O \"$ftpcomplete\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+					fi
 				else
 					if [[ -n $ftpincomplete ]]; then
-						if [[ $i -eq 0 ]]; then 
+						# make sure that directory only is created once
+						if [[ $i -eq 0 ]]; then
 							echo "mkdir -p \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
 						fi
-						echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+						# If file is found in directory rename file to basedirectory
+		                                if [[ -n "${mountdirnames[$i]}" ]]; then
+        	                                        echo "queue put -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
+	                                        else
+                                                	echo "queue put -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+                                        	fi
 					elif [[ -z $ftpincomplete ]]; then
-						echo "queue put -O \"$ftpcomplete${orig_name[$i]}\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+                                                # If file is found in directory rename file to basedirectory
+                                                if [[ -n "${mountdirnames[$i]}" ]]; then
+                                                        echo "queue put -O \"$ftpcomplete$changed_name\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
+                                                else
+                                                        echo "queue put -O \"$ftpcomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+                                                fi
 					fi
 				fi
-				echo "wait" >> "$ftptransfere_file"
-			else 
+			else
 				# directories
-				if [[ $video_file_to_complete == "true" ]]; then
-					echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"${filepath[$i]}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
-				elif [[ -n $ftpincomplete ]]; then
+				if [[ -n $ftpincomplete ]]; then
 					echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"${filepath[$i]}\" \"$ftpincomplete\"" >> "$ftptransfere_file"
 				elif [[ -z $ftpincomplete ]]; then
 					echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"${filepath[$i]}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
 				fi
-				echo "wait" >> "$ftptransfere_file"
 			fi
 		done
+		echo "wait" >> "$ftptransfere_file"
 		# moving part, remotely
 		if [[ -n $ftpincomplete ]] && [[ $video_file_to_complete != "true" ]]; then
 			for n in "${changed_name[@]}"; do #using several directories, like in mount
@@ -309,16 +321,8 @@ function ftp_transfere {
 		ftp_transfer_process "stop-process-bar"
 	else
 		echo -e "\e[00;31mTESTMODE: LFTP-transfer NOT STARTED\e[00m"
-		echo "Would transfer:"
-		i=0
-		for n in "${changed_name[@]}"; do
-			if [[ $video_file_to_complete == "true" ]]; then
-				echo "	${filepath[$i]} --> to $ftpcomplete${orig_name[$i]}"
-			else
-				echo "	${filepath[$i]} --> $ftpincomplete and move that to $ftpcomplete${orig_name[$i]}"
-			fi
-			let i++
-		done
+		echo "Would execute the following in lftp:"
+		cat "$ftptransfere_file" | (while read; do echo "      $REPLY"; done)
 	fi
 	}
 }
@@ -460,17 +464,6 @@ function loadConfig {
 
 	#load paths to everything
 	setup
-	check_setup
-}
-
-function check_setup {
-	# Add trailing slash if it is missing
-	if [[ "$ftpincomplete" != */ ]]; then
-		ftpincomplete="$ftpincomplete/"
-	fi
-	if [[ "$ftpcomplete" != */ ]]; then
-		ftpcomplete="$ftpcomplete/"
-	fi
 }
 
 function lockfile {

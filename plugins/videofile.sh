@@ -24,7 +24,7 @@ function videoFile {
 		else
 			echo "INFO: No videofile found. Trying mount..."
 			mountsystem mount
-		fi		
+		fi
 	else
 		echo "INFO: No videofile found. Trying mount..."
 		mountsystem mount
@@ -63,8 +63,8 @@ function mountsystem {
 						file=$(find "$npath" $exclude_expression -type f -iname "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4")
 						if [[ ! -z "$file" ]]; then
 							echo -e "\e[00;32m     $(basename $file) in $dirname\e[00m"
-							fileset+=( "$file" )
-							temp_name+=( "$dirname" ) # directory name
+							fileset+=( "$file" ) # path to videofiles
+							temp_name+=( "$dirname" ) # directory names
 							temppathset+=( "$npath" ) # contains path files/directories to be send
 							tempmountset+=( "$npath" ) # contains path to mounted directory, NOT LOCAL
 							mount_in_use="true" # used to unmount
@@ -88,8 +88,8 @@ function mountsystem {
 					unset n
 				if [[ $mount_in_use == "true" ]]; then
 					# update paths to main path --> temp path where everything is mounted
-					filepath=( "$tempdir" )
-					changed_name=( "$(basename $tempdir)" )
+					filepath=( "${fileset[@]}" )
+					mountdirnames=( "${temp_name[@]}" )
 					# update size to transfer
 					get_size "$tempdir"
 				fi
