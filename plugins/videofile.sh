@@ -35,7 +35,7 @@ function mountsystem {
 	if [[ -n "$rarfs" ]]; then
 		case "$1" in
 		"mount" )
-			local temp_rarset rarset old_dirname dirname npath file fileset temp_name temppathset
+			local temp_rarset rarset old_dirname dirname npath file fileset temp_name temppathset extension fixed_filename
 			if [[ -d "$filepath" ]]; then
 				rarset=( $(find "$filepath" \! \( $exclude_expression \) -and \( -name '*.rar' \) | sort -n) )
 				if [[ ! -z "$rarset" ]]; then
@@ -67,6 +67,9 @@ function mountsystem {
 							temp_name+=( "$dirname" ) # directory names
 							temppathset+=( "$npath" ) # contains path files/directories to be send
 							tempmountset+=( "$npath" ) # contains path to mounted directory, NOT LOCAL
+							extension=$(basename "$file") # get fileextension
+							extension="${extension##*.}"
+							fixed_filename+=( "$dirname.$extension" )
 							mount_in_use="true" # used to unmount
 						else
 							# Remove the noncontaining folder
@@ -89,7 +92,7 @@ function mountsystem {
 				if [[ $mount_in_use == "true" ]]; then
 					# update paths to main path --> temp path where everything is mounted
 					filepath=( "${fileset[@]}" )
-					mountdirnames=( "${temp_name[@]}" )
+					mountdirnames=( "${fixed_filename[@]}" )
 					# update size to transfer
 					get_size "$tempdir"
 				fi
