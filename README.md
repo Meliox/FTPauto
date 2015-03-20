@@ -165,23 +165,30 @@ The capital letters state where FTPauto is executed and therefor giving the corr
 The rest of the settings should explain themselves.
 ```bash
 #This the the configuration file for ftpautodownload
-config_version="1"
-#Place the file in /home/ammin/scripts/ftpautodownload-dev/run/'test'/config and load with --user='test' or
+config_version="4"
+#Place the file in /home/ammin/scripts/ftpautodownload-dev/run/'hada'/config and load with --user='hada' or
 # just load it with --config=config_path
 
 #HOWTO: Edit the info between the qoutes "TEST", here the word TEST
 
-#### FTP server Setup - receiver ####
+#### FTP server Setup ####
  # If you just want the server to send <ITEM> to your ftp, edit the options below
+transferetype="upftp or downftp or fxp" # Determine how to transfere file: Either send or receive from ftp or fxp them to another server
+
+ # These directories are where you want to download/send the item
 ftpincomplete="/shares/USB_Storage/temp/" # incomplete directory. Remember trailing slash!
 ftpcomplete="/shares/USB_Storage/Download/" # complete directory. Remember trailing slash!
+
+#### DOWN/UP MODE ####
+ # If you just want to send/receive items, change these
 ftpuser="user" # username
 ftppass="pass" # password
 ftphost="ip" # ipaddres for ftp server
 ftpport="port" # ftp port
 ssl="false" # Set to true to use ftps else set it to false
 
-#### FTP server Setup - sender ####
+#### FXP MODE ####
+ # If you just want to send/receive items from one server to another, change these also!
 ftpuser2="user" # username
 ftppass2="pass" # password
 ftphost2="ip" # ipaddres for ftp server
@@ -196,18 +203,18 @@ lognumber="50" #how many rls to save before moving to log.old if lograte is set 
 
 ### Filehandling
  # Splitting files if filesize exceed MB. Some FTP servers disconnect after a certain amount of time is there is no
- # aparent activity
-split_files="false" # Set to true for enabling filesplitting
-rarsplitlimit="1500"
+ # activity. These settings only work if the server handling the script also sends the files, i.e. in upftp and upfxp mode!
+send_option="(video|split|default)" # Can be configured to send only videofile, split files according to settings or simply transfer the , default. If videofile or sizelimit are not met, then the files will be transfered as default - wi$
+video_file_to_complete="false" # Transfer videofile directly to complete directory
+rarsplitlimit="1500" Determine how large files are allowed before the files are split
 splitsize="100" # How large the rarparts should be in MB
-create_sfv="true" # Create sfv for splittet files
+create_sfv="true" # Create sfv for rarfiles
 
 ### Transfer settings
 
 ## General settings
-transferetype="upftp or downftp or fxp" # Determine how to transfere file: Either send or receive from ftp or fxp them to another server
 parallel="3" # how many simultaneous transferes to download with
-queue="true" # if script is executed while something is running, the task is queued
+continue_queue="true" # Script will continue downloading if something is queued
 retries="3" # How many times should the transfer be tried, before giving up
 retry_download="10" # retry again in minutes after minimum space is reached OR server is offline.
 retry_download_max="10" # retry for how many hours, before quitting
@@ -220,8 +227,8 @@ exclude_array=( ) # Ignore certain files with name matching, format is ( "word1"
 
 ## Extra settings
  # To enable FTP space info, ftpsizemanagement has to be set to true
-ftpsizemanagement="false" # will confirm enough free space in dir acording to settings
 totalmb="14950" # total ftp space
+ftpsizemanagement="false" # will confirm enough free space in dir acording to settings
 critical="100" # minimum space before aborting transfere
 
 ## Processbar settings
@@ -230,17 +237,13 @@ processbar="true" #shows progressbar for transfer
 sleeptime="60"  # how often to check transferproces. Time in seconds
 
 ## Miscellaneous settings
-sort="true" # Sort files into DVD/TV/etc/ or like defined in --cat=CATEGORY. The folders has to exists on server. Changes can be made in /dependencies/sorting.sh
-video_file_only="false" # Try to transfer ONLY videofiles, nothing else will be send
 exec_post="" #Execute external command upon finish. See --help exec_pre for more info
 allow_background="yes" # don't wait for exec to finish. ONLY for exec_post
 exec_pre="" #Execute external command before starting. See --help for more info
-
-#### Used for controlscript only ####
-autostart="true" # Autostart download when adding something to queue
+sort="true" # Sort files into DVD/TV/etc/ or like defined in --cat=CATEGORY. The folders has to exists on server. Changes can be made in the file /dependencies/sorting.sh
 
 #### Push notificaions ####
- # Create a user at https://pushover.net/ and enter data below
+ # Create a user at https://pushover.net/ and enter details below
  # Leave push_user empty if you don't use it
 push_token=""
 push_user=""

@@ -6,27 +6,27 @@ scriptdir=${scriptdir%/dependencies}
 
 function delay {
 # if --delay is set, wait until it ends. If start/end time is set in config use them. Delay overrules everything
-		if [[ -n $delay ]]; then
-			current_epoch=$(date +%s)
-			target_epoch=$(date -d "$delay" +%s)
-			if [[ $target_epoch -gt $current_epoch ]]; then
-				sleep_seconds=$(( $target_epoch - $current_epoch ))
-				if [[ $test_mode != "true" ]]; then
-					echo "INFO: Transfere has been postponed until $delay"
-					timediff=$(printf '%2d:%2d:%2d' "$(($sleep_seconds/(60*60)))" "$((($sleep_seconds/60)%60))" "$(($sleep_seconds%60))")
-					countdown "$timediff"
-				else
-					echo -e "\e[00;31mTESTMODE: Would delay until $delay\e[00m"
-				fi
+	if [[ -n $delay ]]; then
+		current_epoch=$(date +%s)
+		target_epoch=$(date -d "$delay" +%s)
+		if [[ $target_epoch -gt $current_epoch ]]; then
+			sleep_seconds=$(( $target_epoch - $current_epoch ))
+			if [[ $test_mode != "true" ]]; then
+				echo "INFO: Transfere has been postponed until $delay"
+				timediff=$(printf '%2d:%2d:%2d' "$(($sleep_seconds/(60*60)))" "$((($sleep_seconds/60)%60))" "$(($sleep_seconds%60))")
+				countdown "$timediff"
 			else
-				echo "Error: Time is older than current time, now $(date '+%m/%d/%y %H:%M') vs. delay $delay . Format is mm/dd/yy hh:mm. Delay could not be used."
-				cleanup session
-				cleanup end
-				exit 1
+				echo -e "\e[00;31mTESTMODE: Would delay until $delay\e[00m"
 			fi
-		elif [[ -n $transfer_start ]] && [[ -n $transfer_end ]] && [[ $force == "false" ]]; then
-			tranfere_timeframe
+		else
+			echo "Error: Time is older than current time, now $(date '+%m/%d/%y %H:%M') vs. delay $delay . Format is mm/dd/yy hh:mm. Delay could not be used."
+			cleanup session
+			cleanup end
+			exit 1
 		fi
+	elif [[ -n $transfer_start ]] && [[ -n $transfer_end ]] && [[ $force == "false" ]]; then
+		tranfere_timeframe
+	fi
 }
 
 function countdown {
@@ -97,19 +97,24 @@ function queue {
 			fi
 		;;
 		"remove" )
-			#remove item acording to id
+			#remove item according to id
 			sed "/^"$id"\#/d" -i "$queue_file"
 			# if queue is true then continue to run else stop
 			if [[ $continue_queue == "true" ]]; then
-				queue run
+				queue next
 			else
 				cleanup end
 			fi
 		;;
+<<<<<<< HEAD
 		"run" )
 			# change lockfile status
 			lockfileoption="running"
 			lockfile "$lockfileoption"
+=======
+		"next" )
+			# Process next item in queue
+>>>>>>> 59399b02b2119c5922c664855ff881e4e5dea81f
 			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
 				#load next item from top
 				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f1)
@@ -136,7 +141,7 @@ function ftp_transfer_process {
 case "$1" in
 	"start" ) #start progressbar and transfer
 		TransferStartTime=$(date +%s)
-		ftp_processbar $retry_option &
+		ftp_processbar &
 		pid_f_process=$!
 		sed "3c $pid_f_process" -i "$lockfile"
 		echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $(date --date=@$TransferStartTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
@@ -181,25 +186,25 @@ function ftp_transfere {
 		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 		# from get_size we know if its a file or a path!
 		if [[ "$transfer_type" == "file" ]]; then
-			if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+			if [[ -n $ftpincomplete ]]; then
 				echo "!mkdir -p \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
 				echo "queue get -c -O \"$ftpincomplete$changed_name\" \"$filepath\"" >> "$ftptransfere_file"
-			elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
+			elif [[ -z $ftpincomplete ]]; then
 				echo "queue get -c -O \"$ftpcomplete$orig_name\" \"$filepath\"" >> "$ftptransfere_file"
 			fi
 			echo "wait" >> "$ftptransfere_file"
 		elif [[ "$transfer_type" == "directory" ]]; then
-			if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+			if [[ -n $ftpincomplete ]]; then
 				echo "queue mirror --no-umask -p --parallel=$parallel -c \"$filepath\" \"$ftpincomplete\"" >> "$ftptransfere_file"
-			elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
+			elif [[ -z $ftpincomplete ]]; then
 				echo "queue mirror --no-umask -p --parallel=$parallel -c \"$filepath\" \"$ftpcomplete\"" >> "$ftptransfere_file"
 			fi
 			echo "wait" >> "$ftptransfere_file"
 		fi
 		# moving part, locally
-		if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+		if [[ -n $ftpincomplete ]]; then
 			echo "queue !mv \"$ftpincomplete$filepath\" \"$ftpcomplete\"" >> "$ftptransfere_file"
-		elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
+		elif [[ -z $ftpincomplete ]]; then
 			echo "queue !mv \"$ftpincomplete$filepath\" \"$ftpcomplete$orig_name\"" >> "$ftptransfere_file"
 		fi
 		echo "wait" >> "$ftptransfere_file"
@@ -207,34 +212,53 @@ function ftp_transfere {
 		# create final directories if they don't exists
 		echo "mkdir -p \"$ftpcomplete\"" >> "$ftptransfere_file"
 		echo "mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
-		# fail if transfers fails. IMPORTANT that it is after mkdir as it will fail if path exists
-		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
-		# continue, reverse, locale, remote 
+		# handle files for transfer
 		for ((i=0;i<${#filepath[@]};i++)); do
 			if [[ ! -d "${filepath[$i]}" ]]; then
-				# files
-				if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
-					# make sure that directory only is created once
-					if [[ $i -eq 0 ]]; then 
-						echo "mkdir -p \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
+				# found files
+				if [[ $video_file_to_complete == "true" ]] && [[ $send_option == "true" ]]; then
+					# If file is found in directory rename file to basedirectory
+					echo "set cmd:fail-exit true" >> "$ftptransfere_file"
+					if [[ -n "${mountdirnames[$i]}" ]]; then
+						echo "queue put -c -O \"$ftpcomplete\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
+					else
+						echo "queue put -c -O \"$ftpcomplete\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
 					fi
-					echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
-				elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
-					echo "queue put -O \"$ftpcomplete${orig_name[$i]}\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+				else
+					if [[ -n $ftpincomplete ]]; then
+						# make sure that directory only is created once
+						if [[ $i -eq 0 ]]; then
+							echo "mkdir -p \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
+							echo "set cmd:fail-exit true" >> "$ftptransfere_file"
+						fi
+						# If file is found in directory rename file to basedirectory
+		                                if [[ -n "${mountdirnames[$i]}" ]]; then
+        	                                        echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
+	                                        else
+                                                	echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+                                        	fi
+					elif [[ -z $ftpincomplete ]]; then
+                                                # If file is found in directory rename file to basedirectory
+                                                if [[ -n "${mountdirnames[$i]}" ]]; then
+                                                        echo "queue put -c -O \"$ftpcomplete$changed_name\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
+                                                else
+                                                        echo "queue put -c -O \"$ftpcomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+                                                fi
+					fi
 				fi
-				echo "wait" >> "$ftptransfere_file"
-			else 
+			else
 				# directories
-				if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+				echo "set cmd:fail-exit true" >> "$ftptransfere_file"
+				if [[ -n $ftpincomplete ]]; then
 					echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"${filepath[$i]}\" \"$ftpincomplete\"" >> "$ftptransfere_file"
-				elif [[ -z $ftpincomplete ]] || [[ $retry_option == "complete" ]]; then
+				elif [[ -z $ftpincomplete ]]; then
 					echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"${filepath[$i]}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
 				fi
-				echo "wait" >> "$ftptransfere_file"
 			fi
 		done
+		echo "wait" >> "$ftptransfere_file"
 		# moving part, remotely
-		if [[ -n $ftpincomplete ]] || [[ $retry_option == "incomplete" ]]; then
+		if [[ -n $ftpincomplete ]] && [[ $video_file_to_complete != "true" ]]; then
 			for n in "${changed_name[@]}"; do #using several directories, like in mount
 				if [[ "$n" == "$orig_name" ]]; then
 					echo "queue mv \"$ftpincomplete$n/\" \"$ftpcomplete\"" >> "$ftptransfere_file"
@@ -244,7 +268,6 @@ function ftp_transfere {
 				echo "wait" >> "$ftptransfere_file"
 			done
 		fi
-		 # else assume $retry_option == "complete"
 	elif [[ $transferetype == "fxp" ]]; then #NOT WORKING
 		ftppath=${filepath##*/ftp/}
 		ftppath=${ftppath%%/$orig_name/}
@@ -270,7 +293,7 @@ function ftp_transfere {
 	fi
 	echo "quit" >> "$ftptransfere_file"
 	}
-	 #start transfering
+	 #start transferring
 	{
 	if [[ $test_mode != "true" ]]; then
 		ftp_transfer_process start
@@ -302,148 +325,101 @@ function ftp_transfere {
 		echo -e "\e[00;37mINFO: \e[00;32mTransfer ended: $(date --date=@$TransferEndTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 		#remove processbar processes
 		ftp_transfer_process "stop-process-bar"
-		#confirm that transfer has been successfull
-			if [[ $confirm_transfer == "true" ]]; then
-				echo -e "\e[00;31mINFO: Confirming that everything has been transfered, please wait...\e[00m"
-				ftp_transfere_check main
-			fi
 	else
 		echo -e "\e[00;31mTESTMODE: LFTP-transfer NOT STARTED\e[00m"
-		echo "Would transfer:"
-		i=0
-		for n in "${changed_name[@]}"; do
-			echo "${filepath[$i]} --> $ftpincomplete and move that to $ftpcomplete${orig_name[$i]}"
-			let i++
-		done
+		echo "Would execute the following in lftp:"
+		cat "$ftptransfere_file" | (while read; do echo "      $REPLY"; done)
 	fi
 	}
 }
 
-function ftp_transfere_check { #confirm that everything has been transfered
-case "$1" in
-	"main" )
-		if [[ -n $retry_count ]]; then #first time set variables
-			retry_count=0
-			ftp_transfere_check_file="$scriptdir/run/$username.ftptransfercheckfile"
-			temp_check="$scriptdir/run/$username.tempcheckfile"
-			final_check="$scriptdir/run/$username.finalcheckfile"
+function ftp_processbar { #Showing how download is proceeding
+	if [[ $test_mode != "true" ]]; then
+		sleep 5 #wait for transfer to start
+		if [[ $transferetype == "downftp" ]]; then
+			local transfered_size="du -s \"$ftpincomplete$changed_name\" > \"$proccess_bar_file\""
+		elif [[ $transferetype == "upftp" ]]; then
+			#Create configfile for lftp processbar
+			cat "$ftplogin_file" >> "$ftptransfere_processbar"
+			# ~ is /home/USER/
+			echo "du -s \"$ftpincomplete$changed_name\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
+			echo "quit" >> "$ftptransfere_processbar"
 		fi
-		while [[ $final_check_size -lt $directorysize ]]; do
-			cat "$ftplogin_file" >> "$ftp_transfere_check_file"	
-			echo "du -s \"$ftpincomplete${changed_name[$i]}\" > ~/../..$temp_check " >> "$ftp_transfere_check_file"
-			echo "du -s \"$ftpcomplete${changed_name[$i]}\" > ~/../..$final_check " >> "$ftp_transfere_check_file"
-			echo "exit" >> "$ftp_transfere_check_file"
-			$lftp -f "$ftp_transfere_check_file" &> /dev/null
-			if [[ -f "$ftp_transfere_check_file" ]]; then rm "$ftp_transfere_check_file"; fi
-			if [[ -a $final_check ]]; then
-				echo "INFO: Item found in complete directory. Attempt $retry_count"
-				ftp_transfere_check complete
-			elif [[ -a $temp_check ]]; then
-				echo "INFO: Item not found in incomplete directory. Attempt $retry_count"
-				ftp_transfere_check incomplete
+		{ #run processbar loop
+		while :; do
+			if [[ ${#changed_name[@]} -gt 2 ]]; then
+				echo "INFO: Progress not possible due to a lot of changing files"
+				sed "5s#.*#***************************	Transferring: "$orig_name" - x% in x at x MB/s. ETA: x  #" -i $logfile
+				break
 			fi
-		done
-		if [[ -f "$temp_check" ]]; then rm "$temp_check"; fi
-		if [[ -f "$final_check" ]]; then rm "$final_check"; fi
-	;;
-	"incomplete" )
-		echo "INFO: Complete directory is found too small, $temp_check_size. Should be $directorysize Trying to retransfer..."
-		retry_option="incomplete"
-		ftp_transfere
-		# check file size and retransfer
-		rm "$temp_check"
-		if [[ $retry_count -eq $retries ]]; then
-			echo -e "\e[00;31mERROR: Full transfer unsuccessfull\e[00m"
-			break
-		fi
-		let retry_count++
-	;;
-	"complete" )
-		final_check_size=$(cat "$final_check" | awk '{print $1}')
-		echo "INFO: Complete directory is found too small, $final_check_size bytes. Should be $directorysize bytes Trying to retransfer..."
-		retry_option="complete"
-		ftp_transfere #retry transfer
-		rm "$final_check"
-		if [[ $retry_count -eq $retries ]]; then
-			echo -e "\e[00;31mERROR: Full transfer unsuccessfull\e[00m"
-			break
-		fi
-		let retry_count++
-	;;
-esac
-}
-
-function ftp_processbar { #Showing how download is proceding
-	if [[ "$processbar" == "true" ]]; then
-		if [[ $test_mode != "true" ]]; then
-			sleep 5 #wait for transfer to start
-			loop="true"
 			if [[ $transferetype == "downftp" ]]; then
-				if [[ -z $1 ]] || [[ $retry_option == "incomplete" ]]; then
-					local transfered_size="du -s \"$ftpincomplete$changed_name\" > \"$proccess_bar_file\""
-				elif [[ $retry_option == "complete" ]]; then
-					local transfered_size="du -s \"$ftpcomplete$changed_name\" > \"$proccess_bar_file\""
-				fi
+				eval $transfered_size
 			elif [[ $transferetype == "upftp" ]]; then
-				#Create configfile for lftp processbar
-				cat "$ftplogin_file" >> "$ftptransfere_processbar"
-				# ~ is /home/USER/
-				if [[ -z $1 ]] || [[ $retry_option == "incomplete" ]]; then
-					echo "du -s \"$ftpincomplete$changed_name\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
-				elif [[ $retry_option == "complete" ]]; then
-					echo "du -s \"$ftpcomplete$changed_name\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
-				fi
-				echo "quit" >> "$ftptransfere_processbar"
+				$lftp -f "$ftptransfere_processbar" &> /dev/null &
+				pid_process=$!
+				sed "4c $pid_process" -i $lockfile
+				wait $pid_process
 			fi
-			{ #run processbar loop
-			while [[ "$loop" = "true" ]]; do
-				if [[ ${#changed_name[@]} -gt 2 ]]; then
-					echo "INFO: Progress not possible due to a lot of changing files"
-					sed "5s#.*#***************************	Transfering: "$orig_name" - x% in x at x MB/s. ETA: x  #" -i $logfile
-					break
-				else
-					if [[ $transferetype == "downftp" ]]; then
-						sleep 5
-						eval $transfered_size
-					elif [[ $transferetype == "upftp" ]]; then
-						sleep $sleeptime
-						$lftp -f "$ftptransfere_processbar" &> /dev/null &
-						pid_process=$!
-						sed "4c $pid_process" -i $lockfile
-						wait $pid_process
-					fi
-				fi
-				if [[ $? -eq 0 ]]; then #require feedback from server!
-					# checks tranfered size and converts til human readable sizes
-					if [[ -a $proccess_bar_file ]]; then
-						transfered=$(cat $proccess_bar_file | awk '{print $1}')
-						diff=$(( $(date +%s) - $TransferStartTime ))
-						timediff=$(printf '%02dh:%02dm:%02ds' "$(($diff/(60*60)))" "$((($diff/60)%60))" "$(($diff%60))")		
-						# if not empty calculate values, if empty we know nothing
-						if [[ "$transfered" -ge "1" ]] && [[ "$transfered" =~ ^[0-9]+$ ]]; then
-								transfered=$(echo "scale=2; "$transfered" / (1024)" | bc)
-								procentage=$(echo "scale=4; "$transfered" / "$size" * 100" | bc)
-								procentage=$(echo $procentage | sed 's/\(.*\)../\1/')
-								speed=$(echo "scale=2; ( $transfered ) / $diff" | bc)
-								eta=$(echo "( $size - $transfered ) / $speed" | bc)
-								etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))")
-							else
-								speed="x"
-								procentage="0"
-								etatime="Unknown"
+			# get first time and size. First time, set time, restart loop
+			if [[ ! -a $proccess_bar_file ]]; then
+				# no transferred information
+				continue
+			elif [[ -z $TransferredOld ]] && [[ -a $proccess_bar_file ]]; then
+				# transferred information available
+				TransferredOld=$(cat $proccess_bar_file | awk '{print $1}')
+				ProgressTimeOld=$(date +%s)
+				rm $proccess_bar_file
+				continue
+			fi
+			# Feedback received
+			if [[ -a $proccess_bar_file ]]; then
+				# set current time
+				ProgressTimeNew=$(date +%s)
+				# Get new transferred information
+				TransferredNew=$(cat $proccess_bar_file | awk '{print $1}')
+				
+				# calculate data
+				SizeDiff=$(( $TransferredNew - $TransferredOld ))
+				Diff=$(( $ProgressTimeNew - $ProgressTimeOld ))
+				TimeDiff=$(printf '%02dh:%02dm:%02ds' "$(($Diff/(60*60)))" "$((($Diff/60)%60))" "$(($Diff%60))")
+				
+				# Ensure value are valid
+				if [[ "$SizeDiff" -ge "1" ]] && [[ "$SizeDiff" =~ ^[0-9]+$ ]]; then
+						SizeDiff=$(echo "scale=2; "$SizeDiff" / (1024)" | bc)
+						procentage=$(echo "scale=4; "$SizeDiff" / "$size" * 100" | bc)
+						procentage=$(echo $procentage | sed 's/\(.*\)../\1/')
+						speed=$(echo "scale=2; ( $SizeDiff ) / $Diff" | bc)
+						eta=$(echo "( $size - $SizeDiff ) / $speed" | bc)
+						etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))")
+						
+						# Calculate average speed. Needs to be calculated each time as transfer stops ftp_processbar
+						SpeedOld+=( "$speed" )
+						if [[ "${#SpeedOld[@]}" -gt 1 ]]; then
+							sum="0"
+							for i in "${SpeedOld[@]}"; do
+								sum=$(echo "( $sum + $i )" | bc)
+							done
+							SpeedAverage="$(echo "scale=2; $sum / ${#SpeedOld[@]}" | bc) MB/s"
 						fi
-						#update file and output the current line
-						sed "5s#.*#***************************	Transfering: "$orig_name" - $procentage% in $timediff at $speed MB/s. ETA: $etatime  #" -i $logfile
-						echo -ne  "$procentage% is done in $timediff at $speed MB/s. ETA: $etatime\r"
-					fi
+					else
+						speed="x"
+						procentage="0"
+						etatime="Unknown"
 				fi
-			done
-			}
-			#new line
-			echo -ne '\n'
-		else
-			echo -e "\e[00;31mTESTMODE: LFTP-processbar NOT STARTED\e[00m"
-		fi
+				#update file and output the current line
+				sed "5s#.*#***************************	Transferring: "$orig_name" - $procentage% in $TimeDiff at $speed MB/s(current). ETA: $etatime  #" -i $logfile
+				echo -ne  "$procentage% is done in $TimeDiff at $speed MB/s. ETA: $etatime\r"
+			fi
+			# update variables and wait
+			TransferredOld="$TransferredNew"
+			ProgressTimeOld="$ProgressTimeNew"
+			sleep $sleeptime
+		done
+		}
+		#new line
+		echo -ne '\n'
+	else
+		echo -e "\e[00;31mTESTMODE: LFTP-processbar NOT STARTED\e[00m"
 	fi
 }
 
@@ -494,63 +470,37 @@ function loadConfig {
 
 	#load paths to everything
 	setup
-	check_setup
-}
-
-function check_setup {
-	# Add trailing slash if it is missing
-	if [[ "$ftpincomplete" != */ ]]; then
-		ftpincomplete="$ftpincomplete/"
-	fi
-	if [[ "$ftpcomplete" != */ ]]; then
-		ftpcomplete="$ftpcomplete/"
-	fi
 }
 
 function lockfile {
-	case "$1" in
-		running )
-			true
-			;;
-		* ) # upon start no option is available, hence create lockfile
-			echo "INFO: Writing lockfile: $lockfile"
-			if [[ -f "$lockfile" ]] && [[ $force != "true" ]]; then
-				#The file exists, find PID, transfere, confirm it still is running
-				mypid_script=$(sed -n 1p "$lockfile")
-				mypid=$(sed -n 2p "$lockfile")
-				alreadyinprogres=$(sed -n 3p "$lockfile")
-				kill -0 $mypid_script
-				if [[ $? -eq 1 ]]; then
-					#Process is not running, continue
-					echo "INFO: No lockfile detected"
-					rm "$lockfile"
-				else
-					echo -e "\e[00;31mINFO: The user $user is running something\e[00m"
-					echo "       The script running is: $mypid_script"
-					echo "       The transfere is: $alreadyinprogres"
-					echo "       If that is wrong remove $lockfile"
-					echo "       Wait for it to end, or kill it: kill -9 $mypid_script"
-					queue add end
-				fi
-			fi
-			#allocate pids
-			echo >> "$lockfile"
-			echo >> "$lockfile"
-			echo >> "$lockfile"
-			echo >> "$lockfile"
-			sed "1c $BASHPID" -i "$lockfile"
-			echo "INFO: Process id: $BASHPID"
-		;;
-	esac
-}
-
-function load_help {
-	if [[ -e "$scriptdir/dependencies/help.sh" ]]; then
-		source "$scriptdir/dependencies/help.sh"
-	else
-		echo -e "\e[00;31mError: /dependencies/help.sh is\n needed in order for this program to work\e[00m";
-		exit 1
+	# upon start (from queue or --path) no option is available, hence create lockfile
+	echo "INFO: Writing lockfile: $lockfile"
+	if [[ -f "$lockfile" ]] && [[ $force != "true" ]]; then
+		# The file exists, find PID, transfere, confirm it still is running
+		mypid_script=$(sed -n 1p "$lockfile")
+		mypid=$(sed -n 2p "$lockfile")
+		alreadyinprogres=$(sed -n 3p "$lockfile")
+		kill -0 $mypid_script
+		if [[ $? -eq 1 ]]; then
+			#Process is not running, continue
+			echo "INFO: No lockfile detected"
+			rm "$lockfile"
+		else
+			echo -e "\e[00;31mINFO: The user $user is running something\e[00m"
+			echo "       The script running is: $mypid_script"
+			echo "       The transfere is: $alreadyinprogres"
+			echo "       If that is wrong remove $lockfile"
+			echo "       Wait for it to end, or kill it: kill -9 $mypid_script"
+			queue add end
+		fi
 	fi
+	# allocate pids
+	echo >> "$lockfile"
+	echo >> "$lockfile"
+	echo >> "$lockfile"
+	echo >> "$lockfile"
+	sed "1c $BASHPID" -i "$lockfile"
+	echo "INFO: Process id: $BASHPID"
 }
 
 function main {
@@ -558,9 +508,13 @@ function main {
 filepath="$1"
 orig_path="$filepath"
 orig_name=$(basename "$filepath")
+# correct for fileextension of file if it is not a directory
+if [[ ! -d "$filepath" ]]; then
+	orig_name=${orig_name%.*}
+fi
 # Use change_name in script as it might change later on (largefile)
 changed_name="$orig_name"
-tempdir="$scriptdir/run/$username-temp-$orig_name/"
+tempdir="$scriptdir/run/$username-temp/$orig_name/"
 ScriptStartTime=$(date +%s)
 echo "INFO: Process starttime: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
 echo "INFO: Preparing transfere: $filepath"
@@ -572,7 +526,7 @@ queue add
 echo "INFO: Simultaneous transferes: $parallel"
 
 #Checking transferesize
-get_size "$filepath" "${exclude_array[@]}"
+get_size "$filepath"
 
 #Execute preexternal command
 if [[ -n "$exec_pre" ]]; then
@@ -612,8 +566,10 @@ if [[ "$ftpsizemanagement" == "true" ]]; then
 	fi
 fi
 
+## Sendoption
+echo "INFO: Sendoption: $send_option"
 #Is largest file too large
-if [[ "$split_files" == "true" ]] && [[ "$video_file_only" != "true" ]]; then
+if [[ "$send_option" == "split" ]]; then
 	if [[ -n $(builtin type -p rar) ]] || [[ -n $(builtin type -p cksfv) ]]; then
 		if [[ $transferetype == "upftp" ]]; then
 			source "$scriptdir/dependencies/largefile.sh" && largefile "$filepath" "exclude_array[@]"
@@ -623,10 +579,8 @@ if [[ "$split_files" == "true" ]] && [[ "$video_file_only" != "true" ]]; then
 	else
 		echo -e "\e[00;33mERROR: split_files is not supported as rar or cksfv is missing. Continuing without ...\e[00m"
 	fi
-fi
-
 # Try to only send videofile
-if [[ "$video_file_only" == "true" ]] && [[ "$split_files" != "true" ]]; then
+elif [[ "$send_option" == "video" ]]; then
 	if [[ -n $(builtin type -p rarfs) ]]; then
 		if [[ $transferetype == "upftp" ]]; then
 			source "$scriptdir/plugins/videofile.sh" && videoFile
@@ -635,7 +589,7 @@ if [[ "$video_file_only" == "true" ]] && [[ "$split_files" != "true" ]]; then
 		fi
 	else
 		echo -e "\e[00;33mERROR: split_files is not supported as rarfs is missing. Continuing without ...\e[00m"
-	fi		
+	fi
 fi
 
 # Try to sort files
@@ -663,9 +617,9 @@ cleanup session
 #send push notification
 if [[ -n $push_user ]]; then
 	if [[ $test_mode != "true" ]]; then
-		source "$scriptdir/plugins/pushover.sh" "NEW STUFF: $orig_name, "$size"MB, in $transferTime2, "$speed"MB/s"
+		source "$scriptdir/plugins/pushover.sh" "NEW STUFF: $orig_name, "$size"MB, in $transferTime2, $SpeedAverage"
 	else
-		echo -e "\e[00;31mTESTMODE: Would send notification \"NEW STUFF: $orig_name, "$size"MB, in $transferTime2, "$speed"MB/s\" to token=$push_token and user=$push_user \e[00m"
+		echo -e "\e[00;31mTESTMODE: Would send notification \"NEW STUFF: $orig_name, "$size"MB, in $transferTime2, $SpeedAverage\" to token=$push_token and user=$push_user \e[00m"
 	fi
 fi
 echo
@@ -694,7 +648,7 @@ TotalTransferTime=$(( $ScriptEndTime - $ScriptStartTime ))
 echo -e "\e[00;37mINFO: \e[00;32mFinished\e[00m"
 echo "                       Name: $orig_name"
 echo "                       Size: $size MB"
-echo "                      Speed: $speed MB/s"
+echo "                      Speed: $SpeedAverage"
 echo "              Transfer time: $transferTime2"
 echo "                 Start time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
 echo "                   End time: $(date --date=@$ScriptEndTime '+%d/%m/%y-%a-%H:%M:%S')"
@@ -703,7 +657,7 @@ echo "                 Total time: $(printf '%02dh:%02dm:%02ds' "$(($TotalTransf
 # Remove finished one
 queue remove
 # Run queue
-queue run
+queue next
 }
 
 function start_main {
@@ -720,7 +674,6 @@ do
 		--force | -f ) force=true; shift;;
 		--source=* ) source="${1#--source=}"; shift;;
 		--sortto=* ) sortto="${1#--sortto=}"; shift;;
-		--example ) load_help; show_example; exit 0;;
 		--test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;
 		* ) break ;;
 		--) shift; break;;
@@ -732,12 +685,12 @@ done
 # confirm filepath
 if [[ -z "$filepath" ]]; then
 	# if --path is not used, try and run queue
-	queue run
+	queue next
 elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath" -type f 2>/dev/null) ]] || [[ -z $(find "$filepath" -type f 2>/dev/null) ]]; then
 	# path with files or file not found
 	if [[ "$transferetype" == "downftp" ]]; then
 		# server <-- client, assume path is OK
-		lockfile "$lockfileoption"
+		lockfile
 		true
 	elif [[ "$transferetype" == "upftp" ]]; then		
 		# server --> client
@@ -751,7 +704,7 @@ elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath
 	fi
 fi
 # Create lockfile
-lockfile "$lockfileoption"
+lockfile
 
 echo "INFO: Transfertype: $transferetype"
 

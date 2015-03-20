@@ -1,5 +1,5 @@
 #!/bin/bash
-s_version="0.2.9"
+s_version="0.3.0"
 verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 script="$(readlink -f $0)"
 scriptdir=$(dirname $script)
@@ -129,11 +129,9 @@ function load_user {
 		fi
 	fi
 	# confirm that config is most recent version
-	if [[ $config_version -lt "3" ]] && [[ $option != "add" ]]; then
+	if [[ $config_version -lt "4" ]] && [[ $option != "add" ]] && [[ $option != "edit" ]]; then
 		echo -e "\e[00;31mERROR: Config is out-dated, please update it. See --help for more info!\e[00m"
-		echo -e "\e[00;31mIt has to be version 2\e[00m"
-		cleanup session
-		cleanup end
+		echo -e "\e[00;31mIt has to be version 4\e[00m"; echo ""
 		exit 0
 	fi	
 }
@@ -232,36 +230,30 @@ case "${option[0]}" in
 		# queue download
 		# TODO: Add options to queuefile as well
 		elif [[ ${option[1]} == "queue" ]]; then
-			# If autostart is used, then try and execute main script. Always in background
-			if [[ $continue_queue == "true" ]]; then
-				background="true"
-				start_ftpmain
-				message "Session has started." "0"
-			else
-				# determine if item exists already
-				if [[ -e "$queue_file" ]]; then
-					if [[ -n $(cat "$queue_file" | grep $(basename "$path")) ]]; then
-						message "INFO: Item already exists. Doing nothing. Exiting..." "1"
-					fi
-					# find id to <ITEM>
-					id=$(( $(tail -1 "$queue_file" | cut -d'#' -f1) + 1 ))
-				else # no queue files exists
-					id="1"
+			# determine if item exists already
+			if [[ -e "$queue_file" ]]; then
+				if [[ -n $(cat "$queue_file" | grep $(basename "$path")) ]]; then
+					message "INFO: Item already exists. Doing nothing. Exiting..." "1"
 				fi
-				# get transfer size
-				if [[ "$transferetype" == "downftp" ]]; then
-					echo "INFO: Looking up size on ftp..."
-				elif [[ "$transferetype" == "upftp" ]]; then
-					if [[ ! -d "$path" ]] || [[ ! -f "$path" ]] && [[ -z $(find "$path" -type f) ]]; then
-						message "ERROR: Option --path is required with existing path and has to contain file(s).\n See --help for more info!!" "1"
-						exit 1
-					fi
-				fi
-				get_size "$path" "exclude_array[@]" &> /dev/null
-				
-				echo "$id#$source#$path#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-				message "Adding $(basename "$path") to queue with id=$id" "0"
+				# find id to <ITEM>
+				id=$(( $(tail -1 "$queue_file" | cut -d'#' -f1) + 1 ))
+			else # no queue files exists
+				id="1"
 			fi
+			# get transfer size
+			if [[ "$transferetype" == "downftp" ]]; then
+				# check size on ftp
+				echo "INFO: Looking up size on ftp..."
+			elif [[ "$transferetype" == "upftp" ]]; then
+				# confirm file exists locally and then use it
+				if [[ ! -d "$path" ]] || [[ ! -f "$path" ]] && [[ -z $(find "$path" -type f) ]]; then
+					message "ERROR: Option --path is required with existing path and has to contain file(s).\n See --help for more info!!" "1"
+					exit 1
+				fi
+			fi
+			get_size "$path" "exclude_array[@]" &> /dev/null
+			echo "$id#$source#$path#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+			message "Adding $(basename "$path") to queue with id=$id" "0"
 		fi
 	;;
 	"list" ) # list content of queue file

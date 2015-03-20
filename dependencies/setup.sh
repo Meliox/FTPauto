@@ -6,7 +6,7 @@ function setup {
 	# programs
 	lftp=$(which lftp)
 	rarfs=$(which rarfs)
-	# paths  
+	# paths
 	queue_file="$scriptdir/run/$username.queue"
 	lockfile="$scriptdir/run/$username.lck"
 	logfile="$scriptdir/users/$username/log"
@@ -31,9 +31,8 @@ function setup {
 }
 
 function get_size {
-	#called with $filepath $exclude_array[@]
+	#called with $filepath
 	local dir="$1"
-	local var=("${!2}")
 	if [[ "$transferetype" == "downftp" ]]; then
 		#client
 		# size lookup without expression
@@ -59,7 +58,7 @@ function get_size {
 		size=$(echo "scale=2; "$size" / (1024*1024)" | bc)
 		echo "INFO: Size to transfere: "$size"MB"
 		cleanup session
-		if [[ -n "$var" ]]; then
+		if [[ -n "${exclude_array[@]}" ]]; then
 			# size lookup if expression is used
 			cat "$ftplogin_file" > "$lftptransfersize"
 			echo "ls -lR \"$dir\" > ~/../..$transfersize" >> "$lftptransfersize"
@@ -68,8 +67,8 @@ function get_size {
 			# prepare regex
 			exp=()
 			n="0"
-			for i in "${var[@]}"; do
-				if [[ $n -lt ${#var[@]} ]] && [[ $n -ge 1 ]]; then
+			for i in "${exclude_array[@]}"; do
+				if [[ $n -lt "${#exclude_array[@]}" ]] && [[ $n -ge 1 ]]; then
 						exp+="|"
 				fi
 				exp+="$i"
@@ -108,15 +107,21 @@ function get_size {
 	elif [[ "$transferetype" == "upftp" ]]; then
 		#server
 		directorysize=$(du -bs "$dir" | awk '{print $1}')
-		size=$(echo "scale=2; "$directorysize" / (1024*1024)" | bc)	
+		size=$(echo "scale=2; "$directorysize" / (1024*1024)" | bc)
 		echo "INFO: Size to transfere: "$size"MB"
-		if [[ -n "$var" ]]; then
-			local exp=()
-			for i in "${var[@]}"; do
-				exp+=(-iname "$i")
+		if [[ -n "${exclude_array[@]}" ]]; then
+			exclude_expression=()
+			local n="1"
+			for i in "${exclude_array[@]}"; do
+				exclude_expression+=("-iname \'*$i*"\')
+				#add -or if not finished
+				if [[ "$n" -eq "${#exclude_expression[@]}" ]]; then
+					exclude_expression+=("-or")
+				fi
+				let n++
 			done
-			exp="( ${exp[@]} -prune -o -type f )" #
-			size=$(find "$dir" $exp -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}')
+			exclude_expression=${exclude_expression[@]}
+			size=$(find "$dir" \! \( $exclude_expression \) -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}')
 			size=$(echo "scale=2; "$size" / (1024*1024)" | bc)
 			echo "INFO: Updated size to transfere(filter used): "$size"MB"
 		fi
