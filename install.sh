@@ -4,6 +4,7 @@ scriptdir=$(dirname $(readlink -f $0))
 #
 ### code below
 #
+function getCurrentVersion {
 if [[ -f "$scriptdir/ftpauto.sh" ]]; then
 	# local version
 	i_version=$(sed -n '2p' "$scriptdir/ftpauto.sh")
@@ -12,7 +13,7 @@ if [[ -f "$scriptdir/ftpauto.sh" ]]; then
 else
 	i_version=0
 fi
-
+}
 control_c() {
 	# run if user hits control-c
 	echo -ne '\n'
@@ -24,16 +25,21 @@ trap control_c SIGINT
 
 #programs
 function version_compare {
-	local IFS=.
-	local n1=($1) n2=($2)
-	for i in ${!n1[@]}; do
-		if [[ ${n1[i]} -gt ${n2[i]} ]]; then
-			new_version="1"
-			break
-		elif [[ ${n1[i]} -lt ${n2[i]} ]]; then
-			new_version="0"
-		fi
-	done
+	if [[ "$1" == "$2" ]]; then
+		# Uptodate
+		new_version="false"
+	else
+		local IFS=.
+		local n1=($1) n2=($2)
+		for i in ${!n1[@]}; do
+			if [[ ${n1[i]} -gt ${n2[i]} ]]; then
+				new_version="true"
+				break
+			elif [[ ${n1[i]} -lt ${n2[i]} ]]; then
+				new_version="false"
+			fi
+		done
+	fi
 }
 
 function lftp_update {
@@ -46,7 +52,7 @@ function lftp_update {
 	sudo apt-get -y build-dep lftp # mangler jeg en masse?????
 	sudo apt-get -y install checkinstall libreadline-dev build-essential libssl-dev libsocks4 libsocksd0-dev ncurses-dev &> /dev/null
 	# find latest lftp
-	cd "$scriptdir/dependencies"	
+	cd "$scriptdir/dependencies"
 	local lftpversion=$(curl --silent http://lftp.yar.ru/ftp/ | egrep -o '>lftp.(.*).+tar.gz' | tail -1)
 	lftpversion=${lftpversion#\>lftp\-}
 	lftpversion=${lftpversion%.tar.gz}
@@ -90,7 +96,7 @@ function install_lftp {
 		# get current lftp version
 		local c_lftpversion=$(lftp --version | egrep -o 'Version\ [0-9].[0-9].[0-9]' | cut -d' ' -f2)
 		version_compare "$lftpversion" "$c_lftpversion"
-		if [[ "$new_version" -eq "1" ]]; then
+		if [[ "$new_version" == "true" ]]; then
 			echo -e "[\e[00;33mv$lftpversion available, current version $c_lftpversion\e[00m] "
 			read -p " Do you wish to update(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
@@ -99,14 +105,33 @@ function install_lftp {
 				echo -e "lftp update ... [\e[00;33mSKIPPED\e[00m]"
 			fi
 		else
-			echo -e "\e[00;32m [lastest]\e[00m"x
+			echo -e "\e[00;32m [Latest]\e[00m"
 		fi
 	fi
 }
 
-function install_2 {
+function installContinue {
+	echo "Installing dependency tools ..."
+	# create directories
+	echo -n "Creating directories ..."
+	if [[ ! -d "$scriptdir/run" ]]; then mkdir "$scriptdir/run"; fi;
+	if [[ ! -d "$scriptdir/users" ]]; then mkdir "$scriptdir/users"; fi;
+	echo -e "\e[00;32m [OK]\e[00m"
+
+	echo -n "Checking dependencies files ..."
+	local main_files=("ftpauto.sh" "dependencies/ftp_online_test.sh" "dependencies/ftp_list.sh" "dependencies/ftp_size_management.sh" "dependencies/help.sh" "dependencies/largefile.sh" "dependencies/setup.sh" "dependencies/sorting.sh")
+	# Confirm all files are present
+	for i in "${main_files[@]}"; do
+		if [[ ! -f "$scriptdir/$i" ]]; then
+			echo "$i not found."; echo -e "\e[00;31mScript will not work without... Try reinstalling it. Exiting...\e[00m"; echo ""; exit 1;
+		fi
+	done
+	echo -e "\e[00;32m [OK]\e[00m"
+
 	# lftp
 	install_lftp
+
+
 	echo "Installing optional tools ..."
 	# split files
 	programs=( "rar" "cksfv" )
@@ -132,7 +157,7 @@ function install_2 {
 			echo -e "\e[00;32m [OK]\e[00m"
 		fi
 	done
-	# for mouting to work
+	# for mounting to work
 	echo -n "Checking rarfs ..."
 	if [[ -z $(which rarfs) ]]; then
 		echo ""; echo -n " \"rarfs\" is not installed! It is needed to send videofile only. The file will be transfered as normally otherwise"
@@ -165,15 +190,7 @@ function install_2 {
 	else
 		echo -e "\e[00;32m [OK]\e[00m"
 	fi
-	echo -n "Checking needed files ..."
-	local main_files=("ftpauto.sh" "dependencies/ftp_online_test.sh" "dependencies/ftp_list.sh" "dependencies/ftp_size_management.sh" "dependencies/help.sh" "dependencies/largefile.sh" "dependencies/setup.sh" "dependencies/sorting.sh")
-	# Confirm all files are present
-	for i in "${main_files[@]}"; do
-		if [[ ! -f "$scriptdir/$i" ]]; then
-			echo "$i not found."; echo -e "\e[00;31mScript will not work without... Try reinstalling it. Exiting...\e[00m"; echo ""; exit 1;
-		fi
-	done
-	echo -e "\e[00;32m [OK]\e[00m"
+
 	echo "Finalizing ..."
 	# Install default user
 	read -p " Do you want to install a user? (You can add user later on)(y/n)? "
@@ -184,50 +201,45 @@ function install_2 {
 		else
 			user="default"
 		fi
-		echo -n "Adding user ..."
+		echo -n " Adding user ..."
 		echo -e "\e[00;32m [$user]\e[00m"
 		source "$scriptdir/dependencies/help.sh"
 		write_config
-		echo -n "Checking user ..."
+		echo -n " Checking user ..."
 		if [[ ! -f "$scriptdir/users/$user/config/" ]]; then
 			echo -e "\e[00;32m [OK]\e[00m"
-			read -p " Do you want to configure that user now(y/n)? "
+			read -p " Do you want to configure $user now(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
 				nano "$scriptdir/users/$user/config"
 			else
-				echo "You can edit the user, by editing \"$scriptdir/users/$user/config\" or bash ftpauto.sh --user=$user --edit"
+				echo "NOTE: You can edit the user later using bash ftpauto.sh --user=$user --edit"
 			fi
 		else
 			echo -e "\e[00;32m [OK]\e[00m User exists"
 		fi
 
 	else
-		echo -e "Adding user ... [\e[00;33mSKIPPED\e[00m] NOTE: See ftpauto.sh --help for more info"
+		echo -e " Adding user ... [\e[00;33mSKIPPED\e[00m] NOTE: See ftpauto.sh --help for more info"
 	fi
 
 	echo ""
-	echo -e "\e[00;32m [Installation done]\e[00m Enyoy! Start using FTPauto by using ftpauto.sh --help"
+	echo -e "\e[00;32m[Installation done]\e[00m"
+	echo "Enjoy! Start using FTPauto by using ftpauto.sh --help"
 	echo ""
 	exit 0
 }
-function install_1 {
+function installStart {
 	read -p " Do you wish to install(y/n)? "
 	if [[ "$REPLY" == "n" ]]; then
 		echo "... Exiting"; echo ""; exit 0
 	fi
 	echo ""
-	
-	# create directories
-	echo -n "Creating directories ..."
-	if [[ ! -d "$scriptdir/run" ]]; then mkdir "$scriptdir/run"; fi;
-	if [[ ! -d "$scriptdir/users" ]]; then mkdir "$scriptdir/users"; fi;
-	echo -e "\e[00;32m [OK]\e[00m"	
-	
+
 	# Install mandatory things that is needed for rest to work
 	echo "Installing required tools ..."
 	programs=( "bc" "curl" "openssl" )
 	for i in "${programs[@]}"; do
-		echo -n "Checking $i ..."
+		echo -n " Checking for $i ..."
 		if [[ -z $(builtin type -p $i) ]]; then
 			echo -e "\e[00;31m[Not found]\e[00m"
 			sudo apt-get -y install $i &> /dev/null
@@ -241,7 +253,7 @@ function install_1 {
 				echo -e "\e[00;32m [OK]\e[00m"
 			else
 				echo -e "\e[00;31mScript will not work without... exiting\e[00m"; echo ""
-				exit 0			
+				exit 0
 			fi
 		else
 			echo -e "\e[00;32m [OK]\e[00m"
@@ -250,7 +262,7 @@ function install_1 {
 	# ok we know have the required tools to update script
 	update
 	# continue  part2 of the installation
-	install_2
+	installContinue
 }
 function uninstall {
 	local programs=("lftp" "bc" "rar" "cksfv" "rarfs" "subversion" "automake1.9" "fuse-utils" "libfuse-dev" "checkinstall" "libreadline-dev" "curl" "openssl")
@@ -304,11 +316,13 @@ function download {
 	tar -xzf "$scriptdir"/FTPauto-v"$release_version.tar.gz" --overwrite --strip-components 1
 	rm -f "$scriptdir"/FTPauto-v"$release_version.tar.gz"
 	echo " Updated to v$release_version"
-	echo -n "Extracting ..."
+	echo -n " Extracting ..."
 	echo -e "\e[00;32m [OK]\e[00m"
-	bash "$scriptdir/install.sh" "install2"
+	update
+	installContinue
 }
 function update {
+	getCurrentVersion
 	# get most recent stable version
 	echo -n "Checking FTPauto ..."
 	local release=$(curl --silent https://github.com/Meliox/FTPauto/releases | egrep -o 'FTPauto-v(.*)+tar.gz' | sort -n | tail -1)
@@ -317,9 +331,9 @@ function update {
 	# comparasion
 	version_compare "$release_version" "$i_version"
 	if [[ "$i_version" == "0" ]]; then
-		echo -e "\e[00;32m [New installation]\e[00m"
+		echo -e "\e[00;33m [New installation]\e[00m"
 		download
-	elif [[ "$new_version" -eq "1" ]]; then
+	elif [[ "$new_version" == "true" ]]; then
 		echo -e "\e[00;33m [v$release_version available]\e[00m"
 		read -p " Do you want to update your version(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
@@ -328,7 +342,7 @@ function update {
 			echo -e "\e[00;33m [Present version kept]\e[00m"
 		fi
 	else
-		echo -e "\e[00;32m [lastest]\e[00m"
+		echo -e "\e[00;32m [Latest]\e[00m"
 	fi
 }
 
@@ -340,8 +354,7 @@ function startupmessage {
 
 case "$1" in
 	uninstall)	startupmessage; uninstall;;
-	install)	startupmessage; install_1;;
-	install2)	install_2;;
+	install)	startupmessage; installStart;;
 	update)	update;;
 	*)
 		startupmessage; echo ""; echo "Usage: $0 (install | uninstall | update)"; echo "Run uninstall first to clean up everything if you have any problems."; echo "";
