@@ -207,42 +207,43 @@ function ftp_transfere {
 		# create final directories if they don't exists
 		echo "mkdir -p \"$ftpcomplete\"" >> "$ftptransfere_file"
 		echo "mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
-		# fail if transfers fails. IMPORTANT that it is after mkdir as it will fail if path exists
-		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 		# handle files for transfer
 		for ((i=0;i<${#filepath[@]};i++)); do
 			if [[ ! -d "${filepath[$i]}" ]]; then
 				# found files
 				if [[ $video_file_to_complete == "true" ]] && [[ $send_option == "true" ]]; then
 					# If file is found in directory rename file to basedirectory
+					echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 					if [[ -n "${mountdirnames[$i]}" ]]; then
-						echo "queue put -O \"$ftpcomplete\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
+						echo "queue put -c -O \"$ftpcomplete\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
 					else
-						echo "queue put -O \"$ftpcomplete\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+						echo "queue put -c -O \"$ftpcomplete\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
 					fi
 				else
 					if [[ -n $ftpincomplete ]]; then
 						# make sure that directory only is created once
 						if [[ $i -eq 0 ]]; then
 							echo "mkdir -p \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
+							echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 						fi
 						# If file is found in directory rename file to basedirectory
 		                                if [[ -n "${mountdirnames[$i]}" ]]; then
-        	                                        echo "queue put -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
+        	                                        echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
 	                                        else
-                                                	echo "queue put -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+                                                	echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
                                         	fi
 					elif [[ -z $ftpincomplete ]]; then
                                                 # If file is found in directory rename file to basedirectory
                                                 if [[ -n "${mountdirnames[$i]}" ]]; then
-                                                        echo "queue put -O \"$ftpcomplete$changed_name\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
+                                                        echo "queue put -c -O \"$ftpcomplete$changed_name\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
                                                 else
-                                                        echo "queue put -O \"$ftpcomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+                                                        echo "queue put -c -O \"$ftpcomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
                                                 fi
 					fi
 				fi
 			else
 				# directories
+				echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 				if [[ -n $ftpincomplete ]]; then
 					echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"${filepath[$i]}\" \"$ftpincomplete\"" >> "$ftptransfere_file"
 				elif [[ -z $ftpincomplete ]]; then
