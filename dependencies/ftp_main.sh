@@ -107,8 +107,7 @@ function queue {
 			fi
 		;;
 		"next" )
-			# change lockfile status
-			lockfile
+			# Process next item in queue
 			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
 				#load next item from top
 				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f1)
@@ -393,7 +392,7 @@ function ftp_processbar { #Showing how download is proceeding
 							for i in "${SpeedOld[@]}"; do
 								sum=$(echo "( $sum + $i )" | bc)
 							done
-							SpeedAverage=$(echo "scale=2; $sum / ${#SpeedOld[@]}" | bc)
+							SpeedAverage="$(echo "scale=2; $sum / ${#SpeedOld[@]}" | bc) MB/s"
 						fi
 					else
 						speed="x"
@@ -495,15 +494,6 @@ function lockfile {
 	echo >> "$lockfile"
 	sed "1c $BASHPID" -i "$lockfile"
 	echo "INFO: Process id: $BASHPID"
-}
-
-function load_help {
-	if [[ -e "$scriptdir/dependencies/help.sh" ]]; then
-		source "$scriptdir/dependencies/help.sh"
-	else
-		echo -e "\e[00;31mError: /dependencies/help.sh is\n needed in order for this program to work\e[00m";
-		exit 1
-	fi
 }
 
 function main {
@@ -620,9 +610,9 @@ cleanup session
 #send push notification
 if [[ -n $push_user ]]; then
 	if [[ $test_mode != "true" ]]; then
-		source "$scriptdir/plugins/pushover.sh" "NEW STUFF: $orig_name, "$size"MB, in $transferTime2, "$SpeedAverage"MB/s"
+		source "$scriptdir/plugins/pushover.sh" "NEW STUFF: $orig_name, "$size"MB, in $transferTime2, $SpeedAverage"
 	else
-		echo -e "\e[00;31mTESTMODE: Would send notification \"NEW STUFF: $orig_name, "$size"MB, in $transferTime2, "$SpeedAverage"MB/s\" to token=$push_token and user=$push_user \e[00m"
+		echo -e "\e[00;31mTESTMODE: Would send notification \"NEW STUFF: $orig_name, "$size"MB, in $transferTime2, $SpeedAverage\" to token=$push_token and user=$push_user \e[00m"
 	fi
 fi
 echo
@@ -651,7 +641,7 @@ TotalTransferTime=$(( $ScriptEndTime - $ScriptStartTime ))
 echo -e "\e[00;37mINFO: \e[00;32mFinished\e[00m"
 echo "                       Name: $orig_name"
 echo "                       Size: $size MB"
-echo "                      Speed: $SpeedAverage MB/s"
+echo "                      Speed: $SpeedAverage"
 echo "              Transfer time: $transferTime2"
 echo "                 Start time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
 echo "                   End time: $(date --date=@$ScriptEndTime '+%d/%m/%y-%a-%H:%M:%S')"
@@ -677,7 +667,6 @@ do
 		--force | -f ) force=true; shift;;
 		--source=* ) source="${1#--source=}"; shift;;
 		--sortto=* ) sortto="${1#--sortto=}"; shift;;
-		--example ) load_help; show_example; exit 0;;
 		--test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;
 		* ) break ;;
 		--) shift; break;;
