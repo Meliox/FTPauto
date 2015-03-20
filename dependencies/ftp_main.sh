@@ -106,15 +106,8 @@ function queue {
 				cleanup end
 			fi
 		;;
-<<<<<<< HEAD
-		"run" )
-			# change lockfile status
-			lockfileoption="running"
-			lockfile "$lockfileoption"
-=======
 		"next" )
 			# Process next item in queue
->>>>>>> 59399b02b2119c5922c664855ff881e4e5dea81f
 			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
 				#load next item from top
 				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f1)
