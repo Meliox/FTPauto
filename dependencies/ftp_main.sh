@@ -97,19 +97,18 @@ function queue {
 			fi
 		;;
 		"remove" )
-			#remove item acording to id
+			#remove item according to id
 			sed "/^"$id"\#/d" -i "$queue_file"
 			# if queue is true then continue to run else stop
 			if [[ $continue_queue == "true" ]]; then
-				queue run
+				queue next
 			else
 				cleanup end
 			fi
 		;;
-		"run" )
+		"next" )
 			# change lockfile status
-			lockfileoption="running"
-			lockfile "$lockfileoption"
+			lockfile
 			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
 				#load next item from top
 				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f1)
@@ -468,40 +467,34 @@ function loadConfig {
 }
 
 function lockfile {
-	case "$1" in
-		running )
-			true
-			;;
-		* ) # upon start no option is available, hence create lockfile
-			echo "INFO: Writing lockfile: $lockfile"
-			if [[ -f "$lockfile" ]] && [[ $force != "true" ]]; then
-				#The file exists, find PID, transfere, confirm it still is running
-				mypid_script=$(sed -n 1p "$lockfile")
-				mypid=$(sed -n 2p "$lockfile")
-				alreadyinprogres=$(sed -n 3p "$lockfile")
-				kill -0 $mypid_script
-				if [[ $? -eq 1 ]]; then
-					#Process is not running, continue
-					echo "INFO: No lockfile detected"
-					rm "$lockfile"
-				else
-					echo -e "\e[00;31mINFO: The user $user is running something\e[00m"
-					echo "       The script running is: $mypid_script"
-					echo "       The transfere is: $alreadyinprogres"
-					echo "       If that is wrong remove $lockfile"
-					echo "       Wait for it to end, or kill it: kill -9 $mypid_script"
-					queue add end
-				fi
-			fi
-			#allocate pids
-			echo >> "$lockfile"
-			echo >> "$lockfile"
-			echo >> "$lockfile"
-			echo >> "$lockfile"
-			sed "1c $BASHPID" -i "$lockfile"
-			echo "INFO: Process id: $BASHPID"
-		;;
-	esac
+	# upon start (from queue or --path) no option is available, hence create lockfile
+	echo "INFO: Writing lockfile: $lockfile"
+	if [[ -f "$lockfile" ]] && [[ $force != "true" ]]; then
+		# The file exists, find PID, transfere, confirm it still is running
+		mypid_script=$(sed -n 1p "$lockfile")
+		mypid=$(sed -n 2p "$lockfile")
+		alreadyinprogres=$(sed -n 3p "$lockfile")
+		kill -0 $mypid_script
+		if [[ $? -eq 1 ]]; then
+			#Process is not running, continue
+			echo "INFO: No lockfile detected"
+			rm "$lockfile"
+		else
+			echo -e "\e[00;31mINFO: The user $user is running something\e[00m"
+			echo "       The script running is: $mypid_script"
+			echo "       The transfere is: $alreadyinprogres"
+			echo "       If that is wrong remove $lockfile"
+			echo "       Wait for it to end, or kill it: kill -9 $mypid_script"
+			queue add end
+		fi
+	fi
+	# allocate pids
+	echo >> "$lockfile"
+	echo >> "$lockfile"
+	echo >> "$lockfile"
+	echo >> "$lockfile"
+	sed "1c $BASHPID" -i "$lockfile"
+	echo "INFO: Process id: $BASHPID"
 }
 
 function load_help {
@@ -667,7 +660,7 @@ echo "                 Total time: $(printf '%02dh:%02dm:%02ds' "$(($TotalTransf
 # Remove finished one
 queue remove
 # Run queue
-queue run
+queue next
 }
 
 function start_main {
@@ -696,12 +689,12 @@ done
 # confirm filepath
 if [[ -z "$filepath" ]]; then
 	# if --path is not used, try and run queue
-	queue run
+	queue next
 elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath" -type f 2>/dev/null) ]] || [[ -z $(find "$filepath" -type f 2>/dev/null) ]]; then
 	# path with files or file not found
 	if [[ "$transferetype" == "downftp" ]]; then
 		# server <-- client, assume path is OK
-		lockfile "$lockfileoption"
+		lockfile
 		true
 	elif [[ "$transferetype" == "upftp" ]]; then		
 		# server --> client
@@ -715,7 +708,7 @@ elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath
 	fi
 fi
 # Create lockfile
-lockfile "$lockfileoption"
+lockfile
 
 echo "INFO: Transfertype: $transferetype"
 
