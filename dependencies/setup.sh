@@ -107,13 +107,13 @@ function get_size {
 	elif [[ "$transferetype" == "upftp" ]]; then
 		#server
 		directorysize=$(du -bs "$dir" | awk '{print $1}')
-		size=$(echo "scale=2; "$directorysize" / (1024*1024)" | bc)	
+		size=$(echo "scale=2; "$directorysize" / (1024*1024)" | bc)
 		echo "INFO: Size to transfere: "$size"MB"
 		if [[ -n "${exclude_array[@]}" ]]; then
 			exclude_expression=()
 			local n="1"
 			for i in "${exclude_array[@]}"; do
-				exclude_expression+=("-iname *$i*")
+				exclude_expression+=("-iname \'*$i*"\')
 				#add -or if not finished
 				if [[ "$n" -eq "${#exclude_expression[@]}" ]]; then
 					exclude_expression+=("-or")
