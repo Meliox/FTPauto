@@ -392,7 +392,7 @@ function ftp_processbar { #Showing how download is proceeding
 							for i in "${SpeedOld[@]}"; do
 								sum=$(echo "( $sum + $i )" | bc)
 							done
-							SpeedAverage="$(echo "scale=2; $sum / ${#SpeedOld[@]}" | bc) MB/s"
+							SpeedAverage=$(echo "scale=2; $sum / ${#SpeedOld[@]}" | bc)
 						fi
 					else
 						speed="x"
@@ -610,9 +610,9 @@ cleanup session
 #send push notification
 if [[ -n $push_user ]]; then
 	if [[ $test_mode != "true" ]]; then
-		source "$scriptdir/plugins/pushover.sh" "NEW STUFF: $orig_name, "$size"MB, in $transferTime2, $SpeedAverage"
+		source "$scriptdir/plugins/pushover.sh" "NEW STUFF: $orig_name, "$size"MB, in $transferTime2, $SpeedAverage MB/s"
 	else
-		echo -e "\e[00;31mTESTMODE: Would send notification \"NEW STUFF: $orig_name, "$size"MB, in $transferTime2, $SpeedAverage\" to token=$push_token and user=$push_user \e[00m"
+		echo -e "\e[00;31mTESTMODE: Would send notification \"NEW STUFF: $orig_name, "$size"MB, in $transferTime2, $SpeedAverage MB/s\" to token=$push_token and user=$push_user \e[00m"
 	fi
 fi
 echo
@@ -641,7 +641,7 @@ TotalTransferTime=$(( $ScriptEndTime - $ScriptStartTime ))
 echo -e "\e[00;37mINFO: \e[00;32mFinished\e[00m"
 echo "                       Name: $orig_name"
 echo "                       Size: $size MB"
-echo "                      Speed: $SpeedAverage"
+echo "                      Speed: $SpeedAverage MB/s"
 echo "              Transfer time: $transferTime2"
 echo "                 Start time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
 echo "                   End time: $(date --date=@$ScriptEndTime '+%d/%m/%y-%a-%H:%M:%S')"
