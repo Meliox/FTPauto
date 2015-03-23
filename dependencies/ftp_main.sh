@@ -509,8 +509,8 @@ fi
 changed_name="$orig_name"
 tempdir="$scriptdir/run/$username-temp/$orig_name/"
 ScriptStartTime=$(date +%s)
-echo "INFO: Process starttime: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
-echo "INFO: Preparing transfere: $filepath"
+echo "INFO: Process start-time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
+echo "INFO: Preparing transfer: $filepath"
 echo "INFO: Lunched from: $source"
 
 #add to queue file, to get ID initialized

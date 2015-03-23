@@ -128,6 +128,18 @@ function get_size {
 	fi
 }
 
+function removeClean {
+	local array=("$@")
+	echo ${#array[@]}
+	echo ${array[@]}
+	# removes passed files
+	for i in "${array[@]}"; do
+		if [[ -f "$i" ]]; then
+			rm "$i"
+		fi
+	done
+}
+
 function cleanup {
 	case "$1" in
 	"die" ) #used when script stops on user input
@@ -136,40 +148,40 @@ function cleanup {
 		if [[ -n "$pid_transfer" ]]; then kill -9 $pid_transfer &> /dev/null; fi
 		if [[ -n "$pid_f_process" ]]; then kill -9 $pid_f_process &> /dev/null; fi
 		if [[ -f "$lockfile" ]] && [[ -n $(sed -n '4p' $lockfile) ]]; then kill -9 $(sed -n '4p' $lockfile) &> /dev/null; fi
-		if [[ -f "$queue_file" ]]; then rm "$queue_file"; fi;
-		if [[ -f "$lockfile" ]]; then rm "$lockfile"; fi;
+		local array=( "$lockfile" )
+		removeClean "${array[@]}"
 		#remove all files created
 		cleanup session
 		sed "5s#.*#*************************** Transfer: Aborted #" -i $logfile
 	        exit 1;;
 	"session" ) #use to end transfer
 		if [[ $test_mode == "true" ]]; then
-			read -sn 1 -p "Press ANY buttom to continue cleanup..."
+			read -sn 1 -p "Press ANY button to continue cleanup..."
 		fi
 		if [[ $mount_in_use == "true" ]]; then
 			mountsystem umount
+			if [[ $? -eq 1 ]]; then
+				echo -e "\e[00;33mINFO: Umounting failed. Retrying in 10s... \e[00m"
+				sleep 10
+				mountsystem umount
+				if [[ $? -eq 1 ]]; then
+					echo -e "\e[00;33mINFO: Umounting failed. Could not umount files (try manually fusermount -u): "${tempmountset[@]}" \e[00m"
+				fi
+			fi
 			unset mount_in_use tempmountset
 		fi
 		# removal of all files creates
-		if [[ -f "$ftplogin_file" ]]; then rm "$ftplogin_file"; fi
+		local array=( "$ftplogin_file" "$ftptransfere_file" "$ftp_size_file" "$ftpfreespace_file" "$lftptransfersize" "$lftptransfersize2" "$transfersize" "$proccess_bar_file" "$ftpalive_file" "$ftpcheck_file" "$ftpcheck_testfile" "$ftptransfere_processbar" )
+		removeClean "${array[@]}"
+		# removal tempdir
 		if [[ -d "$tempdir" ]]; then rm -r "$tempdir"; fi;
-		if [[ -f "$ftptransfere_file" ]]; then rm "$ftptransfere_file"; fi
-		if [[ -f "$ftp_size_file" ]]; then rm "$ftp_size_file"; fi
-		if [[ -f "$ftpfreespace_file" ]]; then rm "$ftpfreespace_file"; fi
-		if [[ -f "$lftptransfersize" ]]; then rm "$lftptransfersize"; fi
-		if [[ -f "$lftptransfersize2" ]]; then rm "$lftptransfersize2"; fi
-		if [[ -f "$transfersize" ]]; then rm "$transfersize"; fi
-		if [[ -f "$proccess_bar_file" ]]; then rm "$proccess_bar_file"; fi
-		if [[ -f "$ftpalive_file" ]]; then rm "$ftpalive_file"; fi
-		if [[ -f "$ftpcheck_file" ]]; then rm "$ftpcheck_file"; fi
-		if [[ -f "$ftpcheck_testfile" ]]; then rm "$ftpcheck_testfile"; fi
-		if [[ -f "$ftptransfere_processbar" ]]; then rm "$ftptransfere_processbar"; fi
 		echo "INFO: Cleanup done"
 	;;
 	"end" ) #use to end script
-		if [[ -f "$lockfile" ]]; then rm "$lockfile"; fi;
+		local array=( "$lockfile" )
+		removeClean "${array[@]}"
 		sed "5s#.*#***************************	#" -i $logfile
-		echo -e "\e[00;32mExiting succesfully...\e[00m"
+		echo -e "\e[00;32mExiting successfully...\e[00m"
 		echo ""
 	;;
 	"stop" ) #use to terminate all pids used

@@ -97,7 +97,7 @@ function mountsystem {
 					get_size "$tempdir"
 				fi
 			else
-				echo -e "\e[00;33mINFO: No rar has been found. Ignoring mount and transfering everything as normal\e[00m"
+				echo -e "\e[00;33mINFO: No rarfile(s) has been found. Ignoring mount and transferring everything as normal\e[00m"
 			fi
 		fi
 		;;
@@ -106,11 +106,11 @@ function mountsystem {
 				fusermount -u "$n"
 			done
 			unset n
-			echo -e "\e[00;32mINFO: Evertyhing has been unmounted\e[00m"
+			echo -e "\e[00;32mINFO: Everything has been unmounted\e[00m"
 		;;
 		esac
 	else
-		echo -e "\e[00;31mERROR: Rarfs not found. Ignoring mount and transfering everything as normal\e[00m"
+		echo -e "\e[00;31mERROR: Rarfs not found. Ignoring mount and transferring everything as normal\e[00m"
 		echo -e "\e[00;36mINFO: See http://ubuntuforums.org/showthread.php?t=573307 or install by apt-get install subversion automake1.9 fuse-utils libfuse-dev && cd rarfs && ./configure && make && make install && adduser <user> fuse && chgrp fuse /dev/fuse && chgrp fuse /bin/fusermount && chmod u+s /bin/fusermount\e[00m"
 	fi
 }
