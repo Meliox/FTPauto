@@ -130,8 +130,6 @@ function get_size {
 
 function removeClean {
 	local array=("$@")
-	echo ${#array[@]}
-	echo ${array[@]}
 	# removes passed files
 	for i in "${array[@]}"; do
 		if [[ -f "$i" ]]; then

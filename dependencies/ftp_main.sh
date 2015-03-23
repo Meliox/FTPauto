@@ -568,6 +568,7 @@ if [[ "$send_option" == "split" ]]; then
 			source "$scriptdir/dependencies/largefile.sh" && largefile "$filepath" "exclude_array[@]"
 		elif [[ $transferetype == "downftp" ]]; then
 			echo -e "\e[00;33mERROR: split_files is not supported in mode=$transferetype. Continuing without ...\e[00m"
+			send_option="default"
 		fi
 	else
 		echo -e "\e[00;33mERROR: split_files is not supported as rar or cksfv is missing. Continuing without ...\e[00m"
@@ -579,6 +580,7 @@ elif [[ "$send_option" == "video" ]]; then
 			source "$scriptdir/plugins/videofile.sh" && videoFile
 		elif [[ $transferetype == "downftp" ]]; then
 			echo -e "\e[00;33mERROR: video_file_only is not supported in mode=$transferetype. Continuing without ...\e[00m"
+			send_option="default"
 		fi
 	else
 		echo -e "\e[00;33mERROR: split_files is not supported as rarfs is missing. Continuing without ...\e[00m"
@@ -610,9 +612,13 @@ cleanup session
 #send push notification
 if [[ -n $push_user ]]; then
 	if [[ $test_mode != "true" ]]; then
-		source "$scriptdir/plugins/pushover.sh" "NEW STUFF: $orig_name, "$size"MB, in $transferTime2, $SpeedAverage MB/s"
+		source "$scriptdir/plugins/pushover.sh" "$orig_name" "Sendoption=$send_option
+Size=$size MB
+Time=$transferTime2
+Average speed=$SpeedAverage MB/s
+Path=$ftpcomplete"
 	else
-		echo -e "\e[00;31mTESTMODE: Would send notification \"NEW STUFF: $orig_name, "$size"MB, in $transferTime2, $SpeedAverage MB/s\" to token=$push_token and user=$push_user \e[00m"
+		echo -e "\e[00;31mTESTMODE: Would send notification \""$orig_name" "Sendoption=$send_option Size=$size MB Time=$transferTime2 Average speed=$SpeedAverage MB/s Path=$ftpcomplete"\" to token=$push_token and user=$push_user \e[00m"
 	fi
 fi
 echo
