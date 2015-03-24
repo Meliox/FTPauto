@@ -1,6 +1,6 @@
 # FTPauto
 
-FTPauto is a simple, but highly advanced commandline tool written in #Bash for Unix. It relies on [lftp](http://lftp.yar.ru/), but helps to automate simple transfers. So essentially this is a tool to send files from a local server to a remote FTP easily.
+FTPauto is a simple, but highly advanced command line tool written in #Bash for Unix. It relies on [lftp](http://lftp.yar.ru/), but helps to automate simple transfers. So essentially this is a tool to send files from a local server to a remote FTP easily.
 
 If you find this tool helpful, a small donation would be appreciated! Thanks!
 
@@ -8,10 +8,10 @@ If you find this tool helpful, a small donation would be appreciated! Thanks!
 
 # Features
 * Send files easily with lftp
-* Highly customizables commandline
+* Highly customizable command line
 * Monitor free space at end-server
 * Progressbar of transfer
-* Packing/splitning directory/files into rar-files. Including sfv to verify files at end-server.
+* Packing/splitting directory/files into rar-files. Including sfv to verify files at end-server.
 * Multiple users support
 * Delay transfer to start at a specific time
 * Exec support pre/post transfer
@@ -62,7 +62,7 @@ There are several way to install FTPauto. Briefly summarized: The installer does
 
 ### The installer (recommended)
 To get FTPauto, download and execute the installer: [download](https://raw.github.com/Meliox/FTPauto/master/install.sh)
-The installer will set up the enviroment and will help to install the nessary programs. During the installation you will also be able to set up a user!
+The installer will set up the environment and will help to install the necessary programs. During the installation you will also be able to set up a user!
 
 ```bash
 mkdir FTPauto && cd FTPauto
@@ -73,7 +73,7 @@ bash install.sh install
 Follow the instructions to set up a user and then you're ready to use FTPauto! If you skipped user setup or need help go to [configuration](https://github.com/Meliox/FTPauto#configuration) to set up a user.
 
 ### Get svn
-Alternatively, you can get it from Github (This version may contain unfinished features and be ustable).
+Alternatively, you can get it from Github (This version may contain unfinished features and be unstable).
 ```bash
 git clone ssh://git@github.com/Meliox/FTPauto.git
 ```
@@ -89,7 +89,7 @@ The following programs are needed
 ```bash
 rar lftp cksfv subversion automake1.9 fuse-utils libfuse-dev checkinstall libreadline-dev
 ```
-Get them from your favorit repo or compile them yourself. However, rarfs needs to be compiled manually. This is showed below
+Get them from your favourite repo or compile them yourself. However, rarfs needs to be compiled manually. This is showed below
 ```bash
 cd dependencies/
 wget http://downloads.sourceforge.net/project/rarfs/rarfs/0.1.1/rarfs-0.1.1.tar.gz
@@ -164,20 +164,20 @@ The capital letters state where FTPauto is executed and therefor giving the corr
 
 The rest of the settings should explain themselves.
 ```bash
-#This the the configuration file for ftpautodownload
+#This the the configuration file for FTPauto
 config_version="4"
-#Place the file in /home/ammin/scripts/ftpautodownload-dev/run/'hada'/config and load with --user='hada' or
+#Place the file in /home/ammin/scripts/ftpautodownload-dev/run/'mad'/config and load with --user='mad' or
 # just load it with --config=config_path
 
 #HOWTO: Edit the info between the qoutes "TEST", here the word TEST
 
 #### FTP server Setup ####
  # If you just want the server to send <ITEM> to your ftp, edit the options below
-transferetype="upftp or downftp or fxp" # Determine how to transfere file: Either send or receive from ftp or fxp them to another server
+transferetype="upftp or downftp or fxp" # Determine how to transfer file: Either send or receive from ftp or fxp them to another server
 
- # These directories are where you want to download/send the item
-ftpincomplete="/shares/USB_Storage/temp/" # incomplete directory. Remember trailing slash!
-ftpcomplete="/shares/USB_Storage/Download/" # complete directory. Remember trailing slash!
+ # These directories are where you want to download/send the item. REMEMBER TRAILING SLASH
+ftpincomplete="/shares/USB_Storage/temp/" # incomplete directory. Leave empty if no incomplete directory should be used
+ftpcomplete="/shares/USB_Storage/Download/" # complete directory.
 
 #### DOWN/UP MODE ####
  # If you just want to send/receive items, change these
@@ -197,30 +197,30 @@ ssl2="false" # use ftps or not
 
 #### Log settings ###
 logrotate="false" #enabled logrotating to move old to log.old
-lognumber="50" #how many rls to save before moving to log.old if lograte is set to true otherwise it will remove after rls after X number. 0 for disabled
+lognumber="50" #how many transfers to save in log before moving to log.old. 0 for disabled
 
-#### Transfere settings ####
+#### Transfer settings ####
 
 ### Filehandling
  # Splitting files if filesize exceed MB. Some FTP servers disconnect after a certain amount of time is there is no
  # activity. These settings only work if the server handling the script also sends the files, i.e. in upftp and upfxp mode!
-send_option="(video|split|default)" # Can be configured to send only videofile, split files according to settings or simply transfer the , default. If videofile or sizelimit are not met, then the files will be transfered as default - wi$
-video_file_to_complete="false" # Transfer videofile directly to complete directory
-rarsplitlimit="1500" Determine how large files are allowed before the files are split
+send_option="(video|split|default)" # Can be configured to send only videofile, split files according to settings or simply transfer the , default. If videofile or sizelimit are not met, then the files will be transfered as default - without any modifications.
+video_file_to_complete="false" # Transfer videofile directly to complete directory. Only applies to video send_option
+rarsplitlimit="1500" Determine how large files are allowed before the files are split. Only applies to split send_option
 splitsize="100" # How large the rarparts should be in MB
 create_sfv="true" # Create sfv for rarfiles
 
 ### Transfer settings
 
 ## General settings
-parallel="3" # how many simultaneous transferes to download with
+parallel="3" # how many simultaneous transfers to download with
 continue_queue="true" # Script will continue downloading if something is queued
 retries="3" # How many times should the transfer be tried, before giving up
 retry_download="10" # retry again in minutes after minimum space is reached OR server is offline.
 retry_download_max="10" # retry for how many hours, before quitting
 
 ## Extra settings
-force="false" # Transfere regardless of lockfiles/other transferes
+force="false" # Transfer regardless of lockfiles/other transfers
 confirm_transfer="false" # Try to confirm transfer
 confirm_online="false" # Try to confirm that server is online/writeable before doing anything
 exclude_array=( ) # Ignore certain files with name matching, format is ( "word1" "word2" )
@@ -228,21 +228,20 @@ exclude_array=( ) # Ignore certain files with name matching, format is ( "word1"
 ## Extra settings
  # To enable FTP space info, ftpsizemanagement has to be set to true
 totalmb="14950" # total ftp space
-ftpsizemanagement="false" # will confirm enough free space in dir acording to settings
-critical="100" # minimum space before aborting transfere
+ftpsizemanagement="false" # will confirm enough free space in dir according to settings
+critical="100" # minimum space before aborting transfer
 
 ## Processbar settings
  # Processbar shows how the transfer is proceeding, gives eta. etc.
-processbar="true" #shows progressbar for transfer
 sleeptime="60"  # how often to check transferproces. Time in seconds
 
 ## Miscellaneous settings
 exec_post="" #Execute external command upon finish. See --help exec_pre for more info
 allow_background="yes" # don't wait for exec to finish. ONLY for exec_post
 exec_pre="" #Execute external command before starting. See --help for more info
-sort="true" # Sort files into DVD/TV/etc/ or like defined in --cat=CATEGORY. The folders has to exists on server. Changes can be made in the file /dependencies/sorting.sh
+sort="true" # Sort files into DVD/TV/etc/ or like defined in --sort=DIRECTORY. Changes can be made in the file /dependencies/sorting.sh
 
-#### Push notificaions ####
+#### Push notifications ####
  # Create a user at https://pushover.net/ and enter details below
  # Leave push_user empty if you don't use it
 push_token=""
@@ -252,7 +251,7 @@ push_user=""
 ## Transferetype-example
 
 # Usage
-Depending on you have multiple users or just a single user see sections below. A common feature is to use the common arguements listed here: [Arguments](#arguments)
+Depending on you have multiple users or just a single user see sections below. A common feature is to use the common arguments listed here: [Arguments](#arguments)
 
 ### Download - single user
 Now you can transfer something
@@ -291,9 +290,8 @@ Here's an overview as well
        --down            | Move <ID> down
        --forget          | Remove <ID> from queue
        --path=<PATH>     | <PATH> used to transfer now!
-       --queue           | Sends <PATH> to queue WITHOUT starting script if autostart=false in config.
+       --queue           | Sends <PATH> to queue WITHOUT starting script.
                            NOTE that --path <ITEM> is required for this to work.
-                           Might also be used to start transfer in background if autostart=true	   
        --source=<SOURCE> | Source is used to show how the download has been started. The
                            following is possible:
                            MANDL=manual download(if nothing is used)
@@ -320,8 +318,8 @@ Here's an overview as well
       --exec_pre         | Execute commands before download
       --force            | Transfer file despite something is running
       --help             | Print help info
-      --progress         | While transfering, this will print out progress if enabled in config	
-      --quiet            | Supresses all output
+      --progress         | While transferring, this will print out progress if enabled in config	
+      --quiet            | Suppresses all output
       --test             | Shows what transfer is going to happen
       --verbose          | Debugs to console
 ```
@@ -406,7 +404,7 @@ line="3"			# only for iptables
 # 3rd party uses
 FTPauto can be used in combination with other software. Here are a few examples listed.
 ## FlexGet
-FlexGet is a multipurpose automation tool for content like torrents, nzbs, podcasts, comics, series, movies, etc. It can use different kinds of sources like RSS-feeds, html pages, csv files, search engines and there are even plugins for sites that do not provide any kind of useful feeds. Here we will use FlexGet to scan directories and let Flexget send the approved files. First prerequisite is to install Flexget, which can be found here [FlexGet#Install](http://flexget.com/wiki/InstallWizard/Linux/Environment/). Then an appropiate config has to be written as the following examples. More info on FlexGet and how it work is not going to be explained as it is done so very nicely on their homepage, [FlexGet#Configuration](http://flexget.com/wiki/Configuration/)
+FlexGet is a multi-purpose automation tool for content like torrents, nzbs, podcasts, comics, series, movies, etc. It can use different kinds of sources like RSS-feeds, html pages, csv files, search engines and there are even plugins for sites that do not provide any kind of useful feeds. Here we will use FlexGet to scan directories and let Flexget send the approved files. First prerequisite is to install Flexget, which can be found here [FlexGet#Install](http://flexget.com/wiki/InstallWizard/Linux/Environment/). Then an appropiate config has to be written as the following examples. More info on FlexGet and how it work is not going to be explained as it is done so very nicely on their homepage, [FlexGet#Configuration](http://flexget.com/wiki/Configuration/)
 
 ### Download methods
 There are a few ways of downloading with the use of Flexget, these are explained in the subsections below.

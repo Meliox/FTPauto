@@ -31,7 +31,7 @@ echo -e "
 \e[04;34mhttps://bitbucket.org/teamsilent/ftpautodownload/\e[00m
 
 \033[1mDescription\033[0m
-  FTPauto is a bash commandline tool to send files from a local server to\n  a remote easily. Numerous options may be specified such a checking free space for \n  transfering, multiple user support, delay of transfer and category support. It is\n  especially powerfull in combination with Flexget
+  FTPauto is a bash command line tool to send files from a local server to\n  a remote easily. Numerous options may be specified such a checking free space for \n  transferring, multiple user support, delay of transfer and category support. It is\n  especially powerful in combination with Flexget
 
   For more information read the README or see homepage.
   
@@ -83,8 +83,8 @@ IMPORTANT: Default is always used if --user isn't used!
 	--exec_pre         | Execute commands before download
 	--force            | Transfer file despite something is running
 	--help             | Print help info
-	--progress         | While transfering, this will print out progress if enabled in config	
-	--quiet            | Supresses all output
+	--progress         | While transferring, this will print out progress if enabled in config	
+	--quiet            | Suppresses all output
 	--test             | Shows what transfer is going to happen
 	--verbose          | Debugs to console
   "
@@ -93,7 +93,7 @@ IMPORTANT: Default is always used if --user isn't used!
 function show_example {
 #shows an example for configuration
 	echo
-	echo	"#This the the configuration file for ftpautodownload"
+	echo	"#This the the configuration file for FTPauto"
 	echo	"config_version=\"4\""
 	echo	"#Place the file in $scriptdir/run/'$username'/config and load with --user='$username' or"
 	echo	"# just load it with --config=config_path"
@@ -102,7 +102,7 @@ function show_example {
 	echo
 	echo	"#### FTP server Setup ####"
 	echo	" # If you just want the server to send <ITEM> to your ftp, edit the options below"
-	echo	"transferetype=\"upftp or downftp or fxp\" # Determine how to transfere file: Either send or receive from ftp or fxp them to another server"	
+	echo	"transferetype=\"upftp or downftp or fxp\" # Determine how to transfer file: Either send or receive from ftp or fxp them to another server"	
 	echo	""
 	echo	" # These directories are where you want to download/send the item. REMEMBER TRAILING SLASH"
 	echo	"ftpincomplete=\"/shares/USB_Storage/temp/\" # incomplete directory. Leave empty if no incomplete directory should be used"
@@ -126,9 +126,9 @@ function show_example {
 	echo
 	echo	"#### Log settings ###"
 	echo	"logrotate=\"false\" #enabled logrotating to move old to log.old"
-	echo	"lognumber=\"50\" #how many rls to save before moving to log.old if lograte is set to true otherwise it will remove after rls after X number. 0 for disabled"
+	echo	"lognumber=\"50\" #how many transfers to save in log before moving to log.old. 0 for disabled"
 	echo
-	echo	"#### Transfere settings ####"
+	echo	"#### Transfer settings ####"
 	echo
 	echo	"### Filehandling"
 	echo	" # Splitting files if filesize exceed MB. Some FTP servers disconnect after a certain amount of time is there is no"
@@ -142,14 +142,14 @@ function show_example {
 	echo	"### Transfer settings"
 	echo
 	echo	"## General settings"
-	echo	"parallel=\"3\" # how many simultaneous transferes to download with"
+	echo	"parallel=\"3\" # how many simultaneous transfers to download with"
 	echo	"continue_queue=\"true\" # Script will continue downloading if something is queued"
 	echo	"retries=\"3\" # How many times should the transfer be tried, before giving up"
 	echo 	"retry_download=\"10\" # retry again in minutes after minimum space is reached OR server is offline."
 	echo	"retry_download_max=\"10\" # retry for how many hours, before quitting"
 	echo
 	echo	"## Extra settings"
-	echo	"force=\"false\" # Transfere regardless of lockfiles/other transferes"
+	echo	"force=\"false\" # Transfer regardless of lockfiles/other transfers"
 	echo	"confirm_transfer=\"false\" # Try to confirm transfer"
 	echo	"confirm_online=\"false\" # Try to confirm that server is online/writeable before doing anything"
 	echo	"exclude_array=( ) # Ignore certain files with name matching, format is ( \"word1\" \"word2\" )"
@@ -157,8 +157,8 @@ function show_example {
 	echo	"## Extra settings"
 	echo	" # To enable FTP space info, ftpsizemanagement has to be set to true"
 	echo	"totalmb=\"14950\" # total ftp space"
-	echo	"ftpsizemanagement=\"false\" # will confirm enough free space in dir acording to settings"
-	echo	"critical=\"100\" # minimum space before aborting transfere"
+	echo	"ftpsizemanagement=\"false\" # will confirm enough free space in dir according to settings"
+	echo	"critical=\"100\" # minimum space before aborting transfer"
 	echo
 	echo	"## Processbar settings"
 	echo	" # Processbar shows how the transfer is proceeding, gives eta. etc."
@@ -168,9 +168,9 @@ function show_example {
 	echo	"exec_post=\"\" #Execute external command upon finish. See --help exec_pre for more info"
 	echo	"allow_background=\"yes\" # don't wait for exec to finish. ONLY for exec_post"
 	echo	"exec_pre=\"\" #Execute external command before starting. See --help for more info"
-	echo 	"sort=\"true\" # Sort files into DVD/TV/etc/ or like defined in --cat=CATEGORY. The folders has to exists on server. Changes can be made in the file /dependencies/sorting.sh"
+	echo 	"sort=\"true\" # Sort files into DVD/TV/etc/ or like defined in --sort=DIRECTORY. Changes can be made in the file /dependencies/sorting.sh"
 	echo
-	echo	"#### Push notificaions ####"
+	echo	"#### Push notifications ####"
 	echo	" # Create a user at https://pushover.net/ and enter details below"
 	echo	" # Leave push_user empty if you don't use it"
 	echo	"push_token=\"\""
@@ -180,20 +180,20 @@ function show_example {
 function create_log_file {
 	if [ ! -e "$logfile" ]; then
 		echo "INFO: First time used - logfile is created"
-		echo "***************************	FTPauto - $s_version" >> $logfile
-		echo "***************************	STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> $logfile
+		echo "***************************	FTPauto - $s_version" >> "$logfile"
+		echo "***************************	STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> "$logfile"
 		if [[ $ftpsizemanagement == "true" ]]; then
-			echo "***************************	FTP INFO: 0/"$totalmb"MB (Free "$freemb"MB)" >> $logfile
+			echo "***************************	FTP INFO: 0/"$totalmb"MB (Free "$freemb"MB)" >> "$logfile"
 		else
-			echo "***************************	FTP INFO: not used yet" >> $logfile
+			echo "***************************	FTP INFO: not used yet" >> "$logfile"
 		fi
-		echo "***************************	LASTDL: nothing" >> $logfile
-		echo "***************************	" >> $logfile
-		echo "**********************************************************************************************************************************" >> $logfile
-		echo "" >> $logfile
+		echo "***************************	LASTDL: nothing" >> "$logfile"
+		echo "***************************	" >> "$logfile"
+		echo "**********************************************************************************************************************************" >> "$logfile"
+		echo "" >> "$logfile"
 		else
-			echo "INFO: Logfile: $logfile"
+			echo "INFO: Logfile: "$logfile""
 			# clean log file
-			echo "***************************	FTP INFO:" >> $logfile
+			echo "***************************	FTP INFO:" >> "$logfile"
 	fi
 }
