@@ -274,54 +274,59 @@ bash ftpauto.sh --help
 ```
 Here's an overview as well
 ```bash
+
 == Required ==
-      --user=<USER>      | Required at all times in multi user setup, can be omitted in single user setop
+        --user=<USER>      | Required at all times in multi user setup, can be omitted in single user setop
 == Session manipulation ==
-      --pause            | Terminates transfer and leaves queue intact
-      --start            | Begins transfer from queue and let it finish queue. Only to be used for sessions!
-      --stop             | Terminates transfer and remove queue and current id
+        --pause            | Terminates transfer and leaves queue intact
+        --start            | Begins transfer from queue and let it finish queue. Only to be used for sessions!
+        --stop             | Terminates transfer and remove queue and current id
 
 == Item manipulation ==
-      --list             | Lists all items in queue
-      = Required =
-       --id=<id>         | Id for <PATH> you want to manipulate. Find them in the queuefile. See --list
-      = Options =
-       --clear           | Remove everything in queue
-       --down            | Move <ID> down
-       --forget          | Remove <ID> from queue
-       --path=<PATH>     | <PATH> used to transfer now!
-       --queue           | Sends <PATH> to queue WITHOUT starting script.
-                           NOTE that --path <ITEM> is required for this to work.
-       --source=<SOURCE> | Source is used to show how the download has been started. The
-                           following is possible:
-                           MANDL=manual download(if nothing is used)
-                           WEBDL=download from webpage
-                           FLXDL=autodownload from flexget
-                           other can be used as well...
-       --up              | Move <ID> Up
+        --list             | Lists all items in queue
+        = Required =
+          --id=<id>         | Id for <PATH> you want to manipulate. Find them in the queuefile. See --list
+        = Options =
+          --clear           | Remove everything in queue
+          --down            | Move <ID> down
+          --forget          | Remove <ID> from queue
+          --path=<PATH>     | <PATH> used to transfer now!
+          --queue           | Sends <PATH> to queue WITHOUT starting script if autostart=false in config.
+                               NOTE that --path <ITEM> is required for this to work.
+                               Might also be used to start transfer in background if autostart=true
+          --source=<SOURCE> | Source is used to show how the download has been started. The
+                               following is possible:
+                               MANDL=manual download(if nothing is used)
+                               WEBDL=download from webpage
+                               FLXDL=autodownload from flexget
+                               other can be used as well...
+          --up              | Move <ID> Up
+          --sort            | Sorts transfer into passed directory. Usage --sort=somedir/somedir2/
+                               This will overwrite automatic sorting.
+                               --sort=nosort transfers into ftpcomplete directory if sorting is enabled
 
 == User manipulation ==
-      --add              | Add user --add=<USER>
-      --edit             | Edit <USER> config
-      --purge            | Removes all user history and configs
-      --remove           | Removes all user history
+        --add              | Add user --add=<USER>
+        --edit             | Edit <USER> config
+        --purge            | Removes all user history and configs
+        --remove           | Removes all user history
 
 == Server ==
-      --freespace        | Checks how much free space is available (slow if on remote server)
-      --online           | Checks if server is online and writeable
+        --freespace        | Checks how much free space is available (slow if on remote server)
+        --online           | Checks if server is online and writeable
 
 == Optional ==
-      --bg               | Transfer is done in background
-      --debug            | Debugs to logfile
-      --delay            | Delays transfer until X. Has to be in this format "01/01/2010 12:00" (Month/Day/Year 24h-time)
-      --exec_post        | Execute commands after download
-      --exec_pre         | Execute commands before download
-      --force            | Transfer file despite something is running
-      --help             | Print help info
-      --progress         | While transferring, this will print out progress if enabled in config	
-      --quiet            | Suppresses all output
-      --test             | Shows what transfer is going to happen
-      --verbose          | Debugs to console
+        --bg               | Transfer is done in background
+        --debug            | Debugs to logfile
+        --delay            | Delays transfer until X. Has to be in this format 01/01/2010 12:00 (Month/Day/Year 24h-time)
+        --exec_post        | Execute commands after download
+        --exec_pre         | Execute commands before download
+        --force            | Transfer file despite something is running
+        --help             | Print help info
+        --progress         | While transferring, this will print out progress if enabled in config
+        --quiet            | Suppresses all output
+        --test             | Shows what transfer is going to happen
+        --verbose          | Debugs to console
 ```
 ## Debugging
 If the script for some reason should fail, it is easy to debug. Debugging can either be permanently set if the error comes and goes. This setting can be in ftpauto.sh, but altering the following line:

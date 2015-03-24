@@ -2,8 +2,12 @@
 #version 0.3
 function sortFiles {
 	if [[ -n "$1" ]]; then
-		ftpcomplete=$ftpcomplete"$1"
-		echo "INFO: Sorted to $1 - custom"
+		if [[ "$1" == "nosort" ]]; then
+			echo "INFO: No sorting. Transferring to default complete directory: \"$ftpcomplete\""
+		else
+			ftpcomplete=$ftpcomplete"$1"
+			echo "INFO: Sorted to $1 - custom"
+		fi
 	elif [[ $orig_name =~ (\.(x86|x64|mac|android|iphone)) ]]; then
 		ftpcomplete=$ftpcomplete"Appz/"
 		echo "INFO: Sorted to Appz"		

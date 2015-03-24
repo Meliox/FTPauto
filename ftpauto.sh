@@ -1,6 +1,6 @@
 #!/bin/bash
 s_version="0.3.2"
-verbose="1" #0 Normal info | 1 debug console | 2 debug into logfile
+verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 script="$(readlink -f $0)"
 scriptdir=$(dirname $script)
 
