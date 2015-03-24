@@ -1,6 +1,6 @@
 #!/bin/bash
 s_version="0.3.2"
-verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
+verbose="1" #0 Normal info | 1 debug console | 2 debug into logfile
 script="$(readlink -f $0)"
 scriptdir=$(dirname $script)
 
@@ -451,7 +451,7 @@ source "$scriptdir/dependencies/setup.sh"
 setup
 
 # make sure user has a log file
-if [ ! -e "$logfile" ]; then
+if [ ! -e "$logfile" ] && [[ "${option[0]}" != add ]]; then
 	load_help; create_log_file
 fi
 
