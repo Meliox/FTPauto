@@ -617,11 +617,11 @@ cleanup session
 #send push notification
 if [[ -n $push_user ]]; then
 	if [[ $test_mode != "true" ]]; then
-		source "$scriptdir/plugins/pushover.sh" "$orig_name" "Sendoption=$send_option
-Size=$size MB
-Time=$transferTime2
+		source "$scriptdir/plugins/pushover.sh" "$orig_name" "Sendoption   =$send_option
+Size         =$size MB
+Time         =$transferTime2
 Average speed=$SpeedAverage MB/s
-Path=$ftpcomplete"
+Path         =$ftpcomplete"
 	else
 		echo -e "\e[00;31mTESTMODE: Would send notification \""$orig_name" "Sendoption=$send_option Size=$size MB Time=$transferTime2 Average speed=$SpeedAverage MB/s Path=$ftpcomplete"\" to token=$push_token and user=$push_user \e[00m"
 	fi
