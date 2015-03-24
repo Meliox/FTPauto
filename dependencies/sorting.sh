@@ -19,8 +19,8 @@ function sortFiles {
 	elif [[ $orig_name =~ \.XXX\. ]]; then
 		ftpcomplete=$ftpcomplete"XXX/"
 		echo "INFO: Sorted to XXX"
-	elif [[ $orig_name =~ (S[0-9][0-9]E[0-9][0-9]) ]] || [[ $orig_name =~ (E[0-9][0-9]) ]] || [[ $orig_name =~ (S[0-9][0-9]) ]] || [[ $orig_name =~ (episode|ep|e|part|pt).(([0-9][0-9]?\.)|(I|V|X)) ]]  || [[ $orig_name =~ ([[:digit:]](x|of)[[:digit:]]) ]] || [[ $orig_name =~  ([[:digit:]]{4}.[[:digit:]]{2}.[[:digit:]]{2})|([[:digit:]]{2}.[[:digit:]]{2}.[[:digit:]]{4}) ]]; then
-		# Sort to series folders if S01E01 format is used
+	elif [[ $orig_name =~ (S[0-9][0-9]E[0-9][0-9]) ]] || [[ $orig_name =~ (E[0-9][0-9]) ]] || [[ $orig_name =~ (S[0-9][0-9]) ]] || [[ $orig_name =~ (episode|ep|e|part|pt).(([0-9][0-9]?\.)|(I|V|X)) ]]  || [[ $orig_name =~ ([[:digit:]](x|of)[[:digit:]]) ]] || [[ $orig_name =~ ([[:digit:]]{4}.[[:digit:]]{2}.[[:digit:]]{2})|([[:digit:]]{2}.[[:digit:]]{2}.[[:digit:]]{4}) ]]; then
+		# Sort to series folders if format matches
 		local series_name="${orig_name%%.S[[:digit:]]*}"
 		if [[ $orig_name == $series_name ]]; then
 			ftpcomplete=$ftpcomplete"TV/"

@@ -56,7 +56,7 @@ function tranfere_timeframe {
 		kill -9 "$pid_transfer"
 		sleep_seconds=$(dateDiff -s "$(date +%T)" "$transfere_start+24:00")
 		echo "Time is $(date +%R), transfer is postponed until $transfere_start"
-		sed "5s#.*#***************************	Transfering: "$orig_name" - waiting to start at $transfere_Start  #" -i $logfile
+		sed "5s#.*#***************************	Transfering: "$orig_name" - waiting to start at $transfere_Start  #" -i "$logfile"
 		sleep $sleep_seconds
 		ftp_transfere
 	fi
@@ -310,7 +310,7 @@ function ftp_transfere {
 			echo -e "\e[00;31mTransfer terminated: $(date '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 			waittime=$(($retry_download*60))
 			echo "INFO: Pausing session and trying again $retry_download"mins" later"
-			sed "3s#.*#***************************	FTP INFO: DOWNLOAD POSTPONED! Trying again in "$retry_download"mins#" -i $logfile
+			sed "3s#.*#***************************	FTP INFO: DOWNLOAD POSTPONED! Trying again in "$retry_download"mins#" -i "$logfile"
 			sleep $waittime
 			# restart transfer
 			ftp_transfer_process start
@@ -342,7 +342,7 @@ function ftp_processbar { #Showing how download is proceeding
 		while :; do
 			if [[ ${#changed_name[@]} -gt 2 ]]; then
 				echo "INFO: Progress not possible due to a lot of changing files"
-				sed "5s#.*#***************************	Transferring: "$orig_name" - x% in x at x MB/s. ETA: x  #" -i $logfile
+				sed "5s#.*#***************************	Transferring: "$orig_name" - x% in x at x MB/s. ETA: x  #" -i "$logfile"
 				break
 			fi
 			if [[ $transferetype == "downftp" ]]; then
@@ -393,6 +393,7 @@ function ftp_processbar { #Showing how download is proceeding
 								sum=$(echo "( $sum + $i )" | bc)
 							done
 							SpeedAverage=$(echo "scale=2; $sum / ${#SpeedOld[@]}" | bc)
+							sed "5c $SpeedAverage" -i $lockfile
 						fi
 					else
 						speed="x"
@@ -400,7 +401,7 @@ function ftp_processbar { #Showing how download is proceeding
 						etatime="Unknown"
 				fi
 				#update file and output the current line
-				sed "5s#.*#***************************	Transferring: "$orig_name" - $procentage% in $TimeDiff at $speed MB/s(current). ETA: $etatime  #" -i $logfile
+				sed "5s#.*#***************************	Transferring: "$orig_name" - $procentage% in $TimeDiff at $speed MB/s(current). ETA: $etatime  #" -i "$logfile"
 				echo -ne  "$procentage% is done in $TimeDiff at $speed MB/s. ETA: $etatime\r"
 			fi
 			# update variables and wait
@@ -420,38 +421,39 @@ function logrotate {
 	if [[ $test_mode != "true" ]]; then
 			transferTime=$(( $TransferEndTime - $TransferStartTime ))
 			transferTime2=$(printf '%02dh:%02dm:%02ds' "$(($transferTime/(60*60)))" "$((($transferTime/60)%60))" "$(($transferTime%60))")
-			speed=$(echo "scale=2; $size / $transferTime" | bc)
-			#Adds new info to 7th line, below everyhting statis
-			sed "7i $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S') - $source - $orig_name, $size\MB, $transferTime2, $speed\MB/s" -i $logfile
+			SpeedAverage=$(sed -n 5p "$lockfile")
+			#Adds new info to 7th line
+			sed "7i $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S') - $source - $orig_name, $size\MB, $transferTime2, $SpeedAverage\MB/s" -i "$logfile"
 			lognumber=$((7 + $lognumber ))
 			#Add text to old file
 			if [[ $logrotate == "true" ]]; then
-				if [[ -n $(sed -n $lognumber,'$p' $logfile) ]]; then
-					sed -n $lognumber,'$p' $logfile >> $oldlogfile
+				if [[ -n $(sed -n $lognumber,'$p' "$logfile") ]]; then
+					sed -n $lognumber,'$p' "$logfile" >> "$oldlogfile"
 				fi
 			fi
 			#Remove text from old file
-			if [ $lognumber -ne 0 ]; then
-				sed $lognumber,'$d' -i $logfile
+			if [ "$lognumber" -ne 0 ]; then
+				sed $lognumber,'$d' -i "$logfile"
 			fi
-			totaldl=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' $logfile | cut -d' ' -f2)
+			totaldl=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f2)
 			totaldl=${totaldl%MB}
-			if [[ -z $totaldl ]]; then
+			if [[ -z "$totaldl" ]]; then
 				totaldl="0"
 			fi
 			totaldl=${totaldl%MB}
 			totaldl=$(echo "$totaldl + $size" | bc)
-			totalrls=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' $logfile | cut -d' ' -f4)
+			totalrls=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f4)
 			totalrls=$(echo "$totalrls + 1" | bc)
-			totaldltime=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' $logfile | cut -d' ' -f7)
+			totaldltime=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f7)
 			totaldltime_seconds=$(awk 'BEGIN{split("'$totaldltime'",a,":"); print a[1]*(60*60*24)+a[2]*(60*60)+a[3]*60+a[4];}')
 			totaldltime=$(echo "$totaldltime_seconds + $transferTime" | bc)
 			totaldltime=$(printf '%02dd:%02dh:%02dm:%02ds' "$(($totaldltime/(60*60*24)))" "$(($totaldltime/(60*60)%24))" "$((($totaldltime/60)%60))" "$(($totaldltime%60))")
 
-			sed "1s#.*#***************************	FTPauto - $s_version#" -i $logfile
-			sed "2s#.*#***************************	STATS: "$totaldl"MB in $totalrls transfers in $totaldltime#" -i $logfile
-			sed "4s#.*#***************************	LASTDL: $(date) - "$orig_name" at "$speed"MB/s#" -i $logfile
-			sed "5s#.*#***************************	#" -i $logfile
+			sed "1s#.*#***************************	FTPauto - version $s_version#" -i "$logfile"
+			sed "2s#.*#***************************	STATS: "$totaldl"MB in $totalrls transfers in $totaldltime#" -i "$logfile"
+			sed "3s#.*#***************************	FTP INFO: N/A#" -i "$logfile"
+			sed "4s#.*#***************************	LASTDL: $(date) - "$orig_name" at "$SpeedAverage"MB/s#" -i "$logfile"
+			sed "5s#.*#***************************	#" -i "$logfile"
 		else
 			echo -e "\e[00;31mTESTMODE: LOGGING NOT STARTED\e[00m"
 	fi
@@ -492,6 +494,7 @@ function lockfile {
 	echo >> "$lockfile"
 	echo >> "$lockfile"
 	echo >> "$lockfile"
+	echo >> "$lockfile" # speedaverage
 	sed "1c $BASHPID" -i "$lockfile"
 	echo "INFO: Process id: $BASHPID"
 }
@@ -516,7 +519,7 @@ echo "INFO: Lunched from: $source"
 #add to queue file, to get ID initialized
 queue add
 
-echo "INFO: Simultaneous transferes: $parallel"
+echo "INFO: Simultaneous transfers: $parallel"
 
 #Checking transferesize
 get_size "$filepath"
@@ -572,6 +575,7 @@ if [[ "$send_option" == "split" ]]; then
 		fi
 	else
 		echo -e "\e[00;33mERROR: split_files is not supported as rar or cksfv is missing. Continuing without ...\e[00m"
+		send_option="default"
 	fi
 # Try to only send videofile
 elif [[ "$send_option" == "video" ]]; then
@@ -584,6 +588,7 @@ elif [[ "$send_option" == "video" ]]; then
 		fi
 	else
 		echo -e "\e[00;33mERROR: split_files is not supported as rarfs is missing. Continuing without ...\e[00m"
+		send_option="default"
 	fi
 fi
 
