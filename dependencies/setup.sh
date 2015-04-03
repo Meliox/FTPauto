@@ -113,7 +113,7 @@ function get_size {
 			exclude_expression=()
 			local n="1"
 			for i in "${exclude_array[@]}"; do
-				exclude_expression+=("-iname \'*$i*"\')
+				exclude_expression+=("-iname *$i*")
 				#add -or if not finished
 				if [[ "$n" -eq "${#exclude_expression[@]}" ]]; then
 					exclude_expression+=("-or")
