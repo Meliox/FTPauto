@@ -115,6 +115,10 @@ function queue {
 				local filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f3)
 				# execute mainscript again
 				queue_running="true"
+				if [[ -f "$lockfile" ]]; then
+					# ensure that lockfile isn't created running queue
+					lockfileRunning="true"
+				fi
 				echo "---------------------- Running queue ----------------------"
 				echo "Transfering id=$id, $(basename "$filepath")"
 				start_main --path="$filepath" --user="$username"
@@ -708,7 +712,11 @@ elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath
 	fi
 fi
 # Create lockfile
-lockfile
+if [[ "$lockfileRunning" == "true" ]]; then
+	echo "INFO: Updating lockfile"
+else
+	lockfile
+fi
 
 echo "INFO: Transfertype: $transferetype"
 
