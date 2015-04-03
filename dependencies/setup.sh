@@ -69,7 +69,7 @@ function get_size {
 			n="0"
 			for i in "${exclude_array[@]}"; do
 				if [[ $n -lt "${#exclude_array[@]}" ]] && [[ $n -ge 1 ]]; then
-						exp+="|"
+					exp+="|"
 				fi
 				exp+="$i"
 				let n++
@@ -77,8 +77,8 @@ function get_size {
 			# loop through result from lftp
 			while read line; do
 				if [[ -n $(echo "$line" | egrep '('$exp')') ]]; then
-						# ignore files in regex
-						continue
+					# ignore files in regex
+					continue
 				fi
 				if [[ -n $(echo "$line" | egrep '\/(.*):') ]]; then
 					# catch subdirectories path to add to the files

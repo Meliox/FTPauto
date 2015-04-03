@@ -229,18 +229,18 @@ function ftp_transfere {
 							echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 						fi
 						# If file is found in directory rename file to basedirectory
-		                                if [[ -n "${mountdirnames[$i]}" ]]; then
-        	                                        echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
-	                                        else
-                                                	echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
-                                        	fi
+							if [[ -n "${mountdirnames[$i]}" ]]; then
+								echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
+							else
+								echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+							fi
 					elif [[ -z $ftpincomplete ]]; then
-                                                # If file is found in directory rename file to basedirectory
-                                                if [[ -n "${mountdirnames[$i]}" ]]; then
-                                                        echo "queue put -c -O \"$ftpcomplete$changed_name\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
-                                                else
-                                                        echo "queue put -c -O \"$ftpcomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
-                                                fi
+						# If file is found in directory rename file to basedirectory
+						if [[ -n "${mountdirnames[$i]}" ]]; then
+							echo "queue put -c -O \"$ftpcomplete$changed_name\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
+						else
+							echo "queue put -c -O \"$ftpcomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
+						fi
 					fi
 				fi
 			else
