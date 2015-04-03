@@ -216,7 +216,7 @@ function ftp_transfere {
 				if [[ $video_file_to_complete == "true" ]] && [[ $send_option == "true" ]]; then
 					# If file is found in directory rename file to basedirectory
 					echo "set cmd:fail-exit true" >> "$ftptransfere_file"
-					echo set cmd:queue-parallel $parallel >> "$ftptransfere_file"
+					echo "set cmd:queue-parallel $parallel" >> "$ftptransfere_file"
 					if [[ -n "${mountdirnames[$i]}" ]]; then
 						echo "queue put -c -O \"$ftpcomplete\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
 					else
@@ -228,7 +228,7 @@ function ftp_transfere {
 						if [[ $i -eq 0 ]]; then
 							echo "mkdir -p \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
 							echo "set cmd:fail-exit true" >> "$ftptransfere_file"
-							echo set cmd:queue-parallel $parallel >> "$ftptransfere_file"
+							echo "set cmd:queue-parallel $parallel" >> "$ftptransfere_file"
 						fi
 						# If file is found in directory rename file to basedirectory
 							if [[ -n "${mountdirnames[$i]}" ]]; then
