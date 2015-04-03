@@ -121,8 +121,8 @@ function get_size {
 				let n++
 			done
 			exclude_expression=${exclude_expression[@]}
-			size=$(find "$dir" \! \( $exclude_expression \) -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}')
-			size=$(echo "scale=2; "$size" / (1024*1024)" | bc)
+			sizeBytes=$(find "$dir" \! \( $exclude_expression \) -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}') # in bytes
+			size=$(echo "scale=2; "$sizeBytes" / (1024*1024)" | bc)
 			echo "INFO: Updated size to transfere(filter used): "$size"MB"
 		fi
 	fi

@@ -135,18 +135,18 @@ case "$1" in
 	"start" ) #start progressbar and transfer
 		TransferStartTime=$(date +%s)
 		ftp_processbar &
-		pid_f_process=$!
+		local pid_f_process=$!
 		sed "3c $pid_f_process" -i "$lockfile"
 		echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $(date --date=@$TransferStartTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 		$lftp -f "$ftptransfere_file" &> /dev/null &
-		pid_transfer=$!
+		local pid_transfer=$!
 		sed "2c $pid_transfer" -i "$lockfile"
 		wait $pid_transfer
 		pid_transfer_status="$?"
 		TransferEndTime=$(date +%s)
 	;;
 	"stop-process-bar" )
-		kill -9 $pid_f_process &> /dev/null
+		kill -9 $(sed -n '3p' $lockfile) &> /dev/null
 		kill -9 $(sed -n '4p' $lockfile) &> /dev/null
 	;;
 esac
@@ -305,7 +305,7 @@ function ftp_transfere {
 			echo -e "\e[00;31mERROR: FTP transfer failed for some reason!\e[00m"
 			echo "INFO: Keep trying until $(date --date=@$quittime '+%d/%m/%y-%a-%H:%M:%S')"
 			# ok done, kill processbar
-			kill -9 $pid_f_process &> /dev/null
+			kill -9 $(sed -n '3p' "$lockfile") &> /dev/null
 			kill -9 $(sed -n '4p' "$lockfile") &> /dev/null
 			echo -e "\e[00;31mTransfer terminated: $(date '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 			waittime=$(($retry_download*60))
@@ -350,26 +350,26 @@ function ftp_processbar { #Showing how download is proceeding
 			elif [[ $transferetype == "upftp" ]]; then
 				$lftp -f "$ftptransfere_processbar" &> /dev/null &
 				pid_process=$!
-				sed "4c $pid_process" -i $lockfile
+				sed "4c $pid_process" -i "$lockfile"
 				wait $pid_process
 			fi
 			# get first time and size. First time, set time, restart loop
-			if [[ ! -a $proccess_bar_file ]]; then
+			if [[ ! -a "$proccess_bar_file" ]]; then
 				# no transferred information
 				continue
-			elif [[ -z $TransferredOld ]] && [[ -a $proccess_bar_file ]]; then
+			elif [[ -z "$TransferredOld" ]] && [[ -a "$proccess_bar_file" ]]; then
 				# transferred information available
 				TransferredOld=$(cat $proccess_bar_file | awk '{print $1}')
 				ProgressTimeOld=$(date +%s)
-				rm $proccess_bar_file
+				rm "$proccess_bar_file"
 				continue
 			fi
 			# Feedback received
-			if [[ -a $proccess_bar_file ]]; then
+			if [[ -a "$proccess_bar_file" ]]; then
 				# set current time
 				ProgressTimeNew=$(date +%s)
 				# Get new transferred information
-				TransferredNew=$(cat $proccess_bar_file | awk '{print $1}')
+				TransferredNew=$(cat "$proccess_bar_file" | awk '{print $1}')
 				
 				# calculate data
 				SizeDiff=$(( $TransferredNew - $TransferredOld ))
@@ -379,7 +379,7 @@ function ftp_processbar { #Showing how download is proceeding
 				# Ensure value are valid
 				if [[ "$SizeDiff" -ge "1" ]] && [[ "$SizeDiff" =~ ^[0-9]+$ ]]; then
 						SizeDiff=$(echo "scale=2; "$SizeDiff" / (1024)" | bc)
-						procentage=$(echo "scale=4; "$SizeDiff" / "$size" * 100" | bc)
+						procentage=$(echo "scale=4; ( "$TransferredNew" / ( "$sizeBytes" / ( 1024 ) ) ) * 100" | bc)
 						procentage=$(echo $procentage | sed 's/\(.*\)../\1/')
 						speed=$(echo "scale=2; ( $SizeDiff ) / $Diff" | bc)
 						eta=$(echo "( $size - $SizeDiff ) / $speed" | bc)
@@ -393,7 +393,7 @@ function ftp_processbar { #Showing how download is proceeding
 								sum=$(echo "( $sum + $i )" | bc)
 							done
 							SpeedAverage=$(echo "scale=2; $sum / ${#SpeedOld[@]}" | bc)
-							sed "5c $SpeedAverage" -i $lockfile
+							sed "5c $SpeedAverage" -i "$lockfile"
 						fi
 					else
 						speed="x"
@@ -490,10 +490,10 @@ function lockfile {
 		fi
 	fi
 	# allocate pids
-	echo >> "$lockfile"
-	echo >> "$lockfile"
-	echo >> "$lockfile"
-	echo >> "$lockfile"
+	echo >> "$lockfile" # bash pid
+	echo >> "$lockfile" # lftp transfer pid
+	echo >> "$lockfile" # bash progress pid
+	echo >> "$lockfile" # lftp process pid
 	echo >> "$lockfile" # speedaverage
 	sed "1c $BASHPID" -i "$lockfile"
 	echo "INFO: Process id: $BASHPID"
