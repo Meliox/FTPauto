@@ -377,18 +377,16 @@ function ftp_processbar { #Showing how download is proceeding
 				# Get new transferred information
 				TransferredNew=$(cat "$proccess_bar_file" | awk '{print $1}')
 				
+				TotalTimeDiff=$(( $ProgressTimeNew - $TransferStartTime ))
 				# calculate data
-				SizeDiff=$(( $TransferredNew - $TransferredOld ))
-				Diff=$(( $ProgressTimeNew - $ProgressTimeOld ))
-				TimeDiff=$(printf '%02dh:%02dm:%02ds' "$(($Diff/(60*60)))" "$((($Diff/60)%60))" "$(($Diff%60))")
-				
+				TimeDiff=$(printf '%02dh:%02dm:%02ds' "$(($TotalTimeDiff/(60*60)))" "$((($TotalTimeDiff/60)%60))" "$(($TotalTimeDiff%60))")
 				# Ensure value are valid
-				if [[ "$SizeDiff" -ge "1" ]] && [[ "$SizeDiff" =~ ^[0-9]+$ ]]; then
-						SizeDiff=$(echo "scale=2; "$SizeDiff" / (1024)" | bc)
+				if [[ "$(( $TransferredNew - $TransferredOld ))" -ge "1" ]] && [[ "$(( $TransferredNew - $TransferredOld ))" =~ ^[0-9]+$ ]]; then
+						set -x
 						procentage=$(echo "scale=4; ( "$TransferredNew" / ( "$sizeBytes" / ( 1024 ) ) ) * 100" | bc)
 						procentage=$(echo $procentage | sed 's/\(.*\)../\1/')
-						speed=$(echo "scale=2; ( $SizeDiff ) / $Diff" | bc)
-						eta=$(echo "( $size - $SizeDiff ) / $speed" | bc)
+						speed=$(echo "scale=2; ( ($TransferredNew - $TransferredOld) / 1024 ) / ( $ProgressTimeNew - $ProgressTimeOld )" | bc) # MB/s
+						eta=$(echo "( ($sizeBytes / 1024 ) - $TransferredNew ) / ($speed * 1024 )" | bc)
 						etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))")
 						
 						# Calculate average speed. Needs to be calculated each time as transfer stops ftp_processbar
@@ -409,6 +407,7 @@ function ftp_processbar { #Showing how download is proceeding
 				#update file and output the current line
 				sed "5s#.*#***************************	Transferring: "$orig_name" - $procentage% in $TimeDiff at $speed MB/s(current). ETA: $etatime  #" -i "$logfile"
 				echo -ne  "$procentage% is done in $TimeDiff at $speed MB/s. ETA: $etatime\r"
+				set +x
 			fi
 			# update variables and wait
 			TransferredOld="$TransferredNew"
