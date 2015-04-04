@@ -382,7 +382,6 @@ function ftp_processbar { #Showing how download is proceeding
 				TimeDiff=$(printf '%02dh:%02dm:%02ds' "$(($TotalTimeDiff/(60*60)))" "$((($TotalTimeDiff/60)%60))" "$(($TotalTimeDiff%60))")
 				# Ensure value are valid
 				if [[ "$(( $TransferredNew - $TransferredOld ))" -ge "1" ]] && [[ "$(( $TransferredNew - $TransferredOld ))" =~ ^[0-9]+$ ]]; then
-						set -x
 						procentage=$(echo "scale=4; ( "$TransferredNew" / ( "$sizeBytes" / ( 1024 ) ) ) * 100" | bc)
 						procentage=$(echo $procentage | sed 's/\(.*\)../\1/')
 						speed=$(echo "scale=2; ( ($TransferredNew - $TransferredOld) / 1024 ) / ( $ProgressTimeNew - $ProgressTimeOld )" | bc) # MB/s
@@ -407,7 +406,6 @@ function ftp_processbar { #Showing how download is proceeding
 				#update file and output the current line
 				sed "5s#.*#***************************	Transferring: "$orig_name" - $procentage% in $TimeDiff at $speed MB/s(current). ETA: $etatime  #" -i "$logfile"
 				echo -ne  "$procentage% is done in $TimeDiff at $speed MB/s. ETA: $etatime\r"
-				set +x
 			fi
 			# update variables and wait
 			TransferredOld="$TransferredNew"
