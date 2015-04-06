@@ -205,7 +205,7 @@ case "${option[0]}" in
 		if [[ $background == "true" ]]; then
 			message "Session has started." "0"
 		elif [[ $? -eq 1 ]]; then
-			message "Succeded." "0"
+			message "Succeeded." "0"
 		else
 			message "Failed." "1"
 		fi
@@ -223,7 +223,7 @@ case "${option[0]}" in
 			if [[ $background == "true" ]]; then
 				message "Session in background has started." "0"
 			elif [[ $? -eq 0 ]]; then
-				message "Succeded." "0"
+				message "Succeeded." "0"
 			else
 				message "Failed." "1"
 			fi
@@ -348,14 +348,14 @@ case "${option[0]}" in
 		fi
 	;;
 	"progress" ) # write out download progress
-		confirm lock_file "Error, lockfile couldn't be found. Nothing is being transfered!" "1"
+		confirm lock_file "Error, lockfile couldn't be found. Nothing is being transferred!" "1"
 		echo "INFO: Keeps updating every 60 second. Exit with \"x\""
 		if [ -t 0 ]; then stty -echo -icanon time 0 min 0; fi
 		keypress=""
 		while [[ "x$keypress" == "x" ]]; do
 			info=$(sed -n '5p' < "$logfile" | egrep -o 'Transfering.*')
 			if [[ -z "info" ]]; then
-				echo "INFO: Nothing is transfered!"
+				echo "INFO: Nothing is transferred!"
 				break
 			fi
 			echo -ne $info \(last update $(date '+%H:%M:%S')\) '\r'
@@ -368,7 +368,7 @@ case "${option[0]}" in
 	;;
 	"dir" ) # list content of ftpserver and download it
 		source "$scriptdir/dependencies/ftp_list.sh" && ftp_list
-		message "Closing FTP-server" "0"
+		message "Closing FTP filebrowser" "0"
 	;;	
 	* )
 		message "No options selected." "1"

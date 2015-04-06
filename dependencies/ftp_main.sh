@@ -705,7 +705,7 @@ elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath
 		echo
 		exit 1
 	else
-		echo "INFO: Transfertype \"$transferetype\" not recognized. Have a look on your config"
+		echo "INFO: Transfer-option \"$transferetype\" not recognized. Have a look on your config"
 		echo
 		exit 1				
 	fi
@@ -717,7 +717,7 @@ else
 	lockfile
 fi
 
-echo "INFO: Transfertype: $transferetype"
+echo "INFO: Transfer-option: $transferetype"
 
 #Load dependencies
 source "$scriptdir/dependencies/setup.sh"
