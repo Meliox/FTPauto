@@ -160,7 +160,7 @@ function installContinue {
 	# for mounting to work
 	echo -n "Checking rarfs ..."
 	if [[ -z $(which rarfs) ]]; then
-		echo ""; echo -n " \"rarfs\" is not installed! It is needed to send videofile only. The file will be transfered as normally otherwise"
+		echo ""; echo -n " \"rarfs\" is not installed! It is needed to send videofile only. The file will be transferred as normally otherwise"
 		read -p " Do you want to install it(needs to be compiled - SLOW)(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
 			sudo apt-get -y install subversion automake1.9 fuse-utils libfuse-dev checkinstall &> /dev/null
@@ -292,17 +292,11 @@ function uninstall {
 		done
 	fi
 	echo -n "Removing sourcefiles ..."
-	sudo rm -rf "$scriptdir/dependencies/"
-	sudo rm -rf "$scriptdir/plugins/"
-	sudo rm -rf "$scriptdir/utils/"
-	rm -f "$scriptdir/ftpauto.sh"
-	rm -f "$scriptdir/LICENCE"
-	rm -f "$scriptdir/README.md"
-	rm -f "$scriptdir/ftpauto.sh"
+	sudo rm -rf "$scriptdir/dependencies/" "$scriptdir/plugins/" "$scriptdir/utils/"
+	rm -f "$scriptdir/ftpauto.sh" "$scriptdir/LICENCE" "$scriptdir/README.md" "$scriptdir/ftpauto.sh"
 	echo -e "\e[00;32m [OK]\e[00m"
 	echo -n "Removing userfiles ..."
-	rm -rf "$scriptdir/run"
-	rm -rf "$scriptdir/users"
+	rm -rf "$scriptdir/run" "$scriptdir/users"
 	echo -e "\e[00;32m [OK]\e[00m"
 	echo ""
 	echo "Removal complete!"
