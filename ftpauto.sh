@@ -171,15 +171,15 @@ case "${option[0]}" in
 		nano "$scriptdir/users/$username/config"	
 		message "User=$username edited." "0"
 	;;	
-	"remove" ) # remove all userfiles log files
-		# remove all userfiles log files from /run and /user/$username/
-		rm -f "$scriptdir/run/$username*"
+	"remove" ) # remove all userfiles generated files. Does not remove config
+		rm -rf "$scriptdir/run/$username"
+		rm "$scriptdir/users/$username/log"
 		message "Userfiles removed for $username." "0"
 	;;
 	"purge" ) # remove all userfiles log files and config from /run and /user/$username/
 		confirm lock_file "Can't remove $username while session is running." "1"
-		rm -r -f "$scriptdir/users/$username"
-		rm -f "$scriptdir/run/$username"
+		rm -rf "$scriptdir/users/$username"
+		rm -rf "$scriptdir/run/$username"
 		message "User=$username removed." "0"
 	;;
 	"pause" ) # Stop transfer
