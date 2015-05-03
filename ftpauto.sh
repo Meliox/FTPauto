@@ -47,7 +47,7 @@ function start_ftpmain {
 		else
 			start_main "${download_argument[@]}"
 		fi
-	fi	
+	fi
 }
 
 function confirm {
@@ -60,7 +60,7 @@ function confirm {
 		lock_file )
 			if [[ ! -f "$lockfile" ]]; then
 				message "$2" "3"
-			fi		
+			fi
 		;;
 	esac
 }
@@ -89,12 +89,12 @@ function load_user {
 		username="default"
 		config_name="$scriptdir/users/default/config"
 		source "$scriptdir/users/$username/config"
-		echo "INFO: User: $username"			
+		echo "INFO: User: $username"
 	elif [[ -n "$username" ]] && [[ -f "$scriptdir/users/$username/config" ]]; then
 		username="$username"
 		config_name="$scriptdir/users/$username/default"
 		source "$scriptdir/users/$username/config"
-		echo "INFO: User: $username"	
+		echo "INFO: User: $username"
 	elif [[ $option == "add" ]]; then
 		# manually add user
 		if [[ -z "$username" ]]; then
@@ -124,8 +124,8 @@ function load_user {
 			else
 				echo -e "\e[00;31mYou may want to have a look on --help\e[00m"
 				echo
-				exit 1			
-			fi		
+				exit 1
+			fi
 		fi
 	fi
 	# confirm that config is most recent version
@@ -133,7 +133,7 @@ function load_user {
 		echo -e "\e[00;31mERROR: Config is out-dated, please update it. See --help for more info!\e[00m"
 		echo -e "\e[00;31mIt has to be version 4\e[00m"; echo ""
 		exit 0
-	fi	
+	fi
 }
 
 function invalid_arg {
@@ -164,13 +164,13 @@ case "${option[0]}" in
 			echo "You can edit the user, by editing \"$scriptdir/users/$username/config\""
 		fi
 		# create the user's logfile
-		create_log_file		
+		create_log_file
 		message "User=$username added." "0"
 	;;
 	"edit" ) # edit user config
-		nano "$scriptdir/users/$username/config"	
+		nano "$scriptdir/users/$username/config"
 		message "User=$username edited." "0"
-	;;	
+	;;
 	"remove" ) # remove all userfiles generated files. Does not remove config
 		rm -rf "$scriptdir/run/$username"
 		rm "$scriptdir/users/$username/log"
@@ -200,7 +200,7 @@ case "${option[0]}" in
 	"start" ) # start session from queue file
 		if [[ ! -e "$queue_file" ]]; then
 			message "Nothing in queue." "1"
-		fi	
+		fi
 		start_ftpmain
 		if [[ $background == "true" ]]; then
 			message "Session has started." "0"
@@ -209,14 +209,14 @@ case "${option[0]}" in
 		else
 			message "Failed." "1"
 		fi
-	;;	
+	;;
 	"download" )
 		# set source
 		if [[ -z $source ]]; then
 			source="CONSOLE"
 		else
 			source="$source"
-		fi	
+		fi
 		# start download right away
 		if [[ ${option[1]} == "start" ]]; then
 			start_ftpmain
@@ -267,12 +267,12 @@ case "${option[0]}" in
 			echo $id $source $path $size $time
 		done < "$queue_file"
 		message "List has been shown." "0"
-	;;	
+	;;
 	"clear" ) # clear content of queue file
 		confirm queue_file "Error, queue could not be found." "1"
 		rm "$queue_file"
 		message "Queue removed." "0"
-	;;	
+	;;
 	"forget" ) # remove item with <ID> from queue
 		confirm queue_file "Error, queuefile couldn't be found. Nothing could be removed!" "1"
 		if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id#") ]]; then
@@ -288,7 +288,7 @@ case "${option[0]}" in
 		confirm queue_file "Error, queuefile couldn't be found. Nothing could be moved!" "1"
 		if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id#") ]]; then
 			line_info=$(cat "$queue_file" | grep "^$id#")
-			line_number=$(cat "$queue_file" | grep -ne "^$id#" | cut -d':' -f1)			
+			line_number=$(cat "$queue_file" | grep -ne "^$id#" | cut -d':' -f1)
 			previous_line_number=$(($line_number -1))
 			if [[ "$line_number" -lt "2" ]]; then
 				#if id is the first, keep it there
@@ -300,7 +300,7 @@ case "${option[0]}" in
 			fi
 		else
 			message "No Id=$id, selected/in queue." "1"
-		fi		
+		fi
 	;;
 	"down" ) # Move item with <ID> 1 down in queue
 		confirm queue_file "Error, queuefile couldn't be found. Nothing could be moved!" "1"
@@ -353,7 +353,7 @@ case "${option[0]}" in
 		if [ -t 0 ]; then stty -echo -icanon time 0 min 0; fi
 		keypress=""
 		while [[ "x$keypress" == "x" ]]; do
-			info=$(sed -n '5p' < "$logfile" | egrep -o 'Transfering.*')
+			info=$(sed -n '5p' < "$logfile" | egrep -o 'Transferring.*')
 			if [[ -z "info" ]]; then
 				echo "INFO: Nothing is transferred!"
 				break
@@ -369,7 +369,7 @@ case "${option[0]}" in
 	"dir" ) # list content of ftpserver and download it
 		source "$scriptdir/dependencies/ftp_list.sh" && ftp_list
 		message "Closing FTP filebrowser" "0"
-	;;	
+	;;
 	* )
 		message "No options selected." "1"
 	;;
@@ -396,7 +396,7 @@ do
 		--edit ) option_manage edit; shift;;
 		--purge ) option_manage purge; shift;;
 		--user ) if (($# > 1 )); then user=$2; download_argument+=("--user=$username"); else invalid_arg "$@"; fi; shift 2;;
-		--user=* ) username=${1#--user=}; download_argument+=("--user=$username"); shift;;		
+		--user=* ) username=${1#--user=}; download_argument+=("--user=$username"); shift;;
 		# Item
 		--forget ) option_manage forget; shift;;
 		--list ) option_manage list; shift;;
@@ -404,7 +404,7 @@ do
 		--up ) option_manage up; shift;;
 		--down ) option_manage down; shift;;
 		--id ) if (($# > 1 )); then id=$2; else invalid_arg "$@"; fi; shift 2;;
-		--id=* ) id=${1#--id=}; shift;;		
+		--id=* ) id=${1#--id=}; shift;;
 		--clear ) option_manage clear; shift;;
 		# Options
 		--queue ) option[1]=queue; shift;;
@@ -431,7 +431,7 @@ do
 		--exec_post=* ) exec_post="${1#--exec_post=}"; download_argument+=("--exec_post"); shift;;
 		--exec_post ) if (($# > 1 )); then exec_post="$2"; download_argument+=("--exec_post"); else invalid_arg "$@"; fi; shift 2;;
 		--exec_pre=* ) exec_pre="${1#--exec_pre=}"; download_argument+=("--exec_pre"); shift;;
-		--exec_pre ) if (($# > 1 )); then exec_pre="$2"; download_argument+=("--exec_pre"); else invalid_arg "$@"; fi; shift 2;;		
+		--exec_pre ) if (($# > 1 )); then exec_pre="$2"; download_argument+=("--exec_pre"); else invalid_arg "$@"; fi; shift 2;;
 		--test ) option=( "download" "start"); download_argument+=("--test"); shift;;
 		-* ) echo -e "\e[00;31mInvalid option: $@\e[00m"; echo "Try viewing --help"; exit 0;;
 		* ) break;;
