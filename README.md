@@ -366,45 +366,7 @@ packets="3"
 ```
 
 ## Network Monitor
-Purpose of this script written i #SH is to monitor the network traffic and if the traffic is too low simple turn off your server.
-```sh
-# Network traffic monitor
-# Purpose is to shut down server or do anything else if network traffic is below threshold due to
-# low activity
-
-# Do you want to monitor your netcard or the firewall? The netcard cannot see more traffic than
-# allow by the bit of your system, i.e. 2^32 = 4gb. So 32bit is limited. A wrap has been used to
-# fix this, but total traffic cannot be seen. Proper traffic count can be seen with iptables, but
-# this requires to set op iptables rules like below
-# Add monitor for INPUT and OUTPUT. REQUIRED!
-# iptables -A INPUT -j ACCEPT
-# iptables -A OUTPUT -j ACCEPT
-#
-# This assumes information is in third line like below. Edit line if this ins't the case
-# Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
-# pkts      bytes target     prot opt in     out     source               destination
-# 1941988 1207873331 ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0           state RELATED,ESTABLISHED
-# 627   183690 ACCEPT     all  --  eth0   *       0.0.0.0/0            0.0.0.0/0
-# 0        0 ACCEPT     all  --  eth0   *       0.0.0.0/0            0.0.0.0/0
-# 0        0 ACCEPT     all  --  *      *       0.0.0.0/0            0.0.0.0/0
-# 
-# See your output by iptables -nx -vL <OUTPUT|INPUT>
-#
-
-#
-# Settings below
-#
-threshold=10 		# MB per interval
-monitor_time=5 		# mins per inverval
-times=3 			# number of times it should be below threshold in each interval
-lockfile="/volume3/homes/admin/scripts/networkmonitor.lock"
-log="/volume3/homes/admin/scripts/networkmonitor.log"
-shutdown_command="poweroff"	#command to execute
-
-method="iptables" 	# iptables or netcard
-interface="eth0" 	# only for netcard
-line="3"			# only for iptables
-```
+Purpose is to shut down computer or run a custom command if network traffic is below threshold due to low activity or a certain ip is not online. See readme included in the file. Find it here: https://github.com/Meliox/FTPauto/blob/master/utils/networkmonitor.sh
 
 # 3rd party uses
 FTPauto can be used in combination with other software. Here are a few examples listed.
