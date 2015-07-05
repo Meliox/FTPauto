@@ -1,33 +1,37 @@
 #!/bin/bash
 
 function videoFile {
-	found_file=( "$(find "$filepath" \( -size +50M -type f \) -and \( -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" \) -and \! \( $exclude_expression \) | sort -n )" )
-	if [[ -n $found_file ]]; then
-		found_file_size_total="0"
-		for n in "${found_file}"; do
-			found_file_size=$(echo $(du -bs "$n") | awk '{print $1}')
-			found_file_size_total=$(echo "$found_file_size_total + $found_file_size" | bc)
-			echo "INFO: Found $(basename "$n") $(echo "$found_file_size / (1024*1024)" | bc)MB"
-			# save found files in variable
-			local tempdir=( "$n" )
-		done
-		echo "INFO: Found total size: $(echo "$found_file_size_total / (1024*1024)" | bc)MB. "
-		echo "INFO: Confirming that it is >80% of the total transfer"
-		found_file_percentage=$(echo "scale=0; $found_file_size_total / $directorysize * 100" | bc)
-		if [[ $found_file_percentage -gt 80 ]]; then
-			echo "INFO: Is "$found_file_percentage"%. Everything OK"
-			# update paths to main path --> temp path where everything is mounted
-			filepath=( "$tempdir" )
-			#Update filesize to be transferred
-			size="$(echo "scale=2; $found_file_size_total / (1024*1024)" | bc)"
-			echo "INFO: Updated size to transfer(video file): "$size"MB"
+	if [[ -f "$filepath" ]] && ! [[ "$filepath" =~ "\.(rar)$" ]]; then
+		echo -e "\e[00;33mINFO: Single file found, which isn't compressed. Continuing...\e[00m"
+	else		
+		found_file=( "$(find "$filepath" \( -size +50M -type f \) -and \( -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" \) -and \! \( $exclude_expression \) | sort -n )" )
+		if [[ -n $found_file ]]; then
+			found_file_size_total="0"
+			for n in "${found_file}"; do
+				found_file_size=$(echo $(du -bs "$n") | awk '{print $1}')
+				found_file_size_total=$(echo "$found_file_size_total + $found_file_size" | bc)
+				echo "INFO: Found \"$(basename "$n")\" $(echo "$found_file_size / (1024*1024)" | bc)MB"
+				# save found files in variable
+				local tempdir=( "$n" )
+			done
+			echo "INFO: Found total size: $(echo "$found_file_size_total / (1024*1024)" | bc)MB. "
+			echo "INFO: Confirming that it is >80% of the total transfer"
+			found_file_percentage=$(echo "scale=0; $found_file_size_total / $directorysize * 100" | bc)
+			if [[ $found_file_percentage -gt 80 ]]; then
+				echo "INFO: Is "$found_file_percentage"%. Everything OK"
+				# update paths to main path --> temp path where everything is mounted
+				filepath=( "$tempdir" )
+				#Update filesize to be transferred
+				size="$(echo "scale=2; $found_file_size_total / (1024*1024)" | bc)"
+				echo "INFO: Updated size to transfer(video file): "$size"MB"
+			else
+				echo "INFO: No videofile(s) found. Trying mount..."
+				mountsystem mount
+			fi
 		else
 			echo "INFO: No videofile(s) found. Trying mount..."
 			mountsystem mount
 		fi
-	else
-		echo "INFO: No videofile(s) found. Trying mount..."
-		mountsystem mount
 	fi
 }
 

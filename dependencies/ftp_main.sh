@@ -56,7 +56,7 @@ function tranfere_timeframe {
 		kill -9 "$pid_transfer"
 		sleep_seconds=$(dateDiff -s "$(date +%T)" "$transfere_start+24:00")
 		echo "Time is $(date +%R), transfer is postponed until $transfere_start"
-		sed "5s#.*#***************************	Transfering: "$orig_name" - waiting to start at $transfere_Start  #" -i "$logfile"
+		sed "5s#.*#***************************	Transferring: \"$orig_name\" - waiting to start at $transfere_Start  #" -i "$logfile"
 		sleep $sleep_seconds
 		ftp_transfere
 	fi
@@ -348,7 +348,7 @@ function ftp_processbar { #Showing how download is proceeding
 		while :; do
 			if [[ ${#changed_name[@]} -gt 2 ]]; then
 				echo "INFO: Progress not possible due to a lot of changing files"
-				sed "5s#.*#***************************	Transferring: "$orig_name" - x% in x at x MB/s. ETA: x  #" -i "$logfile"
+				sed "5s#.*#***************************	Transferring: \"$orig_name\" - x% in x at x MB/s. ETA: x  #" -i "$logfile"
 				break
 			fi
 			if [[ $transferetype == "downftp" ]]; then
@@ -404,8 +404,16 @@ function ftp_processbar { #Showing how download is proceeding
 						etatime="Unknown"
 				fi
 				#update file and output the current line
-				sed "5s#.*#***************************	Transferring: "$orig_name" - $procentage% in $TimeDiff at $speed MB/s(current). ETA: $etatime  #" -i "$logfile"
-				echo -ne  "$procentage% is done in $TimeDiff at $speed MB/s. ETA: $etatime\r"
+				sed "5s#.*#***************************	Transferring: \"$orig_name\" - $procentage% in $TimeDiff at $speed MB/s(current). ETA: $etatime  #" -i "$logfile"
+				local cols=$(($(tput cols) - 2))
+				local percentagebarlength=$(echo "scale=0; $procentage * $cols / 100" | bc)
+				local string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
+				local string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength))"\})"
+				if [[ $percentagebarlength -eq 0 ]]; then
+					printf "%s\n" "[$string2]\n" " $procentage% is done in $TimeDiff at $speed MB/s. ETA: $etatime"
+				else
+					printf "%s\n" "[$string$string2]" " $procentage% is done in $TimeDiff at $speed MB/s. ETA: $etatime"
+				fi
 			fi
 			# update variables and wait
 			TransferredOld="$TransferredNew"
@@ -426,7 +434,7 @@ function logrotate {
 			transferTime2=$(printf '%02dh:%02dm:%02ds' "$(($transferTime/(60*60)))" "$((($transferTime/60)%60))" "$(($transferTime%60))")
 			SpeedAverage=$(sed -n 5p "$lockfile")
 			#Adds new info to 7th line
-			sed "7i $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S') - $source - $orig_name, $size\MB, $transferTime2, $SpeedAverage\MB/s" -i "$logfile"
+			sed "7i $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S') - $source - \"$orig_name\", $size\MB, $transferTime2, $SpeedAverage\MB/s" -i "$logfile"
 			lognumber=$((7 + $lognumber ))
 			#Add text to old file
 			if [[ $logrotate == "true" ]]; then
