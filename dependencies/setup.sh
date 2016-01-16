@@ -141,17 +141,20 @@ function removeClean {
 function cleanup {
 	case "$1" in
 	"die" ) #used when script stops on user input
-		echo "*** Ouch! Exiting ***"
-		# remove pids and lockfile
-		if [[ -n "$pid_transfer" ]]; then kill -9 $pid_transfer &> /dev/null; fi
-		if [[ -n "$pid_f_process" ]]; then kill -9 $pid_f_process &> /dev/null; fi
-		if [[ -f "$lockfile" ]] && [[ -n $(sed -n '4p' $lockfile) ]]; then kill -9 $(sed -n '4p' $lockfile) &> /dev/null; fi
-		local array=( "$lockfile" )
-		removeClean "${array[@]}"
-		#remove all files created
-		cleanup session
-		sed "5s#.*#*************************** Transfer: Aborted #" -i $logfile
-	        exit 1;;
+		echo ""; echo "*** Ouch! Exiting ***"
+		stty sane
+		if [[ "$safelock" != "true" ]]; then 
+			# remove pids and lockfile
+			if [[ -n "$pid_transfer" ]]; then kill -9 $pid_transfer &> /dev/null; fi
+			if [[ -n "$pid_f_process" ]]; then kill -9 $pid_f_process &> /dev/null; fi
+			if [[ -f "$lockfile" ]] && [[ -n $(sed -n '4p' $lockfile) ]]; then kill -9 $(sed -n '4p' $lockfile) &> /dev/null; fi
+			local array=( "$lockfile" )
+			removeClean "${array[@]}"
+			#remove all files created
+			cleanup session
+			sed "5s#.*#***************************	Transfer: Aborted #" -i $logfile
+		fi
+		exit 1;;
 	"session" ) #use to end transfer
 		if [[ $test_mode == "true" ]]; then
 			read -sn 1 -p "Press ANY button to continue cleanup..."

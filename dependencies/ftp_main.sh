@@ -368,8 +368,8 @@ function ftp_processbar { #Showing how download is proceeding
 				TimeDiff=$(printf '%02dh:%02dm:%02ds' "$(($TotalTimeDiff/(60*60)))" "$((($TotalTimeDiff/60)%60))" "$(($TotalTimeDiff%60))")
 				# Ensure value are valid
 				if [[ "$(( $TransferredNew - $TransferredOld ))" -ge "1" ]] && [[ "$(( $TransferredNew - $TransferredOld ))" =~ ^[0-9]+$ ]]; then
-						procentage=$(echo "scale=4; ( "$TransferredNew" / ( "$sizeBytes" / ( 1024 ) ) ) * 100" | bc)
-						procentage=$(echo $procentage | sed 's/\(.*\)../\1/')
+						percentage=$(echo "scale=4; ( "$TransferredNew" / ( "$sizeBytes" / ( 1024 ) ) ) * 100" | bc)
+						percentage=$(echo $percentage | sed 's/\(.*\)../\1/')
 						speed=$(echo "scale=2; ( ($TransferredNew - $TransferredOld) / 1024 ) / ( $ProgressTimeNew - $ProgressTimeOld )" | bc) # MB/s
 						eta=$(echo "( ($sizeBytes / 1024 ) - $TransferredNew ) / ($speed * 1024 )" | bc)
 						etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))")
@@ -384,24 +384,23 @@ function ftp_processbar { #Showing how download is proceeding
 							SpeedAverage=$(echo "scale=2; $sum / ${#SpeedOld[@]}" | bc)
 							sed "5c $SpeedAverage" -i "$lockfile"
 							# we can start overwriting progresline
-							tput cuu 1
-							tput el1
+							tput cuu 1;	tput el1
 						fi
 					else
 						speed="x"
-						procentage="0"
+						percentage="0"
 						etatime="Unknown"
 				fi
 				#update file and output the current line
-				sed "5s#.*#***************************	Transferring: \"$orig_name\" - $procentage% in $TimeDiff at $speed MB/s(current). ETA: $etatime  #" -i "$logfile"
+				sed "5s#.*#***************************	Transferring: \"$orig_name\", $percentage%, in $TimeDiff, $speed MB/s(current), ETA: $etatime  #" -i "$logfile"
 				local cols=$(($(tput cols) - 2))
-				local percentagebarlength=$(echo "scale=0; $procentage * $cols / 100" | bc)
+				local percentagebarlength=$(echo "scale=0; $percentage * $cols / 100" | bc)
 				local string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
 				local string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength - 1))"\})"
 				if [[ $percentagebarlength -eq 0 ]]; then
-					printf "\r[$string2]      $procentage%%  is done in $TimeDiff at $speed MB/s. ETA: $etatime"
+					printf "\r[$string2]      Transferring $orig_name. Progress: $percentage%% is done in $TimeDiff at $speed MB/s. ETA: $etatime. (last update $(date '+%H:%M:%S'))"
 				else
-					printf "\r[$string>$string2]      $procentage%% is done in $TimeDiff at $speed MB/s. ETA: $etatime"
+					printf "\r[$string>$string2]      Transferring $orig_name. Progress: $percentage%% is done in $TimeDiff at $speed MB/s. ETA: $etatime. (last update $(date '+%H:%M:%S'))"
 				fi
 			fi
 			# update variables and wait

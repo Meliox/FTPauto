@@ -154,6 +154,7 @@ fi
 }
 
 function main {
+safelock="true"
 case "${option[0]}" in
 	"add" ) # add user
 		load_help; write_config
@@ -183,6 +184,7 @@ case "${option[0]}" in
 		message "User=$username removed." "0"
 	;;
 	"pause" ) # Stop transfer
+		safelock="false"
 		confirm lock_file "Error, lockfile couldn't be found. Nothing could be done!" "1"
 		cleanup stop
 		cleanup session
@@ -190,6 +192,7 @@ case "${option[0]}" in
 		message "Session has been terminated." "0"
 	;;
 	"stop" ) # Stop transfer and remove queue
+		safelock="false"
 		confirm lock_file "Error, lockfile couldn't be found. Nothing could be done!" "1"
 		cleanup stop
 		cleanup session
@@ -198,6 +201,7 @@ case "${option[0]}" in
 		message "Session has been terminated." "0"
 	;;
 	"start" ) # start session from queue file
+		safelock="false"
 		if [[ ! -e "$queue_file" ]]; then
 			message "Nothing in queue." "1"
 		fi
@@ -211,6 +215,7 @@ case "${option[0]}" in
 		fi
 	;;
 	"download" )
+		safelock="false"
 		# set source
 		if [[ -z $source ]]; then
 			source="CONSOLE"
@@ -349,16 +354,35 @@ case "${option[0]}" in
 	;;
 	"progress" ) # write out download progress
 		confirm lock_file "Error, lockfile couldn't be found. Nothing is being transferred!" "1"
-		echo "INFO: Keeps updating every 60 second. Exit with \"x\""
+		echo "INFO: Keeps updating every $sleeptime second. (Exit with \"x\")"
 		if [ -t 0 ]; then stty -echo -icanon time 0 min 0; fi
 		keypress=""
-		while [[ "x$keypress" == "x" ]]; do
-			info=$(sed -n '5p' < "$logfile" | egrep -o 'Transferring.*')
-			if [[ -z "info" ]]; then
-				echo "INFO: Nothing is transferred!"
+		local count=0
+		while [[ "x$keypress" == "x" ]]; do		
+			local title="$(sed -n 5p < "$logfile" | cut -d',' -f1 | cut -d' ' -f2)"
+			local percentage="$(sed -n 5p < "$logfile" | cut -d',' -f2 | cut -d' ' -f2)"
+			percentage="${percentage%\%}"
+			local TimeDiff="$(sed -n 5p < "$logfile" | cut -d',' -f3 | cut -d' ' -f3)"
+			local speed="$(sed -n 5p < "$logfile" | cut -d',' -f4 | cut -d' ' -f2)"
+			local etatime="$(sed -n 5p < "$logfile" | cut -d',' -f5 | cut -d' ' -f3)"
+			if [[ -z "$(sed -n 5p < "$logfile" | grep Transferring)" ]]; then
+				echo "INFO: Nothing is being transferred!"
 				break
 			fi
-			echo -ne $info \(last update $(date '+%H:%M:%S')\) '\r'
+			if [[ $count -gt 0 ]]; then
+				# we can start overwriting progresline
+				tput cuu 1;	tput el1
+			fi
+			local cols=$(($(tput cols) - 2))
+			local percentagebarlength=$(echo "scale=0; $percentage * $cols / 100" | bc)
+			local string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
+			local string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength - 1))"\})"
+			if [[ $percentagebarlength -eq 0 ]]; then
+				printf "\r[$string2]      Transferring $title. Progress: $percentage%% is done in $TimeDiff at $speed MB/s. ETA: $etatime. (last update $(date '+%H:%M:%S'))"
+			else
+				printf "\r[$string>$string2]      Transferring $title. Progress: $percentage%% is done in $TimeDiff at $speed MB/s. ETA: $etatime. (last update $(date '+%H:%M:%S'))"
+			fi
+			let count++
 			sleep 1
 			read keypress
 		done
