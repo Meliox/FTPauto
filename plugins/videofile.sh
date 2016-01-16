@@ -56,28 +56,25 @@ function mountsystem {
 					echo "INFO: Found ${#rarset[@]} rarfile(s), trying to find videofile(s)..."
 					mkdir -p "$tempdir"
 					for n in "${rarset[@]}"; do
-						dirname="$(basename $(dirname $n))"
+						# fix subdirectory so they use dash instead of slash
+						local rardir="${n#$orig_path}"
+						rardir=${rardir#\/}
+						rardir=$(echo $(dirname $rardir) | sed -e 's/\//-/g')
+						#dirname="$(basename $(dirname $n))"
 						if [[ ${#rarset[@]} -eq 1 ]]; then
 							npath="$tempdir" # for single rar file
 						else
-							npath="$tempdir$dirname" # for multiple
-							mkdir "$npath"
+							npath="$tempdir$rardir"
+							mkdir "$npath" # for multiple
 						fi
 						$rarfs "$n" "$npath" &> /dev/null
-						file=$(find "$npath" $exclude_expression -type f -iname "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4")
-						if [[ ! -z "$file" ]]; then
-							echo -e "\e[00;32m     $(basename $file) in $dirname\e[00m"
-							fileset+=( "$file" ) # path to videofiles
-							temp_name+=( "$dirname" ) # directory names
-							temppathset+=( "$npath" ) # contains path files/directories to be send
-							tempmountset+=( "$npath" ) # contains path to mounted directory, NOT LOCAL
-							extension=$(basename "$file") # get fileextension
-							extension="${extension##*.}"
-							fixed_filename+=( "$dirname.$extension" )
-							mount_in_use="true" # used to unmount
-						else
+						file=$(find "$npath" $exclude_expression -type f -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" -or -name "*.rar")
+						extension="$(basename "$file")" # get fileextension
+						extension="${extension##*.}"						
+						if [[ -z "$file" ]]; then
 							# Remove the noncontaining folder
 							echo -e "\e[00;31mINFO: $(basename $n) doesn't contain any videofiles\e[00m"
+							sleep 3
 							fusermount -u "$npath"
 							local retries=0
 							while [[ $? -eq 1 ]]; do
@@ -90,7 +87,17 @@ function mountsystem {
 								fusermount -u "$npath"
 							done
 							rm -r "$npath"
+						elif [[ "$extension" =~ (mp4|avi|mkv|iso|img) ]]; then
+							echo -e "\e[00;32m     $(basename $file) in $rardir\e[00m"
+						elif [[ "$extension" =~ (rar|zip) ]]; then
+							echo -e "\e[00;33m     $(basename $file) in $rardir (another compressed file - will be transferred)\e[00m"
 						fi
+						fileset+=( "$file" ) # path to videofiles
+						temp_name+=( "$dirname" ) # directory names
+						temppathset+=( "$npath" ) # contains path files/directories to be send
+						tempmountset+=( "$npath" ) # contains path to mounted directory, NOT LOCAL
+						fixed_filename+=( "$dirname.$extension" )
+						mount_in_use="true" # used to unmount						
 					done
 					unset n
 				if [[ $mount_in_use == "true" ]]; then
