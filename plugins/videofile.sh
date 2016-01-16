@@ -16,7 +16,7 @@ function videoFile {
 			done
 			echo "INFO: Found total size: $(echo "$found_file_size_total / (1024*1024)" | bc)MB. "
 			echo "INFO: Confirming that it is >80% of the total transfer"
-			found_file_percentage=$(echo "scale=0; $found_file_size_total / $directorysize * 100" | bc)
+			found_file_percentage=$(echo "scale=1; $found_file_size_total / $directorysize * 100" | bc)
 			if [[ $found_file_percentage -gt 80 ]]; then
 				echo "INFO: Is "$found_file_percentage"%. Everything OK"
 				# update paths to main path --> temp path where everything is mounted
