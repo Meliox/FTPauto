@@ -48,20 +48,6 @@ function countdown {
         echo "        "
 }
 
-function tranfere_timeframe {
-	#start/end in format "14:30"
-	if [[ "$transfere_start" > $(date +%R) ]] && [[ "$transfere_end" < $(date +%R) ]];  then
-		echo "everthing is ok" &> /dev/null
-	else
-		kill -9 "$pid_transfer"
-		sleep_seconds=$(dateDiff -s "$(date +%T)" "$transfere_start+24:00")
-		echo "Time is $(date +%R), transfer is postponed until $transfere_start"
-		sed "5s#.*#***************************	Transferring: \"$orig_name\" - waiting to start at $transfere_Start  #" -i "$logfile"
-		sleep $sleep_seconds
-		ftp_transfere
-	fi
-}
-
 function queue {
 # queuesystem. If something already is running for the user, add it to queue.
 	local option=$2
