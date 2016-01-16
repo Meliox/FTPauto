@@ -399,7 +399,7 @@ function ftp_processbar { #Showing how download is proceeding
 				local string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
 				local string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength - 1))"\})"
 				if [[ $percentagebarlength -eq 0 ]]; then
-					printf "\r[$string2]      $procentage%  is done in $TimeDiff at $speed MB/s. ETA: $etatime"
+					printf "\r[$string2]      $procentage%%  is done in $TimeDiff at $speed MB/s. ETA: $etatime"
 				else
 					printf "\r[$string>$string2]      $procentage%% is done in $TimeDiff at $speed MB/s. ETA: $etatime"
 				fi
