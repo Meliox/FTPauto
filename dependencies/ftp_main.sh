@@ -397,6 +397,9 @@ function ftp_processbar { #Showing how download is proceeding
 							done
 							SpeedAverage=$(echo "scale=2; $sum / ${#SpeedOld[@]}" | bc)
 							sed "5c $SpeedAverage" -i "$lockfile"
+							# we can start overwriting progresline
+							tput cuu 1
+							tput el1
 						fi
 					else
 						speed="x"
@@ -408,11 +411,11 @@ function ftp_processbar { #Showing how download is proceeding
 				local cols=$(($(tput cols) - 2))
 				local percentagebarlength=$(echo "scale=0; $procentage * $cols / 100" | bc)
 				local string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
-				local string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength))"\})"
+				local string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength - 1))"\})"
 				if [[ $percentagebarlength -eq 0 ]]; then
-					printf "%s\n" "[$string2]\n" " $procentage% is done in $TimeDiff at $speed MB/s. ETA: $etatime"
+					printf "\r[$string2]      $procentage%  is done in $TimeDiff at $speed MB/s. ETA: $etatime"
 				else
-					printf "%s\n" "[$string$string2]" " $procentage% is done in $TimeDiff at $speed MB/s. ETA: $etatime"
+					printf "\r[$string>$string2]      $procentage%% is done in $TimeDiff at $speed MB/s. ETA: $etatime"
 				fi
 			fi
 			# update variables and wait
