@@ -10,15 +10,15 @@ function videoFile {
 			for n in "${found_file}"; do
 				found_file_size=$(echo $(du -bs "$n") | awk '{print $1}')
 				found_file_size_total=$(echo "$found_file_size_total + $found_file_size" | bc)
-				echo "INFO: Found \"$(basename "$n")\" $(echo "$found_file_size / (1024*1024)" | bc)MB"
+				echo "INFO: Found \"$(basename "$n")\" $(echo "scale=2; $found_file_size / (1024*1024)" | bc)MB"
 				# save found files in variable
 				local tempdir=( "$n" )
 			done
-			echo "INFO: Found total size: $(echo "$found_file_size_total / (1024*1024)" | bc)MB. "
-			echo "INFO: Confirming that it is >80% of the total transfer"
-			found_file_percentage=$(echo "scale=1; $found_file_size_total / $directorysize * 100" | bc)
+			echo "INFO: Total size found: $(echo "scale=2; $found_file_size_total / (1024*1024)" | bc)MB. "
+			echo "INFO: Confirming that it is >90% of the total size"
+			found_file_percentage=$(echo "scale=3; $found_file_size_total / $directorysize * 100" | bc | cut -d'.' -f1)
 			if [[ $found_file_percentage -gt 80 ]]; then
-				echo "INFO: Is "$found_file_percentage"%. Everything OK"
+				echo "INFO: File is "$found_file_percentage"%. Everything OK"
 				# update paths to main path --> temp path where everything is mounted
 				filepath=( "$tempdir" )
 				#Update filesize to be transferred
