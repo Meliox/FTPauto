@@ -80,7 +80,7 @@ function queue {
 					id="1"
 				fi
 				get_size "$filepath" &> /dev/null
-				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep $(basename "$filepath")) ]]; then
+				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep "$filepath") ]]; then
 					echo "INFO: Item already in queue. Doing nothing..."
 					echo
 					exit 0
