@@ -48,8 +48,8 @@ function mountsystem {
 					for n in "${rarset[@]}"; do
 						dirname="$(basename $(dirname $n))"
 						if [[ "$old_dirname" != "$dirname" ]]; then
-								temp_rarset+=($n)
-								old_dirname="$dirname"
+							temp_rarset+=($n)
+							old_dirname="$dirname"
 						fi
 					done
 					rarset=( "${temp_rarset[@]}" )
@@ -60,7 +60,7 @@ function mountsystem {
 						local rardir="${n#$orig_path}"
 						rardir=${rardir#\/}
 						rardir=$(echo $(dirname $rardir) | sed -e 's/\//-/g')
-						#dirname="$(basename $(dirname $n))"
+						dirname="$rardir"
 						if [[ ${#rarset[@]} -eq 1 ]]; then
 							npath="$tempdir" # for single rar file
 						else
