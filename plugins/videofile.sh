@@ -56,14 +56,15 @@ function mountsystem {
 					echo "INFO: Found ${#rarset[@]} rarfile(s), trying to find videofile(s)..."
 					mkdir -p "$tempdir"
 					for n in "${rarset[@]}"; do
-						# fix subdirectory so they use dash instead of slash
-						local rardir="${n#$orig_path}"
-						rardir=${rardir#\/}
-						rardir=$(echo $(dirname $rardir) | sed -e 's/\//-/g')
-						dirname="$rardir"
 						if [[ ${#rarset[@]} -eq 1 ]]; then
 							npath="$tempdir" # for single rar file
+							dirname="$(basename $(dirname $n))"
 						else
+							# fix subdirectory so they use dash instead of slash
+							local rardir="${n#$orig_path}"
+							rardir=${rardir#\/}
+							rardir=$(echo $(dirname $rardir) | sed -e 's/\//-/g')
+							dirname="$rardir"
 							npath="$tempdir$rardir"
 							mkdir "$npath" # for multiple
 						fi
@@ -88,9 +89,9 @@ function mountsystem {
 							done
 							rm -r "$npath"
 						elif [[ "$extension" =~ (mp4|avi|mkv|iso|img) ]]; then
-							echo -e "\e[00;32m     $(basename $file) in $rardir\e[00m"
+							echo -e "\e[00;32m     $(basename $file) in $dirname\e[00m"
 						elif [[ "$extension" =~ (rar|zip) ]]; then
-							echo -e "\e[00;33m     $(basename $file) in $rardir (another compressed file - will be transferred)\e[00m"
+							echo -e "\e[00;33m     $(basename $file) in $dirname (another compressed file - will be transferred)\e[00m"
 						fi
 						fileset+=( "$file" ) # path to videofiles
 						temp_name+=( "$dirname" ) # directory names
