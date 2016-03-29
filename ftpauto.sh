@@ -241,7 +241,7 @@ case "${option[0]}" in
 					message "INFO: Item already exists. Doing nothing. Exiting..." "1"
 				fi
 				# find id to <ITEM>
-				id=$(( $(tail -1 "$queue_file" | cut -d'#' -f1) + 1 ))
+				id=$(( $(tail -1 "$queue_file" | cut -d'|' -f1) + 1 ))
 			else # no queue files exists
 				id="1"
 			fi
@@ -257,18 +257,18 @@ case "${option[0]}" in
 				fi
 			fi
 			get_size "$path" "exclude_array[@]" &> /dev/null
-			echo "$id#$source#$path#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+			echo "$id|$source|$path|$size"MB"|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 			message "Adding $(basename "$path") to queue with id=$id" "0"
 		fi
 	;;
 	"list" ) # list content of queue file
 		confirm queue_file "Empty queue!" "0"
 		while read line; do
-			id=$(echo $line | cut -d'#' -f1)
-			source=$(echo $line | cut -d'#' -f2)
-			path=$(echo $line | cut -d'#' -f3)
-			size=$(echo $line | cut -d'#' -f4)
-			time=$(echo $line | cut -d'#' -f5)
+			id=$(echo $line | cut -d'|' -f1)
+			source=$(echo $line | cut -d'|' -f2)
+			path=$(echo $line | cut -d'|' -f3)
+			size=$(echo $line | cut -d'|' -f4)
+			time=$(echo $line | cut -d'|' -f5)
 			echo $id $source $path $size $time
 		done < "$queue_file"
 		message "List has been shown." "0"
@@ -432,14 +432,14 @@ do
 		--clear ) option_manage clear; shift;;
 		# Options
 		--queue ) option[1]=queue; shift;;
-		--delay ) if (($# > 1 )); then delay=\"$2\"; download_argument+=("--delay=$delay"); else invalid_arg "$@"; fi; shift 2;;
+		--delay ) if (($# > 1 )); then delay="$2"; download_argument+=("--delay=$delay"); else invalid_arg "$@"; fi; shift 2;;
 		--delay=* ) delay=${1#--delay=}; download_argument+=("--delay=$delay"); shift;;
 		--sort ) if (($# > 1 )); then sortto="$2"; download_argument+=("--sortto=$sortto"); else invalid_arg "$@"; fi; shift 2;;
 		--sort=* ) sortto=${1#--sort=}; download_argument+=("--sortto=$sortto"); shift;;
 		--path ) if (($# > 1 )); then option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; path="$2"; download_argument+=("--path=$path"); else invalid_arg "$@"; fi; shift 2;;
 		--path=* ) option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; path="${1#--path=}"; download_argument+=("--path=$path"); shift;;
 		--source=* ) source=${1#--source=}; download_argument+=("--source=$source"); if [[ -z $source ]]; then invalid_arg "$@"; exit 1; fi; shift;;
-		--source | -s ) if (($# > 1 )); then source=\"$2\"; download_argument+=("--source=$source"); else invalid_arg "$@"; fi; shift 2;;
+		--source | -s ) if (($# > 1 )); then source="$2"; download_argument+=("--source=$source"); else invalid_arg "$@"; fi; shift 2;;
 		# Other
 		--help | -h ) load_help; show_help; exit 1;;
 		--verbose | -v) verbose=1; shift;;

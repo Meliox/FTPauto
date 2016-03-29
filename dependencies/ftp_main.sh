@@ -60,7 +60,7 @@ function queue {
 				# figure out ID
 				if [[ -e "$queue_file" ]]; then
 					#get last id
-					id=$(( $(tail -1 "$queue_file" | cut -d'#' -f1) + 1 ))
+					id=$(( $(tail -1 "$queue_file" | cut -d'|' -f1) + 1 ))
 				else
 					#assume this is the first one
 					id="1"
@@ -73,12 +73,12 @@ function queue {
 				elif [[ "$option" == "end" ]]; then
 					source=$source"Q"
 					echo "INFO: Queueing: $(basename "$filepath"), id=$id"
-					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+					echo "$id|$source|$filepath|$size"MB"|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 					echo
 					exit 0
 				else
 					echo "INFO: Queueid: $id"
-					echo "$id#$source#$filepath#$size"MB"#$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+					echo "$id|$source|$filepath|$size"MB"|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 				fi
 			fi
 		;;
@@ -96,9 +96,9 @@ function queue {
 			# Process next item in queue
 			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
 				#load next item from top
-				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f1)
-				source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f2)
-				local filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'#' -f3)
+				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'|' -f1)
+				source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'|' -f2)
+				local filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'|' -f3)
 				# execute mainscript again
 				queue_running="true"
 				if [[ -f "$lockfile" ]]; then
@@ -422,7 +422,7 @@ function logrotate {
 			transferTime2=$(printf '%02dh:%02dm:%02ds' "$(($transferTime/(60*60)))" "$((($transferTime/60)%60))" "$(($transferTime%60))")
 			SpeedAverage=$(sed -n 5p "$lockfile")
 			#Adds new info to 7th line
-			sed "7i $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S') - $source - \"$orig_name\", $size\MB, $transferTime2, $SpeedAverage\MB/s" -i "$logfile"
+			sed "7i $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')|$source|$orig_name|$size\MB|$transferTime2|$SpeedAverage\MB/s" -i "$logfile"
 			lognumber=$((7 + $lognumber ))
 			#Add text to old file
 			if [[ $logrotate == "true" ]]; then
@@ -439,7 +439,6 @@ function logrotate {
 			if [[ -z "$totaldl" ]]; then
 				totaldl="0"
 			fi
-			totaldl=${totaldl%MB}
 			totaldl=$(echo "$totaldl + $size" | bc)
 			totalrls=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f4)
 			totalrls=$(echo "$totalrls + 1" | bc)
@@ -451,7 +450,7 @@ function logrotate {
 			sed "1s#.*#***************************	FTPauto - version $s_version#" -i "$logfile"
 			sed "2s#.*#***************************	STATS: "$totaldl"MB in $totalrls transfers in $totaldltime#" -i "$logfile"
 			sed "3s#.*#***************************	FTP INFO: N/A#" -i "$logfile"
-			sed "4s#.*#***************************	LASTDL: $(date) - "$orig_name" at "$SpeedAverage"MB/s#" -i "$logfile"
+			sed "4s#.*#***************************	LASTDL: $(date)|"$orig_name"|"$SpeedAverage"MB/s#" -i "$logfile"
 			sed "5s#.*#***************************	#" -i "$logfile"
 		else
 			echo -e "\e[00;31mTESTMODE: LOGGING NOT STARTED\e[00m"
