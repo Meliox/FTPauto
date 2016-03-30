@@ -26,7 +26,7 @@ function verbose {
 		echo "STARTING PID=$BASHPID"
 		set -x
 	elif [[ $quiet ]] && [[ $verbose != 0 ]]; then
-		echo -e "\e[00;31mERROR: Verbose and silent can't be used at the same time\e[00m"
+		echo -e "\e[00;31mERROR: Verbose and silent can't be used at the same time\e[00m\n"
 		exit 0
 	fi
 }
@@ -67,10 +67,9 @@ function confirm {
 
 function message {
 	if [[ "$2" == "1" ]]; then
-		echo -e "\e[00;31m$(date '+%d/%m/%y-%a-%H:%M:%S'): $1\e[00m"
+		echo -e "\e[00;31m$(date '+%d/%m/%y-%a-%H:%M:%S'): $1\e[00m\n"
 	else
-		echo -e "\e[00;32m$(date '+%d/%m/%y-%a-%H:%M:%S'): $1\e[00m"
-	fi
+		echo -e "\e[00;32m$(date '+%d/%m/%y-%a-%H:%M:%S'): $1\e[00m\n"
 	echo
 	exit "$2"
 }
@@ -104,42 +103,18 @@ function load_user {
 		fi
 	else
 		# user used not found, want to create them
-		if [[ -z "$username" ]]; then
-			echo -e "\e[00;31mERROR: No config found for default\e[00m"
-			read -p "Do you want to create config for default user (y/n)? "
-			if [ "$REPLY" == "y" ]; then
-				username="default"
-				option="add"
-			else
-				echo -e "\e[00;31mYou may want to have a look on --help\e[00m"
-				echo
-				exit 1
-			fi
-		elif [[ -n "$username" ]]; then
-			echo -e "\e[00;31mERROR: No config found for user=$username\e[00m"
-			read -p "Do you want to create config for $username user (y/n)? "
-			if [ "$REPLY" == "y" ]; then
-				username="$username"
-				option="add"
-			else
-				echo -e "\e[00;31mYou may want to have a look on --help\e[00m"
-				echo
-				exit 1
-			fi
-		fi
+		echo -e "\e[00;31mERROR: No user found. See --help for more info.\e[00m\n"
+		exit 1
 	fi
 	# confirm that config is most recent version
 	if [[ $config_version -lt "4" ]] && [[ $option != "add" ]] && [[ $option != "edit" ]]; then
-		echo -e "\e[00;31mERROR: Config is out-dated, please update it. See --help for more info!\e[00m"
-		echo -e "\e[00;31mIt has to be version 4\e[00m"; echo ""
+		echo -e "\e[00;31mERROR: Config is out-dated, please update it (version 4). See --help for more info!\e[00m\n"
 		exit 0
 	fi
 }
 
 function invalid_arg {
-echo -e "\e[00;31mInvalid input for argument '$@'\e[00m"
-echo -e "\e[00;31mYou may want to have a look on --help\e[00m"
-echo
+echo -e "\e[00;31mERROR: Invalid input for argument '$@'. See --help for more info.\e[00m\n"
 exit 1
 }
 
@@ -147,8 +122,7 @@ function option_manage {
 if [[ -z ${option[0]} ]]; then
 	option="$1"
 else
-	echo -e "\e[00;31mError: An option, --${option[0]} is already used. Only use one. Exiting...\e[00m"
-	echo
+	echo -e "\e[00;31mERROR: An option, --${option[0]} is already used. One can only be used.\e[00m\n"
 	exit 1
 fi
 }
@@ -162,7 +136,7 @@ case "${option[0]}" in
 		if [[ "$REPLY" == "y" ]]; then
 			nano "$scriptdir/users/$username/config"
 		else
-			echo "You can edit the user, by editing \"$scriptdir/users/$username/config\""
+			echo "You can edit the user later, by editing \"$scriptdir/users/$username/config\""
 		fi
 		# create the user's logfile
 		create_log_file
@@ -284,7 +258,7 @@ case "${option[0]}" in
 			#make sure id exists and is present in queue
 			echo "Removing id=$id"
 			sed "/^"$id"\#/d" -i "$queue_file" #ex -s -c '%s/^[0-9]*//|wq' file.txt if your ex is actually symlinked to the installed vim, then you can use \d and \+
-			message "Id=$id removed from queue."	"0"
+			message "Id=$id removed from queue." "0"
 		else
 			message "No Id=$id selected/in queue." "1"
 		fi
@@ -401,15 +375,11 @@ esac
 }
 ################################################### CODE BELOW #######################################################
 
-echo
-echo -e "\e[00;34mFTPauto script - $s_version\e[00m"
-echo
-
+echo -e "\n\e[00;34mFTPauto script - $s_version\e[00m\n"
 
 download_argument=()
-if (($# < 1 )); then echo -e "\e[00;31mERROR: No option specified\e[00m"; echo "See --help for more information"; echo ""; exit 0; fi
-while :
-do
+if (($# < 1 )); then echo -e "\e[00;31mERROR: No option specified. See --help for more info.\e[00m\n"; exit 0; fi
+while :; do
 	case "$1" in
 		# Session
 		--pause ) option_manage pause; shift;;
@@ -457,7 +427,7 @@ do
 		--exec_pre=* ) exec_pre="${1#--exec_pre=}"; download_argument+=("--exec_pre"); shift;;
 		--exec_pre ) if (($# > 1 )); then exec_pre="$2"; download_argument+=("--exec_pre"); else invalid_arg "$@"; fi; shift 2;;
 		--test ) option=( "download" "start"); download_argument+=("--test"); shift;;
-		-* ) echo -e "\e[00;31mInvalid option: $@\e[00m"; echo "Try viewing --help"; exit 0;;
+		-* ) echo -e "\e[00;31mERROR: Invalid argument '$@'. See --help for more info.\e[00m\n"; exit 0;;
 		* ) break;;
 		--) shift; break;;
 	esac

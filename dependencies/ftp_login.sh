@@ -15,6 +15,7 @@ function ftp_login {
 	if  [[ $transferetype =~ "upftp" ]] || [[ $transferetype =~ "downftp" ]] || [[ $transferetype =~ "fxp" ]]; then
 		echo "open -u $ftpuser,$ftppass $ftphost -p $ftpport" >> "$ftplogin_file"
 	else
-		echo -e "\e[00;31mERROR: Logintype not supported\e[00m"
+		echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Have a look on your config (--user=$user --edit)!\e[00m\n"
+		exit 1
 	fi
 }

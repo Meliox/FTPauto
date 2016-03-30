@@ -71,8 +71,7 @@ function get_content {
 	echo "quit" >> "$ftplist_file"
 	$lftp -f "$ftplist_file" &> /dev/null
 	if [[ $? -eq 0 ]]; then
-		echo ""
-		echo -e "\e[00;32mINFO: Listing content(s):\e[00m"
+		echo -e "\n\e[00;32mINFO: Listing content(s):\e[00m"
 		echo "Current path: $dir"
 		old_dir="$dir"
 		array_list=( )

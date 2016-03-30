@@ -132,16 +132,14 @@ function removeClean {
 	local array=("$@")
 	# removes passed files
 	for i in "${array[@]}"; do
-		if [[ -f "$i" ]]; then
-			rm "$i"
-		fi
+		rm -f "$i"
 	done
 }
 
 function cleanup {
 	case "$1" in
 	"die" ) #used when script stops on user input
-		echo ""; echo "*** Ouch! Exiting ***"
+		echo -e "\n*** Ouch! Exiting ***"
 		stty sane
 		if [[ "$safelock" != "true" ]]; then 
 			# remove pids and lockfile
@@ -182,8 +180,7 @@ function cleanup {
 		local array=( "$lockfile" )
 		removeClean "${array[@]}"
 		sed "5s#.*#***************************	#" -i $logfile
-		echo -e "\e[00;32mExiting successfully...\e[00m"
-		echo ""
+		echo -e "\e[00;32mExiting successfully...\e[00m\n"
 	;;
 	"stop" ) #use to terminate all pids used
 		if [[ -n $(sed -n '1p' $lockfile) ]]; then kill -9 $(sed -n '1p' $lockfile) &> /dev/null; fi

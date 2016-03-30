@@ -19,7 +19,7 @@ function delay {
 				echo -e "\e[00;31mTESTMODE: Would delay until $delay\e[00m"
 			fi
 		else
-			echo "Error: Time is older than current time, now $(date '+%m/%d/%y %H:%M') vs. delay $delay . Format is mm/dd/yy hh:mm. Delay could not be used."
+			echo -e "\e[00;31mERROR: Time is older than current time, now $(date '+%m/%d/%y %H:%M') vs. delay $delay . Format should be mm/dd/yy hh:mm.\e[00m\n"
 			cleanup session
 			cleanup end
 			exit 1
@@ -67,14 +67,12 @@ function queue {
 				fi
 				get_size "$filepath" &> /dev/null
 				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep "$filepath") ]]; then
-					echo "INFO: Item already in queue. Doing nothing..."
-					echo
+					echo -e "INFO: Item already in queue. Doing nothing...\n"
 					exit 0
 				elif [[ "$option" == "end" ]]; then
 					source=$source"Q"
-					echo "INFO: Queueing: $(basename "$filepath"), id=$id"
 					echo "$id|$source|$filepath|$size"MB"|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-					echo
+					echo -e "INFO: Queueing: $(basename "$filepath"), id=$id\n"
 					exit 0
 				else
 					echo "INFO: Queueid: $id"
@@ -111,10 +109,9 @@ function queue {
 			else
 				echo "----------------------- Empty queue -----------------------"
 				if [[ -f "$queue_file" ]]; then rm "$queue_file"; fi
-				echo "Program has ended"
+				echo -e "INFO: Program has ended\n"
 				cleanup end
 				exit 0
-				echo
 			fi
 		;;
 	esac
@@ -273,7 +270,7 @@ function ftp_transfere {
 			let i++
 		done
 	else
-		echo -e "\e[00;31mERROR: FTP setting not recognized\e[00m"
+		echo -e "\e[00;31mERROR: FTP setting not recognized\e[00m\n"
 		cleanup die
 	fi
 	echo "quit" >> "$ftptransfere_file"
@@ -287,7 +284,7 @@ function ftp_transfere {
 			quittime=$(( $ScriptStartTime + $retry_download_max*60*60 )) #hours
 			if [[ $(date +%s) -gt $quittime ]]; then
 				echo -e "\e[00;31mERROR: FTP transfer failed after max retries($retry_download_max hours)!\e[00m"
-				echo "Program has ended"
+				echo -e "INFO: Program is being stopped\n"
 				#remove processbar processes
 				ftp_transfer_process "stop-process-bar"
 				cleanup session
@@ -477,13 +474,13 @@ function lockfile {
 		if [[ $? -eq 1 ]]; then
 			#Process is not running, continue
 			echo "INFO: No lockfile detected"
-			rm "$lockfile"
+			rm -f "$lockfile"
 		else
-			echo -e "\e[00;31mINFO: The user $user is running something\e[00m"
-			echo "       The script running is: $mypid_script"
-			echo "       The transfere is: $alreadyinprogres"
-			echo "       If that is wrong remove $lockfile"
-			echo "       Wait for it to end, or kill it: kill -9 $mypid_script"
+			echo "INFO: The user $user is running something"
+			echo "      The script running is: $mypid_script"
+			echo "      The transfere is: $alreadyinprogres"
+			echo "      If that is wrong remove $lockfile"
+			echo "      Wait for it to end, or kill it: kill -9 $mypid_script"
 			queue add end
 		fi
 	fi
@@ -664,9 +661,7 @@ queue next
 
 function start_main {
 #Look for which options has been used
-if (($# < 1 )); then echo; echo -e "\e[00;31mERROR: No option specified\e[00m"; echo "See --help for more information"; echo ""; exit 0; fi
-while :
-do
+while :; do
 	case "$1" in
 		--path=* ) filepath="${1#--path=}"; shift;;
 		--user=* ) user="${1#--user=}"; shift;;
@@ -696,13 +691,11 @@ elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath
 		true
 	elif [[ "$transferetype" == "upftp" ]]; then		
 		# server --> client
-		echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m"
-		echo
+		echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m\n"
 		exit 1
 	else
-		echo "INFO: Transfer-option \"$transferetype\" not recognized. Have a look on your config"
-		echo
-		exit 1				
+		echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Have a look on your config (--user=$user --edit)!\e[00m\n"
+		exit 1
 	fi
 fi
 # Create lockfile

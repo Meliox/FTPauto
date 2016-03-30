@@ -13,9 +13,8 @@ function online_test { #confirm that server is alive and writable
 			quittime=$(( $scriptstart + $retry_download_max*60*60 )) #hours
 			echo "INFO: Keep trying until $(date --date=@$quittime)"
 			if [[ $(date +%s) -lt $quittime ]]; then
-				echo "INFO: Stopping session and trying again $retry_download"mins" later"
+				echo -e "INFO: Stopping session and trying again $retry_download"mins" later\n"
 				cleanup session
-				echo
 				waittime=$(($retry_download*60))
 				sed "3s#.*#***************************  FTP INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i "$logfile"
 				sleep 10
@@ -78,9 +77,8 @@ function writeable {
 				quittime=$(( $scriptstart + $retry_download_max*60*60 )) #hours
 				echo "INFO: Keep trying until $(date --date=@$quittime)"
 				if [[ $(date +%s) -lt $quittime ]]; then
-					echo "INFO: Stopping session and trying again $retry_download"mins" later"
+					echo -e "INFO: Stopping session and trying again $retry_download"mins" later\n"
 					cleanup session
-					echo
 					waittime=$(($retry_download*60))
 					sed "3s#.*#***************************  FTP INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i "$logfile"
 					sleep 10
