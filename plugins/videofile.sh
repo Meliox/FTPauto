@@ -66,7 +66,7 @@ function mountsystem {
 							rardir=$(echo $(dirname $rardir) | sed -e 's/\//-/g')
 							dirname="$rardir"
 							npath="$tempdir$rardir"
-							mkdir "$npath" # for multiple
+							mkdir -p "$npath" # for multiple
 						fi
 						$rarfs "$n" "$npath" &> /dev/null
 						file=$(find "$npath" $exclude_expression -type f -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" -or -name "*.rar")
