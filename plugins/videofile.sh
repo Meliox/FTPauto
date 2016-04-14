@@ -57,17 +57,32 @@ function mountsystem {
 					mkdir -p "$tempdir"
 					for n in "${rarset[@]}"; do
 						if [[ ${#rarset[@]} -eq 1 ]]; then
-							npath="$tempdir" # for single rar file
+							# for single rar file
+							npath="$tempdir"
 							dirname="$(basename $(dirname $n))"
 						else
-							# fix subdirectory so they use dash instead of slash
 							local rardir="${n#$orig_path}"
-							rardir=${rardir#\/}
-							rardir=$(echo $(dirname $rardir) | sed -e 's/\//-/g')
+							if [[ $(grep -o "/" <<<"$rardir" | wc -l) -eq 2 ]]; then
+									# single directory with mulitple rarfiles in sub directory(ies). No rar in main directory
+									# fix subdirectory so they use dash instead of slash
+									rardir=${rardir#\/}
+									rardir=$(echo $(dirname $rardir) | sed -e 's/\//-/g')
+							elif [[ $(grep -o "/" <<<"$rardir" | wc -l) -lt 2 ]] && [[ ${#rarset[@]} -gt 1 ]]; then
+									# single directory, multiple rarfiles
+									rardir="$(basename $(dirname $n))"
+									if [[ "$rardir" != "$orig_name" ]]; then
+										# subdirectory in main directory
+										local rardir="${n#$orig_path}"
+										rardir="$orig_name-$(dirname $rardir)"
+									fi
+							else
+								echo -e "\e[00;31mERROR: Unsupported rarset\e[00m\n"
+								cleanup die
+							fi
 							dirname="$rardir"
-							npath="$tempdir$rardir"
-							mkdir -p "$npath" # for multiple
 						fi
+						npath="$tempdir$rardir"
+						mkdir -p "$npath" # for multiple
 						$rarfs "$n" "$npath" &> /dev/null
 						file=$(find "$npath" $exclude_expression -type f -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" -or -name "*.rar")
 						extension="$(basename "$file")" # get fileextension
@@ -89,9 +104,9 @@ function mountsystem {
 							done
 							rm -r "$npath"
 						elif [[ "$extension" =~ (mp4|avi|mkv|iso|img) ]]; then
-							echo -e "\e[00;32m     $(basename $file) in $dirname\e[00m"
+							echo -e "\e[00;32m     $dirname > $(basename $file)\e[00m"
 						elif [[ "$extension" =~ (rar|zip) ]]; then
-							echo -e "\e[00;33m     $(basename $file) in $dirname (another compressed file - will be transferred)\e[00m"
+							echo -e "\e[00;33m     $dirname > $(basename $file) (another compressed file - will be transferred)\e[00m"
 						fi
 						fileset+=( "$file" ) # path to videofiles
 						temp_name+=( "$dirname" ) # directory names
