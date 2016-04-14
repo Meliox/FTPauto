@@ -139,7 +139,7 @@ function removeClean {
 function cleanup {
 	case "$1" in
 	"die" ) #used when script stops on user input
-		echo -e "\n*** Ouch! Exiting ***"
+		echo -e "\n*** Ouch! Exiting ***\n"
 		stty sane
 		if [[ "$safelock" != "true" ]]; then 
 			# remove pids and lockfile
@@ -160,11 +160,11 @@ function cleanup {
 		if [[ $mount_in_use == "true" ]]; then
 			mountsystem umount
 			if [[ $? -eq 1 ]]; then
-				echo -e "\e[00;33mINFO: Umounting failed. Retrying in 10s... \e[00m"
+				echo -e "\e[00;33m\nINFO: Umounting failed. Retrying in 10s... \e[00m"
 				sleep 10
 				mountsystem umount
 				if [[ $? -eq 1 ]]; then
-					echo -e "\e[00;33mINFO: Umounting failed. Could not umount files (try manually fusermount -u): "${tempmountset[@]}" \e[00m"
+					echo -e "\e[00;33m\nINFO: Umounting failed. Could not umount files (try manually fusermount -u): "${tempmountset[@]}" \e[00m"
 				fi
 			fi
 			unset mount_in_use tempmountset
@@ -174,7 +174,7 @@ function cleanup {
 		removeClean "${array[@]}"
 		# removal tempdir
 		if [[ -d "$tempdir" ]]; then rm -r "$tempdir"; fi;
-		echo "INFO: Cleanup done"
+		echo -e "INFO: Cleanup done\n"
 	;;
 	"end" ) #use to end script
 		local array=( "$lockfile" )

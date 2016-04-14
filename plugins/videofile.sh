@@ -134,7 +134,7 @@ function mountsystem {
 				fusermount -u "$n"
 			done
 			unset n
-			echo -e "\e[00;32mINFO: Everything has been unmounted\e[00m"
+			echo -e "\e[00;32m\nINFO: Everything has been unmounted\e[00m"
 		;;
 		esac
 	else
