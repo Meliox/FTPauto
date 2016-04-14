@@ -254,10 +254,10 @@ case "${option[0]}" in
 	;;
 	"forget" ) # remove item with <ID> from queue
 		confirm queue_file "Error, queuefile couldn't be found. Nothing could be removed!" "1"
-		if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id#") ]]; then
+		if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id") ]]; then
 			#make sure id exists and is present in queue
 			echo "Removing id=$id"
-			sed "/^"$id"\#/d" -i "$queue_file" #ex -s -c '%s/^[0-9]*//|wq' file.txt if your ex is actually symlinked to the installed vim, then you can use \d and \+
+			sed "/^"$id"\|/d" -i "$queue_file" #ex -s -c '%s/^[0-9]*//|wq' file.txt if your ex is actually symlinked to the installed vim, then you can use \d and \+
 			message "Id=$id removed from queue." "0"
 		else
 			message "No Id=$id selected/in queue." "1"
@@ -265,15 +265,15 @@ case "${option[0]}" in
 	;;
 	"up" ) # Move item with <ID> 1 up in queue
 		confirm queue_file "Error, queuefile couldn't be found. Nothing could be moved!" "1"
-		if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id#") ]]; then
-			line_info=$(cat "$queue_file" | grep "^$id#")
-			line_number=$(cat "$queue_file" | grep -ne "^$id#" | cut -d':' -f1)
+		if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id") ]]; then
+			line_info=$(cat "$queue_file" | grep "^$id")
+			line_number=$(cat "$queue_file" | grep -ne "^$id" | cut -d':' -f1)
 			previous_line_number=$(($line_number -1))
 			if [[ "$line_number" -lt "2" ]]; then
 				#if id is the first, keep it there
 				message "Id, $id, is at top." "0"
 			else
-				sed "/^"$id"\#/d" -i "$queue_file"
+				sed "/^"$id"/d" -i "$queue_file"
 				sed "$previous_line_number i $line_info" -i "$queue_file"
 				message "Moved Id=$id, up." "0"
 			fi
@@ -283,14 +283,14 @@ case "${option[0]}" in
 	;;
 	"down" ) # Move item with <ID> 1 down in queue
 		confirm queue_file "Error, queuefile couldn't be found. Nothing could be moved!" "1"
-		if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id#") ]]; then
-			line_info=$(cat "$queue_file" | grep "^$id#")
-			line_number=$(cat "$queue_file" | grep -ne "^$id#" | cut -d':' -f1)
+		if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id") ]]; then
+			line_info=$(cat "$queue_file" | grep "^$id")
+			line_number=$(cat "$queue_file" | grep -ne "^$id" | cut -d':' -f1)
 			next_line_number=$(($line_number +1))
 			last_line=$(cat "$queue_file" | grep -ne '' | cut -d':' -f1 | tail -n1 )
 			if [[ $next_line_number -eq $last_line ]]; then
 				#add id to the end of file
-				sed "/^"$id"\#/d" -i "$queue_file"
+				sed "/^"$id"/d" -i "$queue_file"
 				echo $line_info >> "$queue_file"
 				message "Id=$id, is at the buttom." "0"
 			elif [[ $next_line_number -gt $last_line ]]; then
@@ -298,7 +298,7 @@ case "${option[0]}" in
 				message ": Id=$id, is at the buttom." "1"
 			else
 				#any other cases
-				sed "/^"$id"\#/d" -i "$queue_file"
+				sed "/^"$id"/d" -i "$queue_file"
 				sed "$next_line_number i $line_info" -i "$queue_file"
 				message "$option: Moved Id=$id, down." "0"
 			fi

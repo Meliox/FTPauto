@@ -82,7 +82,7 @@ function queue {
 		;;
 		"remove" )
 			#remove item according to id
-			sed "/^"$id"\#/d" -i "$queue_file"
+			sed "/^"$id"/d" -i "$queue_file"
 			# if queue is true then continue to run else stop
 			if [[ $continue_queue == "true" ]]; then
 				queue next
