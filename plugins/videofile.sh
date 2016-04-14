@@ -25,11 +25,11 @@ function videoFile {
 				size="$(echo "scale=2; $found_file_size_total / (1024*1024)" | bc)"
 				echo "INFO: Updated size to transfer(video file): "$size"MB"
 			else
-				echo "INFO: No videofile(s) found. Trying mount..."
+				echo "INFO: No videofile(s) found. Looking for rarfiles containing videofiles..."
 				mountsystem mount
 			fi
 		else
-			echo "INFO: No videofile(s) found. Trying mount..."
+			echo "INFO: No videofile(s) found. Looking for rarfiles containing videofiles..."
 			mountsystem mount
 		fi
 	fi
@@ -41,7 +41,7 @@ function mountsystem {
 		"mount" )
 			local temp_rarset rarset old_dirname dirname npath file fileset temp_name temppathset extension fixed_filename
 			if [[ -d "$filepath" ]]; then
-				rarset=( $(find "$filepath" \! \( $exclude_expression \) -and \( -name '*.rar' \) | sort -n) )
+				rarset=( "$(find "$filepath" \! \( $exclude_expression \) -and \( -name '*.rar' \) | sort -n)" )
 				if [[ ! -z "$rarset" ]]; then
 					# used to exclude mouting same video, part01.rar, part02.rar, ..., in same folder
 					# only use first one
