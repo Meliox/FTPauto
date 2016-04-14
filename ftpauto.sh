@@ -16,16 +16,16 @@ function verbose {
 	if [[ $quiet ]]; then
 		#silent
 		exec > /dev/null 2>&1
-	elif [[ ! $quiet ]] && [[ $verbose == 1 ]]; then
+	elif [[ ! $quiet ]] && [[ $verbose -eq 1 ]]; then
 		echo "STARTING PID=$BASHPID"
 		set -x
-	elif [[ ! $quiet ]] && [[ $verbose == 2 ]]; then
+	elif [[ ! $quiet ]] && [[ $verbose -eq 2 ]]; then
 		#verbose
 		echo "INFO: Debugging. All input is redirected to logfile. Script is finished when console is idle again. Please wait!"
 		exec 2>> "$scriptdir/run/$username.ftpauto.debug"
 		echo "STARTING PID=$BASHPID"
 		set -x
-	elif [[ $quiet ]] && [[ $verbose != 0 ]]; then
+	elif [[ $quiet ]] && [[ $verbose -ne 0 ]]; then
 		echo -e "\e[00;31mERROR: Verbose and silent can't be used at the same time\e[00m\n"
 		exit 0
 	fi
@@ -66,7 +66,7 @@ function confirm {
 }
 
 function message {
-	if [[ "$2" == "1" ]]; then
+	if [[ "$2" -eq "1" ]]; then
 		echo -e "\e[00;31m$(date '+%d/%m/%y-%a-%H:%M:%S'): $1\e[00m\n"
 	else
 		echo -e "\e[00;32m$(date '+%d/%m/%y-%a-%H:%M:%S'): $1\e[00m\n"
