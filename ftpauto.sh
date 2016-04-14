@@ -61,7 +61,7 @@ function confirm {
 			if [[ ! -f "$lockfile" ]]; then
 				message "$2" "3"
 			fi
-		;;
+			;;
 	esac
 }
 
@@ -70,7 +70,7 @@ function message {
 		echo -e "\e[00;31m$(date '+%d/%m/%y-%a-%H:%M:%S'): $1\e[00m\n"
 	else
 		echo -e "\e[00;32m$(date '+%d/%m/%y-%a-%H:%M:%S'): $1\e[00m\n"
-	echo
+	fi
 	exit "$2"
 }
 
@@ -78,7 +78,7 @@ function load_help {
 	if [[ -e "$scriptdir/dependencies/help.sh" ]]; then
 		source "$scriptdir/dependencies/help.sh"
 	else
-		echo -e "\e[00;31mError: /dependencies/help.sh is\n needed in order for this program to work\e[00m";
+		echo -e "\e[00;31mError: /dependencies/help.sh is\n needed in order for this program to work\e[00m"
 		exit 1
 	fi
 }
