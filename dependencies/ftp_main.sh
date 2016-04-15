@@ -456,7 +456,7 @@ function logrotate {
 
 function loadConfig {
 	# reload config
-	source "$scriptdir/users/$user/config"
+	loadDependency DConfig
 
 	#load paths to everything
 	setup
@@ -532,18 +532,18 @@ if [[ -n "$exec_pre" ]]; then
 fi
 
 #Prepare login
-source "$scriptdir/dependencies/ftp_login.sh" && ftp_login
+loadDependency DFtpLogin && ftp_login
 
 #confirm server is online
 if [[ $confirm_online == "true" ]]; then
-	source "$scriptdir/dependencies/ftp_online_test.sh" && online_test
+	loadDependency DFtpOnlineTest && online_test
 fi
 
 
 #Check if enough free space on ftp
 if [[ "$ftpsizemanagement" == "true" ]]; then
 	if [[ $transferetype == "upftp" ]]; then
-		source "$scriptdir/dependencies/ftp_size_management.sh" && ftp_sizemanagement check
+		loadDependency DFtpSizeManagement && ftp_sizemanagement check
 	elif [[ $transferetype == "downftp" ]]; then
 		freesize=$(( $(df -P "$ftpincomplete" | tail -1 | awk '{ print $3}') / (1024*1024) ))
 		freespaceneeded="$size"
@@ -563,7 +563,7 @@ echo "INFO: Sendoption: $send_option"
 if [[ "$send_option" == "split" ]]; then
 	if [[ -n $(builtin type -p rar) ]] || [[ -n $(builtin type -p cksfv) ]]; then
 		if [[ $transferetype == "upftp" ]]; then
-			source "$scriptdir/dependencies/largefile.sh" && largefile "$filepath" "exclude_array[@]"
+			loadDependency DLargeFile && largefile "$filepath" "exclude_array[@]"
 		elif [[ $transferetype == "downftp" ]]; then
 			echo -e "\e[00;33mERROR: split_files is not supported in mode=$transferetype. Continuing without ...\e[00m"
 			send_option="default"
@@ -576,7 +576,7 @@ if [[ "$send_option" == "split" ]]; then
 elif [[ "$send_option" == "video" ]]; then
 	if [[ -n $(builtin type -p rarfs) ]]; then
 		if [[ $transferetype == "upftp" ]]; then
-			source "$scriptdir/plugins/videofile.sh" && videoFile
+			loadDependency DVideoFile && videoFile
 		elif [[ $transferetype == "downftp" ]]; then
 			echo -e "\e[00;33mERROR: video_file_only is not supported in mode=$transferetype. Continuing without ...\e[00m"
 			send_option="default"
@@ -589,7 +589,7 @@ fi
 
 # Try to sort files
 if [[ "$sort" == "true" ]]; then
-	source "$scriptdir/dependencies/sorting.sh" && sortFiles "$sortto"
+	loadDependency DSort && sortFiles "$sortto"
 fi
 
 # Delay transfer if needed
@@ -612,7 +612,7 @@ cleanup session
 #send push notification
 if [[ -n $push_user ]]; then
 	if [[ $test_mode != "true" ]]; then
-		source "$scriptdir/plugins/pushover.sh" "$orig_name" "Sendoption   =$send_option
+		loadDependency DPushOver "$orig_name" "Sendoption   =$send_option
 Size         =$size MB
 Time         =$transferTime2
 Average speed=$SpeedAverage MB/s
@@ -708,7 +708,7 @@ fi
 echo "INFO: Transfer-option: $transferetype"
 
 #Load dependencies
-source "$scriptdir/dependencies/setup.sh"
+loadDependency DSetup
 
 #Check wether we have an external config, user config or no config at all
 loadConfig

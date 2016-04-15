@@ -36,7 +36,7 @@ function get_size {
 	if [[ "$transferetype" == "downftp" ]]; then
 		#client
 		# size lookup without expression
-		source "$scriptdir/dependencies/ftp_login.sh" && ftp_login
+		loadDependency DFtpLogin && ftp_login
 		cat "$ftplogin_file" > "$lftptransfersize"
 		echo "du -bs \"$dir\" > ~/../..$transfersize" >> "$lftptransfersize"
 		echo "ls -l \"$dir\" > ~/../..$transfersize" >> "$lftptransfersize2"

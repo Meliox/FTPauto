@@ -33,9 +33,28 @@ function verbose {
 # load verbose
 verbose
 
+function loadDependency {
+	local LoadPath=""
+	case "$1" in
+		DConfig) LoadPath="$scriptdir/users/$username/config";;
+		DFtpList) LoadPath="$scriptdir/dependencies/ftp_list.sh";;
+		DFtpLogin) LoadPath="$scriptdir/dependencies/ftp_login.sh";;
+		DFtpMain) LoadPath="$scriptdir/dependencies/ftp_main.sh";;
+		DFtpOnlineTest) LoadPath="$scriptdir/dependencies/ftp_online_test.sh";;
+		DLargeFile) LoadPath="$scriptdir/dependencies/largefile.sh";;
+		DFtpSizeManagement) LoadPath="$scriptdir/dependencies/ftp_size_management.sh";;
+		DHelp) LoadPath="$scriptdir/dependencies/help.sh";;
+		DPushOver) LoadPath="$scriptdir/plugins/pushover.sh";;
+		DSetup) LoadPath="$scriptdir/dependencies/setup.sh";;
+		DSort) LoadPath="$scriptdir/dependencies/sorting.sh";;
+		DVideoFile) LoadPath="$scriptdir/plugins/videofile.sh";;
+	esac
+	source "$LoadPath"
+}
+
 function start_ftpmain {
 	# used to start ftpmain script and set proper debug level
-	source "$scriptdir/dependencies/ftp_main.sh"
+	loadDependency DFtpMain
 	if [[ $verbose -eq 1 ]]; then
 		start_main "${download_argument[@]}"
 	elif [[ $verbose -eq 2 ]]; then
@@ -74,25 +93,16 @@ function message {
 	exit "$2"
 }
 
-function load_help {
-	if [[ -e "$scriptdir/dependencies/help.sh" ]]; then
-		source "$scriptdir/dependencies/help.sh"
-	else
-		echo -e "\e[00;31mError: /dependencies/help.sh is\n needed in order for this program to work\e[00m"
-		exit 1
-	fi
-}
-
 function load_user {
 	if [[ -z "$username" ]] && [[ -f "$scriptdir/users/default/config" ]]; then
 		username="default"
 		config_name="$scriptdir/users/default/config"
-		source "$scriptdir/users/$username/config"
+		loadDependency DConfig
 		echo "INFO: User: $username"
 	elif [[ -n "$username" ]] && [[ -f "$scriptdir/users/$username/config" ]]; then
 		username="$username"
 		config_name="$scriptdir/users/$username/default"
-		source "$scriptdir/users/$username/config"
+		loadDependency DConfig
 		echo "INFO: User: $username"
 	elif [[ $option == "add" ]]; then
 		# manually add user
@@ -131,7 +141,7 @@ function main {
 safelock="true"
 case "${option[0]}" in
 	"add" ) # add user
-		load_help; write_config
+		loadDependency DHelp; write_config
 		read -p " Do you want to configure that user now(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
 			nano "$scriptdir/users/$username/config"
@@ -307,8 +317,8 @@ case "${option[0]}" in
 		fi
 	;;
 	"online" ) # Perform server test
-		source "$scriptdir/dependencies/ftp_login.sh" && ftp_login
-		source "$scriptdir/dependencies/ftp_online_test.sh" && online_test
+		loadDependency DFtpLogin && ftp_login
+		loadDependency DFtpOnlineTest && online_test
 		cleanup session
 		if [[ $is_online -eq 0 ]]; then
 			message "Server is OK" "0"
@@ -317,8 +327,8 @@ case "${option[0]}" in
 		fi
 	;;
 	"freespace" ) # check free space
-		source "$scriptdir/dependencies/ftp_login.sh" && ftp_login
-		source "$scriptdir/dependencies/ftp_size_management.sh" && ftp_sizemanagement info
+		loadDependency DFtpLogin && ftp_login
+		loadDependency DFtpSizeManagement && ftp_sizemanagement info
 		cleanup session
 		if [[ $is_online -eq 1 ]]; then
 			message "$option: Could " "1"
@@ -365,7 +375,7 @@ case "${option[0]}" in
 		message "Progress finished" "0"
 	;;
 	"dir" ) # list content of ftpserver and download it
-		source "$scriptdir/dependencies/ftp_list.sh" && ftp_list
+		loadDependency DFtpList && ftp_list
 		message "Closing FTP filebrowser" "0"
 	;;
 	* )
@@ -411,7 +421,7 @@ while :; do
 		--source=* ) source=${1#--source=}; download_argument+=("--source=$source"); if [[ -z $source ]]; then invalid_arg "$@"; exit 1; fi; shift;;
 		--source | -s ) if (($# > 1 )); then source="$2"; download_argument+=("--source=$source"); else invalid_arg "$@"; fi; shift 2;;
 		# Other
-		--help | -h ) load_help; show_help; exit 1;;
+		--help | -h ) loadDependency DHelp; show_help; exit 1;;
 		--verbose | -v) verbose=1; shift;;
 		--debug ) verbose=2; shift;;
 		--quiet) quiet=true; shift;;
@@ -441,12 +451,12 @@ echo "INFO: Information level: $verbose"
 load_user
 
 # Load dependencies
-source "$scriptdir/dependencies/setup.sh"
+loadDependency DSetup
 setup
 
 # make sure user has a log file
 if [ ! -e "$logfile" ] && [[ "${option[0]}" != add ]]; then
-	load_help; create_log_file
+	loadDependency DHelp; create_log_file
 fi
 
 # Execute the given option
