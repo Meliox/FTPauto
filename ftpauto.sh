@@ -34,6 +34,7 @@ function verbose {
 verbose
 
 function loadDependency {
+	# common function to load all dependencies when needed
 	local LoadPath=""
 	case "$1" in
 		DConfig) LoadPath="$scriptdir/users/$username/config";;
