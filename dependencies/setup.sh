@@ -36,7 +36,7 @@ function get_size {
 	if [[ "$transferetype" == "downftp" ]]; then
 		#client
 		# size lookup without expression
-		source "$scriptdir/dependencies/ftp_login.sh" && ftp_login
+		loadDependency DFtpLogin && ftp_login
 		cat "$ftplogin_file" > "$lftptransfersize"
 		echo "du -bs \"$dir\" > ~/../..$transfersize" >> "$lftptransfersize"
 		echo "ls -l \"$dir\" > ~/../..$transfersize" >> "$lftptransfersize2"
@@ -115,7 +115,7 @@ function get_size {
 			for i in "${exclude_array[@]}"; do
 				exclude_expression+=("-iname *$i*")
 				#add -or if not finished
-				if [[ "$n" -eq "${#exclude_expression[@]}" ]]; then
+				if [[ "$n" -lt "${#exclude_array[@]}" ]]; then
 					exclude_expression+=("-or")
 				fi
 				let n++
@@ -132,26 +132,27 @@ function removeClean {
 	local array=("$@")
 	# removes passed files
 	for i in "${array[@]}"; do
-		if [[ -f "$i" ]]; then
-			rm "$i"
-		fi
+		rm -f "$i"
 	done
 }
 
 function cleanup {
 	case "$1" in
 	"die" ) #used when script stops on user input
-		echo "*** Ouch! Exiting ***"
-		# remove pids and lockfile
-		if [[ -n "$pid_transfer" ]]; then kill -9 $pid_transfer &> /dev/null; fi
-		if [[ -n "$pid_f_process" ]]; then kill -9 $pid_f_process &> /dev/null; fi
-		if [[ -f "$lockfile" ]] && [[ -n $(sed -n '4p' $lockfile) ]]; then kill -9 $(sed -n '4p' $lockfile) &> /dev/null; fi
-		local array=( "$lockfile" )
-		removeClean "${array[@]}"
-		#remove all files created
-		cleanup session
-		sed "5s#.*#*************************** Transfer: Aborted #" -i $logfile
-	        exit 1;;
+		echo -e "\n*** Ouch! Exiting ***\n"
+		stty sane
+		if [[ "$safelock" != "true" ]]; then 
+			# remove pids and lockfile
+			if [[ -n "$pid_transfer" ]]; then kill -9 $pid_transfer &> /dev/null; fi
+			if [[ -n "$pid_f_process" ]]; then kill -9 $pid_f_process &> /dev/null; fi
+			if [[ -f "$lockfile" ]] && [[ -n $(sed -n '4p' $lockfile) ]]; then kill -9 $(sed -n '4p' $lockfile) &> /dev/null; fi
+			local array=( "$lockfile" )
+			removeClean "${array[@]}"
+			#remove all files created
+			cleanup session
+			sed "5s#.*#***************************	Transfer: Aborted #" -i $logfile
+		fi
+		exit 1;;
 	"session" ) #use to end transfer
 		if [[ $test_mode == "true" ]]; then
 			read -sn 1 -p "Press ANY button to continue cleanup..."
@@ -159,11 +160,11 @@ function cleanup {
 		if [[ $mount_in_use == "true" ]]; then
 			mountsystem umount
 			if [[ $? -eq 1 ]]; then
-				echo -e "\e[00;33mINFO: Umounting failed. Retrying in 10s... \e[00m"
+				echo -e "\e[00;33m\nINFO: Umounting failed. Retrying in 10s... \e[00m"
 				sleep 10
 				mountsystem umount
 				if [[ $? -eq 1 ]]; then
-					echo -e "\e[00;33mINFO: Umounting failed. Could not umount files (try manually fusermount -u): "${tempmountset[@]}" \e[00m"
+					echo -e "\e[00;33m\nINFO: Umounting failed. Could not umount files (try manually fusermount -u): "${tempmountset[@]}" \e[00m"
 				fi
 			fi
 			unset mount_in_use tempmountset
@@ -173,14 +174,13 @@ function cleanup {
 		removeClean "${array[@]}"
 		# removal tempdir
 		if [[ -d "$tempdir" ]]; then rm -r "$tempdir"; fi;
-		echo "INFO: Cleanup done"
+		echo -e "INFO: Cleanup done\n"
 	;;
 	"end" ) #use to end script
 		local array=( "$lockfile" )
 		removeClean "${array[@]}"
 		sed "5s#.*#***************************	#" -i $logfile
-		echo -e "\e[00;32mExiting successfully...\e[00m"
-		echo ""
+		echo -e "\e[00;32mExiting successfully...\e[00m\n"
 	;;
 	"stop" ) #use to terminate all pids used
 		if [[ -n $(sed -n '1p' $lockfile) ]]; then kill -9 $(sed -n '1p' $lockfile) &> /dev/null; fi

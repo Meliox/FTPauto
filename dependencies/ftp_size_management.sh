@@ -89,8 +89,7 @@ function ftp_getsize {
 			echo -e "\e[00;31mERROR: "$orig_name" needs "$freespaceneeded"MB additional free space\e[00m"
 			echo "INFO: Stopping session and trying again $retry_download"mins" later"
 			cleanup session
-			echo "INFO: Exiting current session"
-			echo
+			echo -e "INFO: Exiting current session\n"
 			waittime=$(($retry_download*60))
 			sed "3s#.*#***************************	FTP INFO: "$usedmb"\/"$totalmb"MB - FREE SPACE IS CRITICAL! DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i $logfile
 			sleep $waittime

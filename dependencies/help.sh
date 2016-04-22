@@ -5,14 +5,8 @@ function write_config {
 	if [[ -z "$username" ]]; then
 		user=default
 	fi
-	echo -e "\e[00;32m [OK]\e[00m"
 	local config="$scriptdir/users/$username/config"
-	if [[ ! -d "$scriptdir/users" ]]; then
-		mkdir "$scriptdir/users"
-	fi
-	if [[ ! -d "$scriptdir/users/$username" ]]; then
-		mkdir "$scriptdir/users/$username"
-	fi
+	mkdir -p "$scriptdir/users/$username"
 	if [[ -f "$config" ]]; then
 		read -p " Config already exits($config), do you want to overwrite(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
@@ -182,13 +176,13 @@ function show_example {
 
 function create_log_file {
 	if [ ! -e "$logfile" ]; then
-		echo "INFO: First time used - logfile is created"
+		echo "INFO: First time usage. Logfile is created"
 		echo "***************************	FTPauto - $s_version" >> "$logfile"
 		echo "***************************	STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> "$logfile"
 		if [[ $ftpsizemanagement == "true" ]]; then
 			echo "***************************	FTP INFO: 0/"$totalmb"MB (Free "$freemb"MB)" >> "$logfile"
 		else
-			echo "***************************	FTP INFO: not used yet" >> "$logfile"
+			echo "***************************	FTP INFO: (not used yet)" >> "$logfile"
 		fi
 		echo "***************************	LASTDL: nothing" >> "$logfile"
 		echo "***************************	" >> "$logfile"

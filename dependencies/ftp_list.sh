@@ -65,14 +65,13 @@ function ftp_list {
 function get_content {
 	# remove old file first
 	rm -f "$ftplist_file"
-	source "$scriptdir/dependencies/ftp_login.sh" && ftp_login # we need to generate a new each time as download removes it
+	loadDependency DFtpLogin && ftp_login # we need to generate a new each time as download removes it
 	cat "$ftplogin_file" >> "$ftplist_file"
 	echo "ls -aFl "$dir" > ~/../..$ftp_content" >> "$ftplist_file"
 	echo "quit" >> "$ftplist_file"
 	$lftp -f "$ftplist_file" &> /dev/null
 	if [[ $? -eq 0 ]]; then
-		echo ""
-		echo -e "\e[00;32mINFO: Listing content(s):\e[00m"
+		echo -e "\n\e[00;32mINFO: Listing content(s):\e[00m"
 		echo "Current path: $dir"
 		old_dir="$dir"
 		array_list=( )
