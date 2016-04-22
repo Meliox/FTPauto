@@ -83,32 +83,7 @@ bash install.sh install
 ```
 
 ### Manual install
-If you prefer to do everything manually, read below.
-
-The following programs are needed
-```bash
-rar lftp cksfv subversion automake1.9 fuse-utils libfuse-dev checkinstall libreadline-dev
-```
-Get them from your favourite repo or compile them yourself. However, rarfs needs to be compiled manually. This is showed below
-```bash
-cd dependencies/
-wget http://downloads.sourceforge.net/project/rarfs/rarfs/0.1.1/rarfs-0.1.1.tar.gz
-tar -xzvf rarfs-0.1.1.tar.gz
-cd rarfs-0.1.1 && ./configure && make && sudo checkinstall -y
-rm dependencies/rarfs-0.1.1.tar.gz
-read -p "Which user would you like to run this program at(no spaces)? "
-sudo adduser $REPLY fuse
-sudo chgrp fuse /dev/fuse
-sudo chgrp fuse /dev/fuse
-sudo chgrp fuse /bin/fusermount
-sudo chmod u+s /bin/fusermount
-```
-
-Create directories
-```bash
-mkdir users/
-mkdir run/
-```
+If you prefer to do everything manually, read the install.sh script.
 
 ### Upgrading
 If you want to upgrade to newest version, simply run
