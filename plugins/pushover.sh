@@ -1,6 +1,7 @@
 #!/bin/bash
 #Shell-script wrapper around curl for sending messages through PushOver
 #For more info, see https://pushover.net/
+function Pushover {
 version="1.2"
 push_title="NEW: $1"
 push_message="$2"
@@ -20,3 +21,4 @@ if [[ -n "$push_token" ]] && [[ -n "$push_user" ]] && [[ -n "$push_message" ]]; 
 else
 	echo -e "\e[00;31mERROR: All settings are not set.\e[00m"
 fi
+}

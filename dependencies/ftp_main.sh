@@ -612,11 +612,11 @@ cleanup session
 #send push notification
 if [[ -n $push_user ]]; then
 	if [[ $test_mode != "true" ]]; then
-		loadDependency DPushOver "$orig_name" "Sendoption   =$send_option
-Size         =$size MB
-Time         =$transferTime2
-Average speed=$SpeedAverage MB/s
-Path         =$ftpcomplete"
+		loadDependency DPushOver && Pushover "$orig_name" "Sendoption:        $send_option
+Size:                     $size MB
+Time:                   $transferTime2
+Average speed: $SpeedAverage MB/s
+Path:                    $ftpcomplete"
 	else
 		echo -e "\e[00;31mTESTMODE: Would send notification \""$orig_name" "Sendoption=$send_option Size=$size MB Time=$transferTime2 Average speed=$SpeedAverage MB/s Path=$ftpcomplete"\" to token=$push_token and user=$push_user \e[00m"
 	fi
