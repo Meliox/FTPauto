@@ -3,6 +3,8 @@ s_version="0.4.2"
 verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 script="$(readlink -f $0)"
 scriptdir=$(dirname $script)
+lastUpdate=0
+message=
 
 control_c() {
 	# run if user hits control-c
@@ -32,6 +34,37 @@ function verbose {
 }
 # load verbose
 verbose
+
+function updateChecker {
+if [[ $(date +'%s') -gt $(echo $lastUpdate + 14*24*60*60 | bc) ]]; then
+	echo -n "INFO: Checking for update ..."
+	local release=$(curl --silent https://github.com/Meliox/FTPauto/releases | egrep -o 'FTPauto-v(.*)+tar.gz' | sort -n | tail -1)
+	release_version=${release#$"FTPauto-v"}
+	release_version=${release_version%.tar.gz}
+	if [[ "$release_version" == "$s_version" ]]; then
+		echo -e " \e[00;32m [Latest]\e[00m"
+		sed "7c message=\"\"" -i "$script"
+	else
+		local IFS=.
+		local n1=($release_version) n2=($s_version)
+		for i in ${!n1[@]}; do
+			if [[ ${n1[i]} -gt ${n2[i]} ]]; then
+				echo -e "\e[00;33m [$release_version available. Consider updating]\e[00m"
+				sed "7c message=\"INFO: New version ($release_version) available. Consider updating (execute bash install.sh update)\"" -i "$script"
+				break
+			elif [[ ${n1[i]} -lt ${n2[i]} ]]; then
+				echo -e " \e[00;32m [Latest]\e[00m"
+				sed "7c message=\"\"" -i "$script"
+			fi
+		done
+	fi
+	sed "6c lastUpdate=$(date +'%s')" -i "$script"
+else
+	if [[ -n $message ]]; then
+		echo -e "\e[00;33m$message\e[00m"
+	fi
+fi
+}
 
 function loadDependency {
 	# common function to load all dependencies when needed
@@ -447,6 +480,9 @@ done
 # load verbose level
 verbose
 echo "INFO: Information level: $verbose"
+
+# check for new version
+updateChecker
 
 # load user
 load_user

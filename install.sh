@@ -223,7 +223,7 @@ function installStart {
 	fi
 
 	# Install mandatory things that is needed for rest to work
-	echo -e"\nInstalling minimum required tools ..."
+	echo -e "\nInstalling minimum required tools ..."
 	programs=( "bc" "curl" "openssl" "date" "tail" "awk" "mkdir" "sed" "tput" "nano" "cut" "checkinstall")
 	for i in "${programs[@]}"; do
 		echo -n " Checking for $i ..."
@@ -308,6 +308,12 @@ function update {
 	if [[ "$i_version" == "0" ]] && [[ $argument != install ]]; then
 		echo -e "\e[00;31m [ERROR]\e[00m\nNo installation found. Execute script with install as argument instead. Exiting.\n"
 		exit 0
+	elif [[ $argument == install ]]; then
+		echo -e "\e[00;32m [Found $release_version]\e[00m"
+		argument=continue
+		download
+		sed "6c lastUpdate=$(date +'%s')" -i "$scriptdir/ftpauto.sh" # set update time
+		sed "7c message=\"\"" -i "$scriptdir/ftpauto.sh" # reset update message		
 	elif [[ "$new_version" == "true" ]]; then
 		echo -e "\e[00;33m [$release_version available]\e[00m"
 		read -p " Do you want to update your version(y/n)? "
@@ -318,6 +324,8 @@ function update {
 		fi
 	else
 		echo -e "\e[00;32m [Latest]\e[00m"
+		sed "6c lastUpdate=$(date +'%s')" -i "$scriptdir/ftpauto.sh" # set update time
+		sed "7c message=\"\"" -i "$scriptdir/ftpauto.sh" # reset update message
 	fi
 }
 
