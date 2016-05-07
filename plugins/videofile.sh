@@ -41,17 +41,21 @@ function mountsystem {
 		"mount" )
 			local temp_rarset rarset old_dirname dirname npath file fileset temp_name temppathset extension fixed_filename
 			if [[ -d "$filepath" ]]; then
-				rarset=( "$(find "$filepath" \! \( $exclude_expression \) -and \( -name '*.rar' \) | sort -n)" )
+				rarset=()
+				while IFS=  read -r -d $'\0'; do
+					rarset+=("$REPLY")
+				done < <(find "$filepath" \! \( $exclude_expression \) -and \( -name '*.rar' \) -print0 | sort -z)
 				if [[ ! -z "$rarset" ]]; then
 					# used to exclude mouting same video, part01.rar, part02.rar, ..., in same folder
 					# only use first one
-					for n in "${rarset[@]}"; do
-						dirname="$(basename $(dirname $n))"
+					for i in "${rarset[@]}"; do
+						dirname="$(basename "$(dirname "$i")")"
 						if [[ "$old_dirname" != "$dirname" ]]; then
-							temp_rarset+=($n)
+							temp_rarset+=("$i")
 							old_dirname="$dirname"
 						fi
 					done
+					unset i
 					rarset=( "${temp_rarset[@]}" )
 					echo "INFO: Found ${#rarset[@]} rarfile(s), trying to find videofile(s)..."
 					mkdir -p "$tempdir"
@@ -59,21 +63,21 @@ function mountsystem {
 						if [[ ${#rarset[@]} -eq 1 ]]; then
 							# for single rar file
 							npath="$tempdir"
-							dirname="$(basename $(dirname $n))"
+							dirname="$(basename "$(dirname "$n")")"
 						else
 							local rardir="${n#$orig_path}"
 							if [[ $(grep -o "/" <<<"$rardir" | wc -l) -eq 2 ]]; then
 									# single directory with mulitple rarfiles in sub directory(ies). No rar in main directory
 									# fix subdirectory so they use dash instead of slash
 									rardir=${rardir#\/}
-									rardir=$(echo $(dirname $rardir) | sed -e 's/\//-/g')
+									rardir=$(echo $(dirname "$rardir") | sed -e 's/\//-/g')
 							elif [[ $(grep -o "/" <<<"$rardir" | wc -l) -lt 2 ]] && [[ ${#rarset[@]} -gt 1 ]]; then
 									# single directory, multiple rarfiles
-									rardir="$(basename $(dirname $n))"
+									rardir="$(basename "$(dirname "$n")")"
 									if [[ "$rardir" != "$orig_name" ]]; then
 										# subdirectory in main directory
 										local rardir="${n#$orig_path}"
-										rardir="$orig_name-$(dirname $rardir)"
+										rardir="$(dirname "$rardir")"
 									fi
 							else
 								echo -e "\e[00;31mERROR: Unsupported rarset\e[00m\n"
@@ -89,14 +93,14 @@ function mountsystem {
 						extension="${extension##*.}"						
 						if [[ -z "$file" ]]; then
 							# Remove the noncontaining folder
-							echo -e "\e[00;31mINFO: $(basename $n) doesn't contain any videofiles\e[00m"
+							echo -e "\e[00;31mINFO: $(basename "$n") doesn't contain any videofiles\e[00m"
 							sleep 3
 							fusermount -u "$npath"
 							local retries=0
 							while [[ $? -eq 1 ]]; do
 								let retries++
 								if [[ $retries -eq 4 ]]; then
-									echo -e "\e[00;31mINFO: $npath could not be unmounted\e[00m" 
+									echo -e "\e[00;31mINFO: "$npath" could not be unmounted\e[00m" 
 									break
 								fi
 								sleep 3
@@ -104,9 +108,9 @@ function mountsystem {
 							done
 							rm -r "$npath"
 						elif [[ "$extension" =~ (mp4|avi|mkv|iso|img) ]]; then
-							echo -e "\e[00;32m     $dirname > $(basename $file)\e[00m"
+							echo -e "\e[00;32m     $dirname > $(basename "$file")\e[00m"
 						elif [[ "$extension" =~ (rar|zip) ]]; then
-							echo -e "\e[00;33m     $dirname > $(basename $file) (another compressed file - will be transferred)\e[00m"
+							echo -e "\e[00;33m     $dirname > $(basename "$file") (another compressed file - will be transferred)\e[00m"
 						fi
 						fileset+=( "$file" ) # path to videofiles
 						temp_name+=( "$dirname" ) # directory names
