@@ -301,7 +301,7 @@ case "${option[0]}" in
 		if [[ -n "$id" ]] && [[ -n $(cat "$queue_file" | grep "^$id") ]]; then
 			#make sure id exists and is present in queue
 			echo "Removing id=$id"
-			sed "/^"$id"\|/d" -i "$queue_file" #ex -s -c '%s/^[0-9]*//|wq' file.txt if your ex is actually symlinked to the installed vim, then you can use \d and \+
+			sed "/^"$id"/d" -i "$queue_file" #ex -s -c '%s/^[0-9]*//|wq' file.txt if your ex is actually symlinked to the installed vim, then you can use \d and \+
 			message "Id=$id removed from queue." "0"
 		else
 			message "No Id=$id selected/in queue." "1"

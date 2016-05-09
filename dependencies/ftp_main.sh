@@ -94,9 +94,9 @@ function queue {
 			# Process next item in queue
 			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
 				#load next item from top
-				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'|' -f1)
-				source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'|' -f2)
-				local filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file" | cut -d'|' -f3)
+				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file")
+				source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $2}' "$queue_file")
+				local filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $3}' "$queue_file")
 				# execute mainscript again
 				queue_running="true"
 				if [[ -f "$lockfile" ]]; then
