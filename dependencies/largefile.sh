@@ -6,17 +6,17 @@ function f_split {
 	filepath=()
 	changed_name=()
 	# Splitting process
-		echo "INFO: Splitting files into $tempdir"
-		sed "5s#.*#***************************	Transfering: "$orig_name" - large file detected, splitting in progress #" -i $logfile
+		echo "INFO: Splitting files into volumes $tempdir"
+		sed "5s#.*#***************************	Transferring: "$orig_name" - Large file detected, file(s) are being split #" -i $logfile
 		mkdir -p "$tempdir"
 		rar a -r -v"$splitsize"M -vn -m0 "$tempdir$orig_name".rar "$(basename "$split_file")" &> /dev/null
 		filepath+=( "$tempdir" )
 		changed_name+=( "$(basename "$tempdir")" )
-		echo "INFO: Splitting done"
+		echo "INFO: Splitting into volumes done"
 	# sfv process
 	if [[ "$create_sfv" == "true" ]]; then
 		echo "INFO: Creating checkfile"
-		sed "5s#.*#***************************	Transfering: "$orig_name" - large file detected, creating sfv #" -i $logfile
+		sed "5s#.*#***************************	Transferring: "$orig_name" - Creating sfv #" -i $logfile
 		cksfv -b "$tempdir"* > "$tempdir$orig_name.sfv"
 		echo "INFO: "$orig_name".sfv created"
 	fi
@@ -35,7 +35,7 @@ function largefile {
 			# got a file
 			if [[ $(stat --printf="%s" "$dir") -gt $(( $rarsplitlimit * 1024 *1024 )) ]]; then
 				echo -ne "\e[00;32m found\e[00m \r"
-				echo "INFO: Splitting transfer into $rarsplitlimit MB files..."
+				echo "INFO: Transfer split into volumes of ${rarsplitlimit}MB files."
 				cd "$(dirname "$orig_path")"
 				f_split "$dir"
 			fi
@@ -47,7 +47,7 @@ function largefile {
 				done < <(find "$dir" $exclude_expression -type f -size +"$rarsplitlimit"M -print0)
 			# process large file
 			if [[ -n "${lfile[@]}" ]] && [[ ${#lfile[@]} -eq 1 ]]; then #ONLY one large file in directory
-				echo "INFO: Largest file larger, larger than $rarsplitlimit MB, has to be split..."
+				echo "INFO: Largest file larger found than ${rarsplitlimit}MB, this has to be split in volumens!"
 				cd "$orig_path"
 				f_split "$lfile"
 				#look for all other files, and and them to transfer queue
@@ -55,11 +55,11 @@ function largefile {
 						filepath[i++]="$file"
 					done < <(find "$dir" $exclude_expression -type f -size -"$rarsplitlimit"M -print0)
 			elif [[ ${#lfile[@]} -gt 1 ]]; then #SEVERAL large files
-				echo "INFO: Several large files has been found and is split into same directory"
+				echo "INFO: Several large files have been found and split into same directory"
 				cd "$orig_path"
 				f_split "$dir"
 			else
-				echo -ne "\e[00;33m nothing found\e[00m \r"
+				echo -ne "\e[00;33m Nothing found\e[00m \r"
 				echo
 			fi
 		fi
