@@ -182,11 +182,10 @@ function cleanup {
 		sed "5s#.*#***************************	#" -i $logfile
 		echo -e "\e[00;32mExiting successfully...\e[00m\n"
 	;;
-	"stop" ) #use to terminate all pids used
-		if [[ -n $(sed -n '1p' $lockfile) ]]; then kill -9 $(sed -n '1p' $lockfile) &> /dev/null; fi
-		if [[ -n $(sed -n '2p' $lockfile) ]]; then kill -9 $(sed -n '2p' $lockfile) &> /dev/null; fi
-		if [[ -n $(sed -n '3p' $lockfile) ]]; then kill -9 $(sed -n '3p' $lockfile) &> /dev/null; fi
-		if [[ -n $(sed -n '4p' $lockfile) ]]; then kill -9 $(sed -n '4p' $lockfile) &> /dev/null; fi
+	"stop" ) #use to terminate all pids found in the lockfile
+		for i in {1..4}; do
+			if [[ -n "$(sed -n "$i p" $lockfile)" ]]; then kill -9 $(sed -n "$i p" $lockfile) &> /dev/null;	fi
+		done
 	;;
 esac
 }
