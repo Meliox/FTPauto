@@ -1,9 +1,5 @@
 #!/bin/bash
 ############## CODE STARTS HERE ##################
-script="$(readlink -f $0)"
-scriptdir=$(dirname $script)
-scriptdir=${scriptdir%/dependencies}
-
 function delay {
 # if --delay is set, wait until it ends. If start/end time is set in config use them. Delay overrules everything
 	if [[ -n $delay ]]; then
