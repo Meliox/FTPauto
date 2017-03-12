@@ -60,6 +60,7 @@ function lftp_update {
 	tar -xzvf "lftp-$lftpversion.tar.gz" &> /dev/null
 	rm "$scriptdir/dependencies/lftp-$lftpversion.tar.gz"
 	cd "lftp-$lftpversion" && ./configure --with-openssl --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
+	echo -e " lftp vesion $lftpversion ... [\e[00;33mLATEST\e[00m]"
 }
 
 function install_lftp {
@@ -313,7 +314,7 @@ function update {
 		argument=continue
 		download
 		sed "6c lastUpdate=$(date +'%s')" -i "$scriptdir/ftpauto.sh" # set update time
-		sed "7c message=\"\"" -i "$scriptdir/ftpauto.sh" # reset update message		
+		sed "7c message=\"\"" -i "$scriptdir/ftpauto.sh" # reset update message
 	elif [[ "$new_version" == "true" ]]; then
 		echo -e "\e[00;33m [$release_version available]\e[00m"
 		read -p " Do you want to update your version(y/n)? "
@@ -326,6 +327,8 @@ function update {
 		echo -e "\e[00;32m [Latest]\e[00m"
 		sed "6c lastUpdate=$(date +'%s')" -i "$scriptdir/ftpauto.sh" # set update time
 		sed "7c message=\"\"" -i "$scriptdir/ftpauto.sh" # reset update message
+		install_lftp
+		echo ""; exit 0
 	fi
 }
 
