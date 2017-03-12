@@ -67,12 +67,12 @@ function queue {
 					exit 0
 				elif [[ "$option" == "end" ]]; then
 					source=$source"Q"
-					echo "$id|$source|$filepath|$size"MB"|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+					echo "$id|$source|$filepath|$sortto|$size"MB"|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 					echo -e "INFO: Queueing: $(basename "$filepath"), id=$id\n"
 					exit 0
 				else
 					echo "INFO: Queueid: $id"
-					echo "$id|$source|$filepath|$size"MB"|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+					echo "$id|$source|$filepath|$sortto|$size"MB"|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 				fi
 			fi
 		;;
@@ -93,6 +93,7 @@ function queue {
 				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file")
 				source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $2}' "$queue_file")
 				local filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $3}' "$queue_file")
+				sort=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $4}' "$queue_file")
 				# execute mainscript again
 				queue_running="true"
 				if [[ -f "$lockfile" ]]; then
@@ -101,7 +102,7 @@ function queue {
 				fi
 				echo "---------------------- Running queue ----------------------"
 				echo "Transfering id=$id, $(basename "$filepath")"
-				start_main --path="$filepath" --user="$username"
+				start_main --path="$filepath" --user="$username" --sortto="$sort"
 			else
 				echo "----------------------- Empty queue -----------------------"
 				if [[ -f "$queue_file" ]]; then rm "$queue_file"; fi

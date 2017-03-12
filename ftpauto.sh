@@ -262,9 +262,10 @@ case "${option[0]}" in
 			id=$(echo $line | cut -d'|' -f1)
 			source=$(echo $line | cut -d'|' -f2)
 			path=$(echo $line | cut -d'|' -f3)
-			size=$(echo $line | cut -d'|' -f4)
-			time=$(echo $line | cut -d'|' -f5)
-			echo $id $source $path $size $time
+			sort=$(echo $line | cut -d'|' -f4)
+			size=$(echo $line | cut -d'|' -f5)
+			time=$(echo $line | cut -d'|' -f6)
+			echo $id $source $path $sort $size $time
 		done < "$queue_file"
 		message "List has been shown." "0"
 	;;
