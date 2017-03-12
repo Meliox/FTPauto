@@ -277,7 +277,7 @@ function uninstall {
 		done
 	fi
 	echo -n "Removing sourcefiles ..."
-	sudo rm -rf "$scriptdir/dependencies/" "$scriptdir/plugins/" "$scriptdir/utils/"
+	sudo rm -rf "$scriptdir/dependencies/" "$scriptdir/plugins/"
 	rm -f "$scriptdir/ftpauto.sh" "$scriptdir/LICENCE" "$scriptdir/README.md" "$scriptdir/ftpauto.sh"
 	echo -e "\e[00;32m [OK]\e[00m"
 	echo -n "Removing userfiles ..."
