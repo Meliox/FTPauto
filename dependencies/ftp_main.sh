@@ -665,6 +665,7 @@ while :; do
 		--exec_pre=* ) exec_pre="${1#--exec_pre=}"; shift;;
 		--delay=* ) delay="${1#--delay=}"; shift;;
 		--force | -f ) force=true; shift;;
+		--queue ) queue=true; shift;;
 		--source=* ) source="${1#--source=}"; shift;;
 		--sortto=* ) sortto="${1#--sortto=}"; shift;;
 		--test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;
@@ -694,6 +695,11 @@ elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath
 		exit 1
 	fi
 fi
+# Save transfer to queue and exit
+if [[ $queue == true ]]; then
+	queue add end
+fi
+
 # Create lockfile
 if [[ "$lockfileRunning" == "true" ]]; then
 	echo "INFO: Updating lockfile"

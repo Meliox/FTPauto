@@ -253,30 +253,7 @@ case "${option[0]}" in
 		# queue download
 		# TODO: Add options to queuefile as well
 		elif [[ ${option[1]} == "queue" ]]; then
-			# determine if item exists already
-			if [[ -e "$queue_file" ]]; then
-				if [[ -n $(cat "$queue_file" | grep $(basename "$path")) ]]; then
-					message "INFO: Item already exists. Doing nothing. Exiting..." "1"
-				fi
-				# find id to <ITEM>
-				id=$(( $(tail -1 "$queue_file" | cut -d'|' -f1) + 1 ))
-			else # no queue files exists
-				id="1"
-			fi
-			# get transfer size
-			if [[ "$transferetype" == "downftp" ]]; then
-				# check size on ftp
-				echo "INFO: Looking up size on ftp..."
-			elif [[ "$transferetype" == "upftp" ]]; then
-				# confirm file exists locally and then use it
-				if [[ ! -d "$path" ]] || [[ ! -f "$path" ]] && [[ -z $(find "$path" -type f) ]]; then
-					message "ERROR: Option --path is required with existing path and has to contain file(s).\n See --help for more info!!" "1"
-					exit 1
-				fi
-			fi
-			get_size "$path" "exclude_array[@]" &> /dev/null
-			echo "$id|$source|$path|$size"MB"|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-			message "Adding $(basename "$path") to queue with id=$id" "0"
+			start_ftpmain "${download_argument[@]}" --queue
 		fi
 	;;
 	"list" ) # list content of queue file
