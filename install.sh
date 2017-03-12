@@ -53,10 +53,10 @@ function lftp_update {
 	sudo apt-get -y install gcc openssl build-essential automake readline-common libreadline6-dev pkg-config libgnutls-dev ncurses-dev &> /dev/null
 	# find latest lftp
 	cd "$scriptdir/dependencies"
-	local lftpversion=$(curl --silent http://lftp.yar.ru/ftp/ | egrep -o '>lftp.(.*).+tar.gz' | tail -1)
+	local lftpversion=$(curl --silent http://lftp.tech/ftp/ | egrep -o '>lftp.(.*).+tar.gz' | tail -1)
 	lftpversion=${lftpversion#\>lftp\-}
 	lftpversion=${lftpversion%.tar.gz}
-	wget "http://lftp.yar.ru/ftp/lftp-$lftpversion.tar.gz" &> /dev/null
+	wget "http://lftp.tech/ftp/lftp-$lftpversion.tar.gz" &> /dev/null
 	tar -xzvf "lftp-$lftpversion.tar.gz" &> /dev/null
 	rm "$scriptdir/dependencies/lftp-$lftpversion.tar.gz"
 	cd "lftp-$lftpversion" && ./configure --with-openssl --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
@@ -90,7 +90,7 @@ function install_lftp {
 		fi
 	else
 		# get online lftp version
-		local lftpversion=$(curl --silent http://lftp.yar.ru/ftp/ | egrep -o '>lftp.(.*).+tar.gz<' | tail -1)
+		local lftpversion=$(curl --silent http://lftp.tech/ftp/ | egrep -o '>lftp.(.*).+tar.gz<' | tail -1)
 		lftpversion=${lftpversion#\>lftp\-}
 		lftpversion=${lftpversion%.tar.gz<}
 		# get current lftp version

@@ -396,9 +396,9 @@ case "${option[0]}" in
 			local string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
 			local string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength - 1))"\})"
 			if [[ $percentagebarlength -eq 0 ]]; then
-				printf "\r[$string2]      Transferring $title. Progress: $percentage%% is done in $TimeDiff at $speed MB/s. ETA: $etatime. (last update $(date '+%H:%M:%S'))"
+				printf "\r[$string2]      $percentage%% in ${TimeDiff}@${speed}MB/s (avg). ETA: ${etatime}@$speedMB/s(current). (Last update $(date '+%H:%M:%S'))"
 			else
-				printf "\r[$string>$string2]      Transferring $title. Progress: $percentage%% is done in $TimeDiff at $speed MB/s. ETA: $etatime. (last update $(date '+%H:%M:%S'))"
+				printf "\r[$string>$string2]      $percentage%% in ${TimeDiff}@${speed}MB/s (avg). ETA: ${etatime}@$speedMB/s(current). (Last update $(date '+%H:%M:%S'))"
 			fi
 			let count++
 			sleep 1
