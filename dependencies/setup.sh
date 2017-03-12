@@ -65,8 +65,7 @@ function get_size {
 			echo "exit" >> "$lftptransfersize"
 			"$lftp" -f "$lftptransfersize" &> /dev/null
 			# prepare regex
-			exp=()
-			n="0"
+			local exp=() n="0"
 			for i in "${exclude_array[@]}"; do
 				if [[ $n -lt "${#exclude_array[@]}" ]] && [[ $n -ge 1 ]]; then
 					exp+="|"
