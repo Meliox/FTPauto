@@ -30,12 +30,10 @@ If you find this tool helpful, a small donation would be appreciated! Thanks!
  * [Manual install](#manual-install)
  * [Upgrading](#upgrading)
 * [Configuration](#configuration)
- * [Single user](#single-users)
- * [Multiple users](#multiple-users)
+ * [Adding user](#adding-user)
  * [The config](#the-config)
 * [Usage](#usage)
- * [Download single user](#download---single-user)
- * [Download multiple users](#download---multiple-users)
+ * [Download single user](#download---user)
  * [Arguments](#arguments)
  * [Debugging](#debugging) 
 * [Utils](#utils)
@@ -99,15 +97,10 @@ bash install.sh update
 NOTE: Running lastest version, doesn't mean it's 100% stable. 
 
 # Configuration
-First thing that need to be done is to create a user and edit the users settings. If you only want one user, you can leave <USERNAME> empty (default will be used). The setting that is to be edited is shown in [settings](https://github.com/Meliox/FTPauto#settings)
+First thing that need to be done is to create a user and edit the users settings. The setting that is to be edited is shown in [settings](https://github.com/Meliox/FTPauto#settings)
 
-## Single user
-Add users
-```bash
-bash ftpauto.sh --user= --add
-```
-## Multiple users
-Add users
+## Adding user
+Add user
 ```bash
 bash ftpauto.sh --user=<USERNAME> --add
 ```
@@ -122,7 +115,7 @@ nano ~/users/<USERNAME>/config
 ```
 
 Editing the config should be straight forward, but if you have troubles more info can be found here [The config](#the-config).
-After this you may now start using FTPauto. See more [usage](#usage)
+After this you may now start using FTPauto. See more [usage](#usage).
 
 ## The config
 The most important setting is "transferetype".
@@ -227,20 +220,11 @@ push_user=""
 
 # Usage
 Depending on you have multiple users or just a single user see sections below. A common feature is to use the common arguments listed here: [Arguments](#arguments)
-
-### Download - single user
-Now you can transfer something
-```bash
-bash ftpauto.sh --path=~/something/
-```
-
-### Download - multiple users
-Now you can transfer something
+After configuration transferes can be made as written below:
 ```bash
 bash ftpauto.sh --user=<USERNAME> --path=~/something/
 ```
-
-More arguments are available, [arguments](#arguments).
+Several arguments can be used, see here: [arguments](#arguments).
 
 ## Arguments
 Can be shown with
@@ -251,7 +235,7 @@ Here's an overview as well
 ```bash
 
 == Required ==
-        --user=<USER>      | Required at all times in multi user setup, can be omitted in single user setop
+        --user=<USER>      | Required at all times
 == Session manipulation ==
         --pause            | Terminates transfer and leaves queue intact
         --start            | Begins transfer from queue and let it finish queue. Only to be used for sessions!
@@ -268,7 +252,6 @@ Here's an overview as well
           --path=<PATH>     | <PATH> used to transfer now!
           --queue           | Sends <PATH> to queue WITHOUT starting script if autostart=false in config.
                                NOTE that --path <ITEM> is required for this to work.
-                               Might also be used to start transfer in background if autostart=true
           --source=<SOURCE> | Source is used to show how the download has been started. The
                                following is possible:
                                MANDL=manual download(if nothing is used)
