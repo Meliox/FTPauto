@@ -681,7 +681,7 @@ done
 if [[ -z "$filepath" ]]; then
 	# if --path is not used, try and run queue
 	queue next
-elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath" -type f 2>/dev/null) ]] || [[ -z $(find "$filepath" -type f 2>/dev/null) ]]; then
+elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath" -type f -print | head -n 1 2>/dev/null) ]] || [[ -z $(find "$filepath" -type f -print | head -n 1 2>/dev/null) ]]; then
 	# path with files or file not found
 	if [[ "$transferetype" == "downftp" ]]; then
 		# server <-- client, assume path is OK
