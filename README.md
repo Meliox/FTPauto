@@ -34,9 +34,6 @@ If you find this tool helpful, a small donation is appreciated, [![Donate](https
 * [Usage](#usage)
  * [Arguments](#arguments)
  * [Debugging](#debugging) 
-* [Utils](#utils)
- * [Wakeonlan](#wakeonlan)
- * [Network Monitor](#network-monitor)
 * [3rd party uses](#3rd-party-uses)
  * [FlexGet](#flexget)
   * [Download methods](#download-methods)
@@ -208,35 +205,6 @@ verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 Debugging into logfile will create a ftpscript logfile and a ftp logfile, so that everything can be looked at later. Debugging to console only will show script.
 
 Debugging may also be used as an argument, see [Arguments](#arguments).
-
-# Utils
-A few usefull bashscripts has been added to FTPauto...
-## Wakeonlan
-```bash
-# A simple shell to Wake Up nas devices / home servers
-# Should be called with --ip="<IP-ADDRESS>" --macadr="<MAC-ADDRESS>" --port"<PORT>"
-# ONLY <MAC-ADDRESS> is mandatory(on lan you mostlikely only need this)
-# Remember to verify that the server supports wakeonlan
-#     type: ethtool eth0 and if "Supports Wake-on: g" i present
-#     you're good to go. Else type ethtool -s eth0 wol g to activate
-#     and see again. If line is ok, you're good to go, else not working.
-#     eth0 is the network interface, you might have others
-# Example bash wakeonlan.sh -i "10.0.0.1" "30:11:32:08:15:74"
-#
-# Online WOL. Most routers forget the clients after a few minutes and that's why online wol
-# rarely works. On my asus router you can hardcore the ip (static ofc.) with the mac adress
-# with telnet/ssh like arp -s 192.168.0.1 00:30:c1:5e:68:74. And then after portforwarding
-# it should work
-#
-# As a default setting to programs send 3 magic packets incase one is lost. Can be changed
-# below
-#settings
-quiet="false"
-packets="3"
-```
-
-## Network Monitor
-Purpose is to shut down computer or run a custom command if network traffic is below threshold due to low activity or a certain ip is not online. See readme included in the file. Find it here: https://github.com/Meliox/FTPauto/blob/master/utils/networkmonitor.sh
 
 # 3rd party uses
 FTPauto can be used in combination with other software. Here are a few examples listed.
