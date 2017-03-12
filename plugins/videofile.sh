@@ -3,11 +3,16 @@
 function videoFile {
 	if [[ -f "$filepath" ]] && ! [[ "$filepath" =~ "\.(rar)$" ]]; then
 		echo -e "\e[00;33mINFO: Single file found, which isn't compressed. Continuing...\e[00m"
-	else		
-		found_file=( "$(find "$filepath" \( -size +50M -type f \) -and \( -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" \) -and \! \( $exclude_expression \) | sort -n )" )
-		if [[ -n $found_file ]]; then
+	else
+		# search and calculate total size of all video files found in found_file to get what percentage of transfer consists of videofiles
+		found_files=()
+		while IFS=  read -r -d $'\0'; do
+			found_files+=("$REPLY")
+			echo $REPLY
+		done < <(find "$filepath" \( -type f \) -and \( -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" \) -and \! \( $exclude_expression \) -print0)
+		if [[ -n ${found_files[0]} ]]; then
 			found_file_size_total="0"
-			for n in "${found_file}"; do
+			for n in "${found_files[@]}"; do
 				found_file_size=$(echo $(du -bs "$n") | awk '{print $1}')
 				found_file_size_total=$(echo "$found_file_size_total + $found_file_size" | bc)
 				echo "INFO: Found \"$(basename "$n")\" $(echo "scale=2; $found_file_size / (1024*1024)" | bc)MB"
