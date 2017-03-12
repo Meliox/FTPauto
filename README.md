@@ -1,6 +1,6 @@
 # FTPauto
 
-FTPauto is a simple, but highly advanced and configurable FTP-client wrap-around written in #Bash for Unix. It is based on [lftp](http://lftp.yar.ru/) and  helps to automate simple transfers - yet is allows much more.
+FTPauto is a simple, but highly advanced and configurable FTP-client wrap-around written in #Bash for Unix. It is based on [lftp](http://lftp.yar.ru/) and  helps to automate simple transfers - yet FTPauto allows much more.
 
 # Features
 * Send files easily with lftp
@@ -19,7 +19,7 @@ FTPauto is a simple, but highly advanced and configurable FTP-client wrap-around
 * Send push notification to phones etc. with [Pushover](https://pushover.net/)
 * Automatic transfers with the use of [FlexGet](http://flexget.com/)
 
-If you find this tool helpful, a small donation is appreciated.
+If you find this tool helpful, a small donation is appreciated, [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=K8XPMSEBERH3W).
 
 - - -
 # Index
