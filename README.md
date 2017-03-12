@@ -1,26 +1,25 @@
 # FTPauto
 
-FTPauto is a simple, but highly advanced command line tool written in #Bash for Unix. It relies on [lftp](http://lftp.yar.ru/), but helps to automate simple transfers. So essentially this is a tool to send files from a local server to a remote FTP easily.
-
-If you find this tool helpful, a small donation would be appreciated! Thanks!
-
-[![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=K8XPMSEBERH3W)
+FTPauto is a simple, but highly advanced and configurable FTP-client wrap-around written in #Bash for Unix. It is based on [lftp](http://lftp.yar.ru/) and  helps to automate simple transfers - yet is allows much more.
 
 # Features
 * Send files easily with lftp
 * Highly customizable command line
-* Monitor free space at end-server
-* Progressbar of transfer
+* Monitor free space or server status on FTP-server
+* Progressbar with estimated time of transferes
+* Transfer logs
+* Queue system of transfers
 * Packing/splitting directory/files into rar-files. Including sfv to verify files at end-server.
-* Multiple users support
+* Multiple users (different configuration)
 * Delay transfer to start at a specific time
-* Exec support pre/post transfer
-* Sorting (use of regex)
-* Exclution of files
+* Support pre/post transfer using external scripts
+* Sorting (regex-based or manually)
+* Exclution of files (regex-based)
+* Seamless unpack of rar-files in stored in store-mode using rarmount
 * Send push notification to phones etc. with [Pushover](https://pushover.net/)
 * Automatic transfers with the use of [FlexGet](http://flexget.com/)
 
-![Pushover](https://pushover.net/assets/pushover-header-eaa79ef56c7041125acbe9fb9290b2fa.png)![FlexGet](http://flexget.com/chrome/site/FlexGet.png)
+If you find this tool helpful, a small donation is appreciated.
 
 - - -
 # Index
