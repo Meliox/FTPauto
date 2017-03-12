@@ -3,8 +3,8 @@ s_version="0.4.3"
 verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 script="$(readlink -f $0)"
 scriptdir=$(dirname $script)
-lastUpdate=0
-message=
+lastUpdate=1489315770
+message=""
 
 control_c() {
 	# run if user hits control-c

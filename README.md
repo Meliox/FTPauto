@@ -33,7 +33,6 @@ If you find this tool helpful, a small donation would be appreciated! Thanks!
  * [Adding user](#adding-user)
  * [The config](#the-config)
 * [Usage](#usage)
- * [Download single user](#download---user)
  * [Arguments](#arguments)
  * [Debugging](#debugging) 
 * [Utils](#utils)
@@ -97,15 +96,15 @@ bash install.sh update
 NOTE: Running lastest version, doesn't mean it's 100% stable. 
 
 # Configuration
-First thing that need to be done is to create a user and edit the users settings. The setting that is to be edited is shown in [settings](https://github.com/Meliox/FTPauto#settings)
+First thing that need to be done is to create a user and edit the users settings. The setting that is to be edited is shown in [settings](https://github.com/Meliox/FTPauto#settings).
 
 ## Adding user
-Add user
+Add user:
 ```bash
 bash ftpauto.sh --user=<USERNAME> --add
 ```
 
-Editing can be done by
+The users configuration must be edited prior use:
 ```bash
 bash ftpauto.sh --edit --user=<USERNAME>
 ```
@@ -130,96 +129,11 @@ FXP
 ```
 The capital letters state where FTPauto is executed and therefor giving the correct path is important. see [example](https://github.com/Meliox/FTPauto#transferetype-example)
 
-The rest of the settings should explain themselves.
-```bash
-#This the the configuration file for FTPauto
-config_version="4"
-#Place the file in /home/ammin/scripts/ftpautodownload-dev/run/'mad'/config and load with --user='mad' or
-# just load it with --config=config_path
-
-#HOWTO: Edit the info between the qoutes "TEST", here the word TEST
-
-#### FTP server Setup ####
- # If you just want the server to send <ITEM> to your ftp, edit the options below
-transferetype="upftp or downftp or fxp" # Determine how to transfer file: Either send or receive from ftp or fxp them to another server
-
- # These directories are where you want to download/send the item. REMEMBER TRAILING SLASH
-ftpincomplete="/shares/USB_Storage/temp/" # incomplete directory. Leave empty if no incomplete directory should be used
-ftpcomplete="/shares/USB_Storage/Download/" # complete directory.
-
-#### DOWN/UP MODE ####
- # If you just want to send/receive items, change these
-ftpuser="user" # username
-ftppass="pass" # password
-ftphost="ip" # ipaddres for ftp server
-ftpport="port" # ftp port
-ssl="false" # Set to true to use ftps else set it to false
-
-#### FXP MODE ####
- # If you just want to send/receive items from one server to another, change these also!
-ftpuser2="user" # username
-ftppass2="pass" # password
-ftphost2="ip" # ipaddres for ftp server
-ftpport2="port" # ftp port
-ssl2="false" # use ftps or not
-
-#### Log settings ###
-logrotate="false" #enabled logrotating to move old to log.old
-lognumber="50" #how many transfers to save in log before moving to log.old. 0 for disabled
-
-#### Transfer settings ####
-
-### Filehandling
- # Splitting files if filesize exceed MB. Some FTP servers disconnect after a certain amount of time is there is no
- # activity. These settings only work if the server handling the script also sends the files, i.e. in upftp and upfxp mode!
-send_option="(video|split|default)" # Can be configured to send only videofile, split files according to settings or simply transfer the , default. If videofile or sizelimit are not met, then the files will be transfered as default - without any modifications.
-video_file_to_complete="false" # Transfer videofile directly to complete directory. Only applies to video send_option
-rarsplitlimit="1500" Determine how large files are allowed before the files are split. Only applies to split send_option
-splitsize="100" # How large the rarparts should be in MB
-create_sfv="true" # Create sfv for rarfiles
-
-### Transfer settings
-
-## General settings
-parallel="3" # how many simultaneous transfers to download with
-continue_queue="true" # Script will continue downloading if something is queued
-retries="3" # How many times should the transfer be tried, before giving up
-retry_download="10" # retry again in minutes after minimum space is reached OR server is offline.
-retry_download_max="10" # retry for how many hours, before quitting
-
-## Extra settings
-force="false" # Transfer regardless of lockfiles/other transfers
-confirm_transfer="false" # Try to confirm transfer
-confirm_online="false" # Try to confirm that server is online/writeable before doing anything
-exclude_array=( ) # Ignore certain files with name matching, format is ( "word1" "word2" )
-
-## Extra settings
- # To enable FTP space info, ftpsizemanagement has to be set to true
-totalmb="14950" # total ftp space
-ftpsizemanagement="false" # will confirm enough free space in dir according to settings
-critical="100" # minimum space before aborting transfer
-
-## Processbar settings
- # Processbar shows how the transfer is proceeding, gives eta. etc.
-sleeptime="60"  # how often to check transferproces. Time in seconds
-
-## Miscellaneous settings
-exec_post="" #Execute external command upon finish. See --help exec_pre for more info
-allow_background="yes" # don't wait for exec to finish. ONLY for exec_post
-exec_pre="" #Execute external command before starting. See --help for more info
-sort="true" # Sort files into DVD/TV/etc/ or like defined in --sort=DIRECTORY. Changes can be made in the file /dependencies/sorting.sh
-
-#### Push notifications ####
- # Create a user at https://pushover.net/ and enter details below
- # Leave push_user empty if you don't use it
-push_token=""
-push_user=""
-```
+The rest of the settings should be selfexplanatory. The config can be found here: https://github.com/Meliox/FTPauto/blob/master/dependencies/help.sh#L90.
 
 ## Transferetype-example
 
 # Usage
-Depending on you have multiple users or just a single user see sections below. A common feature is to use the common arguments listed here: [Arguments](#arguments)
 After configuration transferes can be made as written below:
 ```bash
 bash ftpauto.sh --user=<USERNAME> --path=~/something/
@@ -227,7 +141,7 @@ bash ftpauto.sh --user=<USERNAME> --path=~/something/
 Several arguments can be used, see here: [arguments](#arguments).
 
 ## Arguments
-Can be shown with
+Can be shown with:
 ```bash
 bash ftpauto.sh --help
 ```
@@ -287,15 +201,14 @@ Here's an overview as well
         --verbose          | Debugs to console
 ```
 ## Debugging
-If the script for some reason should fail, it is easy to debug. Debugging can either be permanently set if the error comes and goes. This setting can be in ftpauto.sh, but altering the following line:
+If the script for some reason should fail, it is easy to debug. Debugging can either be permanently set if the error comes and goes. This setting can be in ftpauto.sh by  altering the line 3:
 ```bash
 verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 ```
-* Line #3
 
 Debugging into logfile will create a ftpscript logfile and a ftp logfile, so that everything can be looked at later. Debugging to console only will show script.
 
-Debugging can also be used as an argument, see [Arguments](#arguments)
+Debugging may also be used as an argument, see [Arguments](#arguments).
 
 # Utils
 A few usefull bashscripts has been added to FTPauto...
