@@ -10,11 +10,11 @@ function sortFiles {
 		fi
 	elif [[ $orig_name =~ (\.(x86|x64|mac|android|iphone)) ]]; then
 		ftpcomplete=$ftpcomplete"Appz/"
-		echo "INFO: Sorted to ${ftpcomplete}Appz"		
+		echo "INFO: Sorted to ${ftpcomplete}Appz"
 	elif [[ $orig_name =~ (PAL|NTSC).+DVDR. ]]; then
 		ftpcomplete=$ftpcomplete"DVD/"
 		echo "INFO: Sorted to ${ftpcomplete}DVD"
-	elif [[ $orig_name =~ (BDRip|DVDRip).+(XviD|x264) ]] && [[ ! $orig_name =~ (S[0-9][0-9]) ]] && [[ ! $orig_name =~ (S[0-9][0-9]E[0-9][0-9]) ]] && [[ ! $orig_name =~ (E[0-9][0-9]) ]] && [[ ! $orig_name =~ (S[0-9][0-9]) ]] && [[ ! $orig_name =~ (episode|ep|e|part|pt).(([0-9][0-9]?\.)|(I|V|X)) ]]  && [[ ! $orig_name =~ ([[:digit:]](x|of)[[:digit:]]) ]]; then
+	elif [[ $orig_name =~ (BDRip|DVDRip).+(XviD|x264) ]] && [[ ! $orig_name =~ (S[0-9][0-9]) ]] && [[ ! $orig_name =~ (S[0-9][0-9]E[0-9][0-9]) ]] && [[ ! $orig_name =~ (E[0-9][0-9]) ]] && [[ ! $orig_name =~ (S[0-9][0-9]) ]] && [[ ! $orig_name =~ (\.(episode|ep|e|Part|pt)\.(([0-9][0-9]?)|(I|II|III|IV|V|VI|VII|VIII|IIX|IX|X|XI|XII))\.) ]]  && [[ ! $orig_name =~ ([[:digit:]](x|of)[[:digit:]]) ]]; then
 		ftpcomplete=$ftpcomplete"XViD/"
 		echo "INFO: Sorted to ${ftpcomplete}XViD"
 	elif [[ $orig_name =~ (HDDVD|BluRay).+x264 ]] && [[ ! $orig_name =~ (S[0-9][0-9]) ]]; then
@@ -23,7 +23,7 @@ function sortFiles {
 	elif [[ $orig_name =~ \.XXX\. ]]; then
 		ftpcomplete=$ftpcomplete"XXX/"
 		echo "INFO: Sorted to ${ftpcomplete}XXX"
-	elif [[ $orig_name =~ (S[0-9][0-9]E[0-9][0-9]) ]] || [[ $orig_name =~ (E[0-9][0-9]) ]] || [[ $orig_name =~ (S[0-9][0-9]) ]] || [[ $orig_name =~ (episode|ep|e|part|pt).(([0-9][0-9]?\.)|(I|V|X)) ]]  || [[ $orig_name =~ ([[:digit:]](x|of)[[:digit:]]) ]] || [[ $orig_name =~ ([[:digit:]]{4}.[[:digit:]]{2}.[[:digit:]]{2})|([[:digit:]]{2}.[[:digit:]]{2}.[[:digit:]]{4}) ]]; then
+	elif [[ $orig_name =~ (S[0-9][0-9]E[0-9][0-9]) ]] || [[ $orig_name =~ (E[0-9][0-9]) ]] || [[ $orig_name =~ (S[0-9][0-9]) ]] || [[ $orig_name =~ (\.(episode|ep|e|Part|pt)\.(([0-9][0-9]?)|(I|II|III|IV|V|VI|VII|VIII|IIX|IX|X|XI|XII))\.) ]]  || [[ $orig_name =~ ([[:digit:]](x|of)[[:digit:]]) ]] || [[ $orig_name =~ ([[:digit:]]{4}.[[:digit:]]{2}.[[:digit:]]{2})|([[:digit:]]{2}.[[:digit:]]{2}.[[:digit:]]{4}) ]]; then
 		# Sort to series folders if format matches
 		local series_name="${orig_name%%.S[[:digit:]]*}"
 		if [[ $orig_name == $series_name ]]; then
