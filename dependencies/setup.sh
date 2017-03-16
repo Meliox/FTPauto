@@ -58,7 +58,7 @@ function get_size {
 		size=$(echo "scale=2; "$size" / (1024*1024)" | bc)
 		echo "INFO: Size to transfere: "$size"MB"
 		cleanup session
-		if [[ -n "${exclude_array[@]}" ]]; then
+		if [[ -n "${#exclude_array[@]}" ]]; then
 			# size lookup if expression is used
 			cat "$ftplogin_file" > "$lftptransfersize"
 			echo "ls -lR \"$dir\" > ~/../..$transfersize" >> "$lftptransfersize"
@@ -105,10 +105,10 @@ function get_size {
 		cleanup session
 	elif [[ "$transferetype" == "upftp" ]]; then
 		#server
-		directorysize=$(du -bs "$dir" | awk '{print $1}')
+		directorysize=$(du -bsL "$dir" | awk '{print $1}')
 		size=$(echo "scale=2; "$directorysize" / (1024*1024)" | bc)
 		echo "INFO: Size to transfere: "$size"MB"
-		if [[ -n "${exclude_array[@]}" ]]; then
+		if [[ -n "${#exclude_array[@]}" ]]; then
 			exclude_expression=()
 			local n="1"
 			for i in "${exclude_array[@]}"; do
@@ -120,7 +120,7 @@ function get_size {
 				let n++
 			done
 			exclude_expression="${exclude_expression[@]}"
-			sizeBytes=$(find "$dir" \! \( $exclude_expression \) -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}') # in bytes
+			sizeBytes=$(find -L "$dir" \! \( $exclude_expression \) -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}') # in bytes
 			size=$(echo "scale=2; "$sizeBytes" / (1024*1024)" | bc)
 			echo "INFO: Updated size to transfere(filter used): "$size"MB"
 		fi
