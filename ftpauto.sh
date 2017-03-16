@@ -47,12 +47,12 @@ if [[ $(date +'%s') -gt $(echo $lastUpdate + 14*24*60*60 | bc) ]]; then
 	else
 		local IFS=.
 		local n1=($release_version) n2=($s_version)
-		for i in ${!n1[@]}; do
-			if [[ ${n1[i]} -gt ${n2[i]} ]]; then
+		for i in "${!n1[@]}"; do
+			if [[ "${n1[i]}" -gt "${n2[i]}" ]]; then
 				echo -e "\e[00;33m [$release_version available. Consider updating]\e[00m"
 				sed "7c message=\"INFO: New version ($release_version) available. Consider updating (execute bash install.sh update)\"" -i "$script"
 				break
-			elif [[ ${n1[i]} -lt ${n2[i]} ]]; then
+			elif [[ "${n1[i]}" -lt "${n2[i]}" ]]; then
 				echo -e " \e[00;32m [Latest]\e[00m"
 				sed "7c message=\"\"" -i "$script"
 			fi
