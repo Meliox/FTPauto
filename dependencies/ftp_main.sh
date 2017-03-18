@@ -1,5 +1,4 @@
 #!/bin/bash
-############## CODE STARTS HERE ##################
 function delay {
 # if --delay is set, wait until it ends. If start/end time is set in config use them. Delay overrules everything
 	if [[ -n $delay ]]; then
