@@ -296,7 +296,7 @@ function ftp_transfere {
 			echo -e "\e[00;31mTransfer terminated: $(date '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 			waittime=$(($retry_download*60))
 			echo "INFO: Pausing session and trying again $retry_download"mins" later"
-			sed "3s#.*#***************************	FTP INFO: DOWNLOAD POSTPONED! Trying again in "$retry_download"mins#" -i "$logfile"
+			sed "3s#.*#***************************	FTP INFO: DOWNLOAD POSTPONED! Trying again in ${retry_download}mins#" -i "$logfile"
 			sleep $waittime
 			# restart transfer
 			ftp_transfer_process start
@@ -328,7 +328,7 @@ function ftp_processbar { #Showing how download is proceeding
 		while :; do
 			if [[ ${#changed_name[@]} -gt 2 ]]; then
 				echo "INFO: Progress not possible due to a lot of changing files"
-				sed "5s#.*#***************************	Transferring: \"$orig_name\" - x% in x at x MB/s. ETA: x  #" -i "$logfile"
+				sed "5s#.*#***************************	Transferring: ${orig_name} - x% in x at x MB/s. ETA: x  #" -i "$logfile"
 				break
 			fi
 			if [[ $transferetype == "downftp" ]]; then
@@ -386,15 +386,15 @@ function ftp_processbar { #Showing how download is proceeding
 						etatime="Unknown"
 				fi
 				#update file and output the current line
-				sed "5s#.*#***************************	Transferring: \"$orig_name\", $percentage%, in $TimeDiff, $speed MB/s(current), ETA: $etatime  #" -i "$logfile"
+				sed "5s#.*#***************************	Transferring: ${orig_name}, $percentage%, in $TimeDiff, $speed MB/s(current), ETA: $etatime  #" -i "$logfile"
 				local cols=$(($(tput cols) - 2))
 				local percentagebarlength=$(echo "scale=0; $percentage * $cols / 100" | bc)
 				local string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
 				local string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength - 1))"\})"
 				if [[ $percentagebarlength -eq 0 ]]; then
-					printf "\r[$string2]      $percentage%% in ${TimeDiff}@${speed}MB/s (avg). ETA: ${etatime}@$speedMB/s(current). (Last update $(date '+%H:%M:%S'))"
+					printf "\r[$string2]      $percentage%% in ${TimeDiff}@${speed}MB/s (avg). ETA: ${etatime}@${speed}MB/s(current). (Last update $(date '+%H:%M:%S'))"
 				else
-					printf "\r[$string>$string2]      $percentage%% in ${TimeDiff}@${speed}MB/s (avg). ETA: ${etatime}@$speedMB/s(current). (Last update $(date '+%H:%M:%S'))"
+					printf "\r[$string>$string2]      $percentage%% in ${TimeDiff}@${speed}MB/s (avg). ETA: ${etatime}@${speed}MB/s(current). (Last update $(date '+%H:%M:%S'))"
 				fi
 			fi
 			# update variables and wait
@@ -444,7 +444,7 @@ function logrotate {
 			sed "1s#.*#***************************	FTPauto - version $s_version#" -i "$logfile"
 			sed "2s#.*#***************************	STATS: "$totaldl"MB in $totalrls transfers in $totaldltime#" -i "$logfile"
 			sed "3s#.*#***************************	FTP INFO: N/A#" -i "$logfile"
-			sed "4s#.*#***************************	LASTDL: $(date)|"$orig_name"|"$SpeedAverage"MB/s#" -i "$logfile"
+			sed "4s#.*#***************************	LASTDL: $(date)|${orig_name}|${SpeedAverage}MB/s#" -i "$logfile"
 			sed "5s#.*#***************************	#" -i "$logfile"
 		else
 			echo -e "\e[00;31mTESTMODE: LOGGING NOT STARTED\e[00m"
@@ -562,12 +562,16 @@ if [[ "$send_option" == "split" ]]; then
 		if [[ $transferetype == "upftp" ]]; then
 			loadDependency DLargeFile && largefile "$filepath" "exclude_array[@]"
 		elif [[ $transferetype == "downftp" ]]; then
-			echo -e "\e[00;33mERROR: split_files is not supported in mode=$transferetype. Continuing without ...\e[00m"
-			send_option="default"
+			echo -e "\e[00;33mERROR: send_option=split is not supported in mode=$transferetype. Exiting ...\e[00m"
+			cleanup session; cleanup end
+			echo -e "INFO: Program has ended\n"
+			exit 1
 		fi
 	else
-		echo -e "\e[00;33mERROR: split_files is not supported as rar or cksfv is missing. Continuing without ...\e[00m"
-		send_option="default"
+		echo -e "\e[00;33mERROR: send_option=split is not supported as rar or cksfv is missing. Exiting ...\e[00m"
+		cleanup session; cleanup end
+		echo -e "INFO: Program has ended\n"
+		exit 1
 	fi
 # Try to only send videofile
 elif [[ "$send_option" == "video" ]]; then
@@ -575,12 +579,16 @@ elif [[ "$send_option" == "video" ]]; then
 		if [[ $transferetype == "upftp" ]]; then
 			loadDependency DVideoFile && videoFile
 		elif [[ $transferetype == "downftp" ]]; then
-			echo -e "\e[00;33mERROR: video_file_only is not supported in mode=$transferetype. Continuing without ...\e[00m"
-			send_option="default"
+			echo -e "\e[00;33mERROR: send_option=video is not supported in mode=$transferetype. Exiting ...\e[00m"
+			cleanup session; cleanup end
+			echo -e "INFO: Program has ended\n"
+			exit 1
 		fi
 	else
-		echo -e "\e[00;33mERROR: split_files is not supported as rarfs is missing. Continuing without ...\e[00m"
-		send_option="default"
+		echo -e "\e[00;33mERROR: send_option=video is not supported as rarfs is missing. Exiting ...\e[00m"
+		cleanup session; cleanup end
+		echo -e "INFO: Program has ended\n"
+		exit 1
 	fi
 fi
 
