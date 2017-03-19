@@ -1,67 +1,31 @@
 #!/bin/bash
 
-function f_split {
-	local split_file="$1"
-	#update transfer_path
-	filepath=()
-	changed_name=()
+function largefile {
 	# Splitting process
 		echo "INFO: Splitting files into volumes $tempdir"
-		sed "5s#.*#***************************	Transferring: "$orig_name" - Large file detected, file(s) are being split #" -i $logfile
-		mkdir -p "$tempdir"
-		rar a -r -v"$splitsize"M -vn -m0 "$tempdir$orig_name".rar "$(basename "$split_file")" &> /dev/null
-		filepath+=( "$tempdir" )
-		changed_name+=( "$(basename "$tempdir")" )
+		sed "5s#.*#***************************	Transferring: ${orig_name} - Rar splitting, ${splitsize} MB pieces, in process#" -i $logfile
+		
+		if [[ -f "$filepath" ]]; then
+			tempdir="$scriptdir/run/$username-temp/${orig_name%.*}/"
+			mkdir -p "$tempdir"
+			rar a -r -"v${splitsize}M" -vn -m0 "${tempdir}${orig_name%.*}.rar" "$filepath" &> /dev/null
+		elif [[ -d "$filepath" ]]; then
+			tempdir="$scriptdir/run/$username-temp/${orig_name}/"
+			mkdir -p "$tempdir"
+			rar a -r -v"${splitsize}M" -vn -m0 "${tempdir}${orig_name}.rar" "$filepath" &> /dev/null
+		fi
+		transfer_path="$tempdir" # update transfer path
 		echo "INFO: Splitting into volumes done"
 	# sfv process
 	if [[ "$create_sfv" == "true" ]]; then
-		echo "INFO: Creating checkfile"
-		sed "5s#.*#***************************	Transferring: "$orig_name" - Creating sfv #" -i $logfile
-		cksfv -b "$tempdir"* > "$tempdir$orig_name.sfv"
-		echo "INFO: "$orig_name".sfv created"
-	fi
-}
-
-
-function largefile {
-#called with $filepath $exclude_array[@]
-# Test if largest file is different from rar and that size is largest than $rarsplitlimit
-	if [[ "$send_option" == "split" ]]; then
-		echo -ne "INFO: Large file(s):"
-		local dir="$1"
-		local lfile=()
-		local exp=()
-		if [[ -f "$dir" ]]; then
-			# got a file
-			if [[ $(stat --printf="%s" "$dir") -gt $(( $rarsplitlimit * 1024 *1024 )) ]]; then
-				echo -ne "\e[00;32m found\e[00m \r"
-				echo "INFO: Transfer split into volumes of ${rarsplitlimit}MB files."
-				cd "$(dirname "$orig_path")"
-				f_split "$dir"
-			fi
-		else
-			# got a directory, use filter to exclude files from exclude_expression prepared from get_size
-			# look for large files
-				while IFS= read -r -d $'\0' file; do
-					lfile[i++]="$file"
-				done < <(find "$dir" $exclude_expression -type f -size +"$rarsplitlimit"M -print0)
-			# process large file
-			if [[ -n "${lfile[@]}" ]] && [[ ${#lfile[@]} -eq 1 ]]; then #ONLY one large file in directory
-				echo "INFO: Largest file larger found than ${rarsplitlimit}MB, this has to be split in volumens!"
-				cd "$orig_path"
-				f_split "$lfile"
-				#look for all other files, and and them to transfer queue
-					while IFS= read -r -d $'\0' file; do
-						filepath[i++]="$file"
-					done < <(find "$dir" $exclude_expression -type f -size -"$rarsplitlimit"M -print0)
-			elif [[ ${#lfile[@]} -gt 1 ]]; then #SEVERAL large files
-				echo "INFO: Several large files have been found and split into same directory"
-				cd "$orig_path"
-				f_split "$dir"
-			else
-				echo -ne "\e[00;33m Nothing found\e[00m \r"
-				echo
-			fi
+		echo "INFO: Creating sfv checkfile"
+		sed "5s#.*#***************************	Transferring: ${orig_name} - Creating sfv #" -i $logfile
+		if [[ -f "$filepath" ]]; then
+			cksfv -b "$tempdir"* > "${tempdir}${orig_name%.*}.sfv"
+			echo "INFO: ${orig_name%.*}.sfv created"
+		elif [[ -d "$filepath" ]]; then
+			cksfv -b "$tempdir"* > "${tempdir}${orig_name}.sfv"
+			echo "INFO: ${orig_name%.*}.sfv created"
 		fi
 	fi
 }
