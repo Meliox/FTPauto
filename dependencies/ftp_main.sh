@@ -564,7 +564,7 @@ elif [[ "$send_option" == "video" ]]; then
 fi
 
 # Try to sort files
-if [[ "$sort" == "true" ]]; then
+if [[ "$sort" == "true" ]] || [[ -n "$sortto" ]]; then
 	loadDependency DSort && sortFiles "$sortto"
 fi
 
