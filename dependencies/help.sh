@@ -91,7 +91,7 @@ function show_example {
 #shows an example for configuration
 	echo
 	echo	"#This the the configuration file for FTPauto"
-	echo	"config_version=\"4\""
+	echo	"config_version=\"5\""
 	echo	"#Place the file in $scriptdir/run/'$username'/config and load with --user='$username'"
 	echo
 	echo	"#HOWTO: Edit the info between the qoutes \"TEST\", here the word TEST"
@@ -130,8 +130,6 @@ function show_example {
 	echo	" # Splitting files if filesize exceed MB. Some FTP servers disconnect after a certain amount of time is there is no"
 	echo	" # activity. These settings only work if the server handling the script also sends the files, i.e. in upftp and upfxp mode!"
 	echo    "send_option=\"(video|split|default)\" # Can be configured to send only videofile, split files according to settings or simply transfer the , default. If videofile or sizelimit are not met, then the files will be transfered as default - without any modifications."
-	echo    "video_file_to_complete=\"false\" # Transfer videofile directly to complete directory. Only applies to video send_option"
-	echo 	"rarsplitlimit=\"1500\" # Determine how large files are allowed before the files are split. Only applies to split send_option"
 	echo	"splitsize=\"100\" # How large the rarparts should be in MB"
 	echo	"create_sfv=\"false\" # Create sfv for rarfiles"
 	echo	""

@@ -53,7 +53,7 @@ function get_size {
 		else
 			echo "INFO: Transfering a file"
 			transfer_type="file"
-		fi
+		fi		
 		size=$(cat "$transfersize" | awk '{print $1}')
 		size=$(echo "scale=2; "$size" / (1024*1024)" | bc)
 		echo "INFO: Size to transfere: "$size"MB"

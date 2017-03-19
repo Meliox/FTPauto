@@ -151,8 +151,8 @@ function load_user {
 		exit 1
 	fi
 	# confirm that config is most recent version
-	if [[ $config_version -lt "4" ]] && [[ $option != "add" ]] && [[ $option != "edit" ]]; then
-		echo -e "\e[00;31mERROR: Config is out-dated, please update it (version 4). See --help for more info!\e[00m\n"
+	if [[ $config_version -lt "5" ]] && [[ $option != "add" ]] && [[ $option != "edit" ]]; then
+		echo -e "\e[00;31mERROR: Config is version 4, please update it to version 5. See --help for more info!\e[00m\n"
 		exit 0
 	fi
 }
@@ -374,9 +374,9 @@ case "${option[0]}" in
 			local string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
 			local string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength - 1))"\})"
 			if [[ $percentagebarlength -eq 0 ]]; then
-				printf "\r[$string2]      $percentage%% in ${TimeDiff}@${speed}MB/s (avg). ETA: ${etatime}@$speedMB/s(current). (Last update $(date '+%H:%M:%S'))"
+				printf "\r[$string2]      $percentage%% in ${TimeDiff}@${speed}MB/s (avg). ETA: ${etatime}@${speed}MB/s(current). (Last update $(date '+%H:%M:%S'))"
 			else
-				printf "\r[$string>$string2]      $percentage%% in ${TimeDiff}@${speed}MB/s (avg). ETA: ${etatime}@$speedMB/s(current). (Last update $(date '+%H:%M:%S'))"
+				printf "\r[$string>$string2]      $percentage%% in ${TimeDiff}@${speed}MB/s (avg). ETA: ${etatime}@${speed}MB/s(current). (Last update $(date '+%H:%M:%S'))"
 			fi
 			let count++
 			sleep 1
