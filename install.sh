@@ -118,7 +118,7 @@ function installContinue {
 	mkdir -p "$scriptdir/run" "$scriptdir/users"
 	echo -e "\e[00;32m [OK]\e[00m"
 	echo -n " Checking dependencies files ..."
-	local main_files=("ftpauto.sh" "dependencies/ftp_online_test.sh" "dependencies/ftp_list.sh" "dependencies/ftp_size_management.sh" "dependencies/help.sh" "dependencies/largefile.sh" "dependencies/setup.sh" "dependencies/sorting.sh")
+	local main_files=("ftpauto.sh" "dependencies/ftp_online_test.sh" "dependencies/ftp_list.sh" "dependencies/ftp_size_management.sh" "dependencies/help.sh" "plugins/largefile.sh" "dependencies/setup.sh" "dependencies/sorting.sh")
 	# Confirm all files are present
 	for i in "${main_files[@]}"; do
 		if [[ ! -f "$scriptdir/$i" ]]; then

@@ -75,7 +75,7 @@ function loadDependency {
 		DFtpLogin) LoadPath="$scriptdir/dependencies/ftp_login.sh";;
 		DFtpMain) LoadPath="$scriptdir/dependencies/ftp_main.sh";;
 		DFtpOnlineTest) LoadPath="$scriptdir/dependencies/ftp_online_test.sh";;
-		DLargeFile) LoadPath="$scriptdir/dependencies/largefile.sh";;
+		DLargeFile) LoadPath="$scriptdir/plugins/largefile.sh";;
 		DFtpSizeManagement) LoadPath="$scriptdir/dependencies/ftp_size_management.sh";;
 		DHelp) LoadPath="$scriptdir/dependencies/help.sh";;
 		DPushOver) LoadPath="$scriptdir/plugins/pushover.sh";;
