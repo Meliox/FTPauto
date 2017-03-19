@@ -142,7 +142,7 @@ function ftp_transfere {
 	{
 	cat "$ftplogin_file" >> "$ftptransfere_file"
 	# optional use regexp to exclude files during mirror
-	if [[ -n "${exclude_array[@]}" ]]; then
+	if [[ -n "${#exclude_array[@]}" ]]; then
 		for ((i=0;i<${#exclude_array[@]};i++)); do
 			if [[ $i -gt 0 ]]; then
 				lftp_exclude="$lftp_exclude|"
@@ -153,98 +153,71 @@ function ftp_transfere {
 		echo "set mirror:exclude-regex \"$lftp_exclude\"" >> "$ftptransfere_file"
 		echo "set mirror:no-empty-dirs true" >> "$ftptransfere_file"
 	fi
-	
+	# fail if transfers fails
+	echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 	if [[ $transferetype == "downftp" ]]; then
 		# create final directories if they don't exists
 		echo "!mkdir -p \"$ftpcomplete\"" >> "$ftptransfere_file"
-		echo "!mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
-		# fail if transfers fails
-		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 		# from get_size we know if its a file or a path!
-		if [[ "$transfer_type" == "file" ]]; then
+		if [[ -f "$transfer_type" ]]; then
 			if [[ -n $ftpincomplete ]]; then
-				echo "!mkdir -p \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
-				echo "queue get -c -O \"$ftpincomplete$changed_name\" \"$filepath\"" >> "$ftptransfere_file"
+				echo "!mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
+				echo "queue get -c -O \"$ftpincomplete\" \"$transfer_path\"" >> "$ftptransfere_file"
 			elif [[ -z $ftpincomplete ]]; then
-				echo "queue get -c -O \"$ftpcomplete$orig_name\" \"$filepath\"" >> "$ftptransfere_file"
+				echo "queue get -c -O \"$ftpcomplete\" \"$transfer_path\"" >> "$ftptransfere_file"
 			fi
-			echo "wait" >> "$ftptransfere_file"
-		elif [[ "$transfer_type" == "directory" ]]; then
+		elif [[ -d "$transfer_type"  ]]; then
 			if [[ -n $ftpincomplete ]]; then
-				echo "queue mirror --no-umask -p --parallel=$parallel -c \"$filepath\" \"$ftpincomplete\"" >> "$ftptransfere_file"
+				echo "!mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
+				echo "queue mirror --no-umask -p --parallel=$parallel -c \"$transfer_path\" \"$ftpincomplete\"" >> "$ftptransfere_file"
 			elif [[ -z $ftpincomplete ]]; then
-				echo "queue mirror --no-umask -p --parallel=$parallel -c \"$filepath\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+				echo "queue mirror --no-umask -p --parallel=$parallel -c \"$transfer_path\" \"$ftpcomplete\"" >> "$ftptransfere_file"
 			fi
-			echo "wait" >> "$ftptransfere_file"
 		fi
+		# wait for transferes to finish
+		echo "wait" >> "$ftptransfere_file"
 		# moving part, locally
 		if [[ -n $ftpincomplete ]]; then
-			echo "queue !mv \"$ftpincomplete$filepath\" \"$ftpcomplete\"" >> "$ftptransfere_file"
-		elif [[ -z $ftpincomplete ]]; then
-			echo "queue !mv \"$ftpincomplete$filepath\" \"$ftpcomplete$orig_name\"" >> "$ftptransfere_file"
+			if [[ -f "$filepath" ]]; then
+				echo "queue !mv \"$ftpincomplete${orig_name%.*}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+			elif [[ -d "$filepath" ]]; then
+				echo "queue !mv \"$ftpincomplete$orig_name\" \"$ftpcomplete$orig_name\"" >> "$ftptransfere_file"
+				echo "queue mv \"$ftpincomplete\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+			fi
+			echo "wait" >> "$ftptransfere_file"
 		fi
 		echo "wait" >> "$ftptransfere_file"
 	elif [[ $transferetype == "upftp" ]]; then
-		# create final directories if they don't exists
 		echo "mkdir -p \"$ftpcomplete\"" >> "$ftptransfere_file"
-		echo "mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
 		# handle files for transfer
-		for ((i=0;i<${#filepath[@]};i++)); do
-			if [[ ! -d "${filepath[$i]}" ]]; then
-				# found files
-				if [[ $video_file_to_complete == "true" ]] && [[ $send_option == "true" ]]; then
-					# If file is found in directory rename file to basedirectory
-					echo "set cmd:fail-exit true" >> "$ftptransfere_file"
-					echo "set cmd:queue-parallel $parallel" >> "$ftptransfere_file"
-					if [[ -n "${mountdirnames[$i]}" ]]; then
-						echo "queue put -c -O \"$ftpcomplete\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
-					else
-						echo "queue put -c -O \"$ftpcomplete\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
-					fi
-				else
-					if [[ -n $ftpincomplete ]]; then
-						# make sure that directory only is created once
-						if [[ $i -eq 0 ]]; then
-							echo "mkdir -p \"$ftpincomplete$changed_name\"" >> "$ftptransfere_file"
-							echo "set cmd:fail-exit true" >> "$ftptransfere_file"
-							echo "set cmd:queue-parallel $parallel" >> "$ftptransfere_file"
-						fi
-						# If file is found in directory rename file to basedirectory
-							if [[ -n "${mountdirnames[$i]}" ]]; then
-								echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
-							else
-								echo "queue put -c -O \"$ftpincomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
-							fi
-					elif [[ -z $ftpincomplete ]]; then
-						# If file is found in directory rename file to basedirectory
-						if [[ -n "${mountdirnames[$i]}" ]]; then
-							echo "queue put -c -O \"$ftpcomplete$changed_name\" \"${filepath[$i]}\" -o \"${mountdirnames[$i]}\"" >> "$ftptransfere_file"
-						else
-							echo "queue put -c -O \"$ftpcomplete$changed_name\" \"${filepath[$i]}\"" >> "$ftptransfere_file"
-						fi
-					fi
-				fi
-			else
-				# directories
-				echo "set cmd:fail-exit true" >> "$ftptransfere_file"
-				if [[ -n $ftpincomplete ]]; then
-					echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"${filepath[$i]}\" \"$ftpincomplete\"" >> "$ftptransfere_file"
-				elif [[ -z $ftpincomplete ]]; then
-					echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"${filepath[$i]}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
-				fi
+		if [[ -f "$transfer_path" ]]; then
+			# single file
+			if [[ -n "$ftpincomplete" ]]; then
+				echo "mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
+				echo "queue put -c -O \"$ftpincomplete\" \"$transfer_path\" " >> "$ftptransfere_file"
+			elif [[ -z "$ftpincomplete" ]]; then
+				echo "queue put -c -O \"$ftpcomplete\" \"$transfer_path\" " >> "$ftptransfere_file"
 			fi
-		done
+		elif [[ -d "$transfer_path" ]]; then
+			# directory
+			if [[ -n "$ftpincomplete" ]]; then
+				echo "mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
+				echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"$transfer_path\" \"$ftpincomplete\"" >> "$ftptransfere_file" #needs fixing
+			elif [[ -z "$ftpincomplete" ]]; then
+				echo "queue mirror --no-umask -p --parallel=$parallel -c -R \"$transfer_path\" \"$ftpcomplete\"" >> "$ftptransfere_file" #needs fixing
+			fi			
+		fi
+		# wait for transferes to finish
 		echo "wait" >> "$ftptransfere_file"
-		# moving part, remotely
-		if [[ -n $ftpincomplete ]] && [[ $video_file_to_complete != "true" ]]; then
-			for n in "${changed_name[@]}"; do #using several directories, like in mount
-				if [[ "$n" == "$orig_name" ]]; then
-					echo "queue mv \"$ftpincomplete$n/\" \"$ftpcomplete\"" >> "$ftptransfere_file"
-				else
-					echo "queue mv \"$ftpincomplete$n/\" \"$ftpcomplete$orig_name\"" >> "$ftptransfere_file"
-				fi
-				echo "wait" >> "$ftptransfere_file"
-			done
+		# moving part, remotely, if ftpincomplete directory is used
+		if [[ -n "$ftpincomplete" ]]; then
+			# correction for file and path
+			if [[ -f "$filepath" ]]; then
+				echo "queue mv \"$ftpincomplete${orig_name%.*}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+			elif [[ -d "$filepath" ]]; then
+				echo "queue mv \"$ftpincomplete$orig_name\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+			fi
+			echo "wait" >> "$ftptransfere_file"
 		fi
 	elif [[ $transferetype == "fxp" ]]; then #NOT WORKING
 		ftppath=${filepath##*/ftp/}
@@ -493,15 +466,14 @@ function lockfile {
 function main {
 #setting paths
 filepath="$1"
-orig_path="$filepath"
+transfer_path="$filepath"
 orig_name=$(basename "$filepath")
-# correct for fileextension of file if it is not a directory
-if [[ ! -d "$filepath" ]]; then
-	orig_name=${orig_name%.*}
+# if filepath is a file, correct temppath
+if [[ -f "$filepath" ]]; then
+	tempdir="$scriptdir/run/$username-temp/${orig_name%.*}-temp/"
+elif [[ -d "$filepath" ]]; then
+	tempdir="$scriptdir/run/$username-temp/${orig_name}-temp/"
 fi
-# Use change_name in script as it might change later on (largefile)
-changed_name="$orig_name"
-tempdir="$scriptdir/run/$username-temp/$orig_name/"
 ScriptStartTime=$(date +%s)
 echo "INFO: Process start-time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
 echo "INFO: Preparing transfer: $filepath"

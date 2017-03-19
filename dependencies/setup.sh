@@ -158,21 +158,13 @@ function cleanup {
 		fi
 		if [[ $mount_in_use == "true" ]]; then
 			mountsystem umount
-			if [[ $? -eq 1 ]]; then
-				echo -e "\e[00;33m\nINFO: Umounting failed. Retrying in 10s... \e[00m"
-				sleep 10
-				mountsystem umount
-				if [[ $? -eq 1 ]]; then
-					echo -e "\e[00;33m\nINFO: Umounting failed. Could not umount files (try manually fusermount -u): "${tempmountset[@]}" \e[00m"
-				fi
-			fi
-			unset mount_in_use tempmountset
+			unset mount_in_use
 		fi
 		# removal of all files creates
 		local array=( "$ftplogin_file" "$ftptransfere_file" "$ftp_size_file" "$ftpfreespace_file" "$lftptransfersize" "$lftptransfersize2" "$transfersize" "$proccess_bar_file" "$ftpalive_file" "$ftpcheck_file" "$ftpcheck_testfile" "$ftptransfere_processbar" )
 		removeClean "${array[@]}"
-		# removal tempdir
-		if [[ -d "$tempdir" ]]; then rm -r "$tempdir"; fi;
+		# removal of tempdirs
+		if [[ -d "$scriptdir/run/$username-temp" ]]; then rm -r "$scriptdir/run/$username-temp"; fi;
 		echo -e "INFO: Cleanup done\n"
 	;;
 	"end" ) #use to end script
