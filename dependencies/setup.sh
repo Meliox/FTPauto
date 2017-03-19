@@ -5,7 +5,7 @@ function setup {
 	PATH=$HOME/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 	# programs
 	lftp=$(which lftp)
-	rarfs=$(which rarfs)
+	rar2fs=$(which rar2fs)
 	# paths
 	queue_file="$scriptdir/run/$username.queue"
 	lockfile="$scriptdir/run/$username.lck"

@@ -156,9 +156,9 @@ function installContinue {
 		fi
 	done
 	# for mounting to work
-	echo -n " Checking rarfs ..."
-	if [[ -z $(which rarfs) ]]; then
-		echo -e "\n \"rarfs\" is not installed! It is needed to mount rarfiles in order to only send videofile. The file(s) will be transferred as normally otherwise"
+	echo -n " Checking rar2fs ..."
+	if [[ -z $(which rar2fs) ]]; then
+		echo -e "\n \"rar2fs\" is not installed! It is needed to mount rarfiles in order to only send videofile. The file(s) will be transferred as normally otherwise"
 		read -p " Do you want to install it(needs to be compiled - SLOW)(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
 			sudo apt-get -y install automake1.9 fuse-utils libfuse-dev &> /dev/null
@@ -166,21 +166,17 @@ function installContinue {
 				echo -e "INFO: Could not install program using sudo.\nYou have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\"\n... Exiting\n"; exit 0
 			else
 				cd "$scriptdir/dependencies/"
-				wget https://github.com/vadmium/rarfs/releases/download/0.1.1/rarfs-0.1.1.tar.gz &> /dev/null
-				tar -xzvf rarfs-0.1.1.tar.gz &> /dev/null
-				cd rarfs-0.1.1 && autoreconf --install && ./configure --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
-				rm "$scriptdir/dependencies/rarfs-0.1.1.tar.gz"
-				read -p "Which user would you like to run this program at(no spaces)? "
-				sudo adduser $REPLY fuse &> /dev/null
-				sudo chgrp fuse /dev/fuse &> /dev/null
-				sudo chgrp fuse /dev/fuse &> /dev/null
-				sudo chgrp fuse /bin/fusermount &> /dev/null
-				sudo chmod u+s /bin/fusermount &> /dev/null
+				# get latest stable release of rar2fs
+				var=$(curl -s https://api.github.com/repos/hasse69/rar2fs/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
+				wget -q "$var" -O rar2fs.tar.gz; tar zxf rar2fs.tar.gz; rm rar2fs.tar.gz; cd rar2f*
+				wget -q http://www.rarlab.com/rar/unrarsrc-5.4.5.tar.gz && tar -zxf unrarsrc-5.4.5.tar.gz && rm unrarsrc-5.4.5.tar.gz
+				cd unrar && make lib && sudo make install-lib && cd ..
+				autoreconf -f -i &> /dev/null && ./configure --silent && make --silent && sudo checkinstall -y &> /dev/null
 			fi
 		else
-			echo -e "Checking rarfs ... [\e[00;33mSKIPPED\e[00m] NOTE: \"videofile_only\" will not work"
+			echo -e "Checking rar2fs ... [\e[00;33mSKIPPED\e[00m] NOTE: \"videofile_only\" will not work"
 		fi
-		if [[ -z $(builtin type -p rarfs) ]]; then
+		if [[ -z $(builtin type -p rar2fs) ]]; then
 			echo -e " \e[00;32m [OK]\e[00m"
 		fi
 	else
@@ -251,7 +247,7 @@ function installStart {
 	installContinue
 }
 function uninstall {
-	local programs=("lftp" "nano" "rar" "cksfv" "rarfs" "subversion" "gcc" "build-essential" "ncurses-dev" "readline-common" "pkg-config" "automake" "fuse-utils" "libfuse-dev" "checkinstall" "libreadline-dev" "curl" "openssl")
+	local programs=("lftp" "nano" "rar" "cksfv" "rar2fs" "subversion" "gcc" "build-essential" "ncurses-dev" "readline-common" "pkg-config" "automake" "fuse-utils" "libfuse-dev" "checkinstall" "libreadline-dev" "curl" "openssl")
 	echo "The following will be removed: ${programs[@]}"
 	read -p " Do you want to remove all or one by one(y/n)? "
 	if [[ "$REPLY" == "y" ]]; then
