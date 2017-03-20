@@ -5,7 +5,7 @@ function sortFiles {
 		if [[ "$1" == "nosort" ]]; then
 			echo "INFO: No sorting. Transferring to default complete directory: \"$ftpcomplete\""
 		else
-			ftpcomplete="${ftpcomplete}${1}"
+			ftpcomplete="${ftpcomplete}${1}/"
 			echo "INFO: Sorted to ${ftpcomplete}"
 		fi
 	elif [[ $orig_name =~ (\.(x86|x64|mac|android|iphone)) ]]; then
