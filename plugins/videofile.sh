@@ -97,7 +97,9 @@ function mountsystem {
 						# A new directory is created and all files are symlinked with correct name
 						for n in "${found_files[@]}"; do
 							mkdir -p "$tempdir$orig_name/"
-							ln -s "$n" "$tempdir$orig_name/$(basename "$(dirname "$n")").${n##*.}"
+							directoryname="$(basename "$(dirname "$n")")"
+							directoryname="${directoryname%-rarmount}"
+							ln -s "$n" "$tempdir$orig_name/$directoryname.${n##*.}"
 						done
 						transfer_path="$tempdir$orig_name" # update transfer path
 						get_size "$transfer_path"
