@@ -546,7 +546,7 @@ if [[ "$send_option" == "split" ]]; then
 	fi
 # Try to only send videofile
 elif [[ "$send_option" == "video" ]]; then
-	if [[ -n $(builtin type -p rarfs) ]]; then
+	if [[ -n $(builtin type -p rar2fs) ]]; then
 		if [[ $transferetype == "upftp" ]]; then
 			loadDependency DVideoFile && videoFile
 		elif [[ $transferetype == "downftp" ]]; then
