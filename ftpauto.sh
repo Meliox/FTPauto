@@ -359,7 +359,8 @@ case "${option[0]}" in
 			local percentage="$(sed -n 5p < "$logfile" | cut -d',' -f2 | cut -d' ' -f2)"
 			percentage="${percentage%\%}"
 			local TimeDiff="$(sed -n 5p < "$logfile" | cut -d',' -f3 | cut -d' ' -f3)"
-			local speed="$(sed -n 5p < "$logfile" | cut -d',' -f4 | cut -d' ' -f2)"
+			local Speed="$(sed -n 5p < "$logfile" | cut -d',' -f4 | cut -d' ' -f2)"
+			local SpeedAverage="$(sed -n 5p < "$logfile" | cut -d',' -f6 | cut -d' ' -f2)"
 			local etatime="$(sed -n 5p < "$logfile" | cut -d',' -f5 | cut -d' ' -f3)"
 			if [[ -z "$(sed -n 5p < "$logfile" | grep Transferring)" ]]; then
 				echo "INFO: Nothing is being transferred!"
@@ -374,9 +375,9 @@ case "${option[0]}" in
 			local string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
 			local string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength - 1))"\})"
 			if [[ $percentagebarlength -eq 0 ]]; then
-				printf "\r[$string2]      $percentage%% in ${TimeDiff}@${speed}MB/s (avg). ETA: ${etatime}@${speed}MB/s(current). (Last update $(date '+%H:%M:%S'))"
+				printf "\r[$string2]      (no transfere information yet) ($(date '+%H:%M:%S'))"
 			else
-				printf "\r[$string>$string2]      $percentage%% in ${TimeDiff}@${speed}MB/s (avg). ETA: ${etatime}@${speed}MB/s(current). (Last update $(date '+%H:%M:%S'))"
+				printf "\r[$string>$string2]      $percentage%% ETA ${etatime}@${speed}MB/s. ${TransferredNewMB}MB@${SpeedAverage}MB/s(avg). ($(date '+%H:%M:%S'))"
 			fi
 			let count++
 			sleep 1

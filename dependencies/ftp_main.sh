@@ -333,7 +333,7 @@ function ftp_processbar { #Showing how download is proceeding
 				ProgressTimeNew=$(date +%s)
 				# Get new transferred information
 				TransferredNew=$(cat "$proccess_bar_file" | awk '{print $1}')
-				
+				TransferredNewMB=$(echo $TransferredNew / 1024 | bc)
 				TotalTimeDiff=$(( $ProgressTimeNew - $TransferStartTime ))
 				# calculate data
 				TimeDiff=$(printf '%02dh:%02dm:%02ds' "$(($TotalTimeDiff/(60*60)))" "$((($TotalTimeDiff/60)%60))" "$(($TotalTimeDiff%60))")
@@ -347,7 +347,7 @@ function ftp_processbar { #Showing how download is proceeding
 						
 						# Calculate average speed. Needs to be calculated each time as transfer stops ftp_processbar
 						SpeedOld+=( "$speed" )
-						if [[ "${#SpeedOld[@]}" -gt 1 ]]; then
+						if [[ -n "${#SpeedOld[@]}" ]]; then
 							sum="0"
 							for i in "${SpeedOld[@]}"; do
 								sum=$(echo "( $sum + $i )" | bc)
@@ -358,20 +358,21 @@ function ftp_processbar { #Showing how download is proceeding
 							tput cuu 1;	tput el1
 						fi
 					else
-						speed="x"
+						speed="?"
+						SpeedAverage="?"
 						percentage="0"
-						etatime="Unknown"
+						etatime="?"
 				fi
 				#update file and output the current line
-				sed "5s#.*#***************************	Transferring: ${orig_name}, $percentage%, in $TimeDiff, $speed MB/s(current), ETA: $etatime  #" -i "$logfile"
+				sed "5s#.*#***************************	Transferring: ${orig_name}, $percentage%%, in $TimeDiff, $speed MB/s(current), ETA: $etatime, ${SpeedAverage} MB/s (avg)   #" -i "$logfile"
 				local cols=$(($(tput cols) - 2))
 				local percentagebarlength=$(echo "scale=0; $percentage * $cols / 100" | bc)
 				local string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
 				local string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength - 1))"\})"
 				if [[ $percentagebarlength -eq 0 ]]; then
-					printf "\r[$string2]      $percentage%% in ${TimeDiff}@${speed}MB/s (avg). ETA: ${etatime}@${speed}MB/s(current). (Last update $(date '+%H:%M:%S'))"
+					printf "\r[$string2]      (no transfere information yet) ($(date '+%H:%M:%S'))"
 				else
-					printf "\r[$string>$string2]      $percentage%% in ${TimeDiff}@${speed}MB/s (avg). ETA: ${etatime}@${speed}MB/s(current). (Last update $(date '+%H:%M:%S'))"
+					printf "\r[$string>$string2]      $percentage%% ETA ${etatime}@${speed}MB/s. ${TransferredNewMB}MB@${SpeedAverage}MB/s(avg). ($(date '+%H:%M:%S'))"
 				fi
 			fi
 			# update variables and wait
