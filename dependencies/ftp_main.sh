@@ -452,7 +452,7 @@ function lockfile {
 		mypid_script=$(sed -n 1p "$lockfile")
 		mypid=$(sed -n 2p "$lockfile")
 		alreadyinprogres=$(sed -n 3p "$lockfile")
-		kill -0 $mypid_script
+		kill -0 $mypid_script &> /dev/null
 		if [[ $? -eq 1 ]]; then
 			#Process is not running, continue
 			echo "INFO: No lockfile detected"
