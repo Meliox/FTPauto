@@ -164,13 +164,13 @@ function ftp_transfere {
 		# fail if transfers fails
 		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 		# from get_size we know if its a file or a path!
-		if [[ -f "$transfer_type" ]]; then
+		if [[ $transfer_type = file ]]; then
 			if [[ -n $ftpincomplete ]]; then
 				echo "queue get -c -O \"$ftpincomplete\" \"$transfer_path\"" >> "$ftptransfere_file"
 			elif [[ -z $ftpincomplete ]]; then
 				echo "queue get -c -O \"$ftpcomplete\" \"$transfer_path\"" >> "$ftptransfere_file"
 			fi
-		elif [[ -d "$transfer_type"  ]]; then
+		elif [[ $transfer_type = directory ]]; then
 			if [[ -n $ftpincomplete ]]; then
 				echo "queue mirror --no-umask -p --parallel=$parallel -c \"$transfer_path\" \"$ftpincomplete\"" >> "$ftptransfere_file"
 			elif [[ -z $ftpincomplete ]]; then
@@ -181,9 +181,9 @@ function ftp_transfere {
 		echo "wait" >> "$ftptransfere_file"
 		# moving part, locally
 		if [[ -n $ftpincomplete ]]; then
-			if [[ -f "$filepath" ]]; then
+			if [[ $transfer_type = file ]]; then
 				echo "queue !mv \"$ftpincomplete${orig_name%.*}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
-			elif [[ -d "$filepath" ]]; then
+			elif [[ $transfer_type = directory ]]; then
 				echo "queue !mv \"$ftpincomplete$orig_name\" \"$ftpcomplete$orig_name\"" >> "$ftptransfere_file"
 				echo "queue mv \"$ftpincomplete\" \"$ftpcomplete\"" >> "$ftptransfere_file"
 			fi
@@ -294,20 +294,27 @@ function ftp_processbar { #Showing how download is proceeding
 		sleep 5 #wait for transfer to start
 		if [[ $transferetype == "downftp" ]]; then
 			local transfered_size="du -s \"$ftpincomplete$changed_name\" > \"$proccess_bar_file\""
+			if [[ $transfer_type = file ]]; then
+				echo "du -s \"$ftpincomplete${orig_name%.*}\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
+			elif [[ $transfer_type = directory ]]; then
+				echo "du -s \"$ftpincomplete$orig_name\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
+			fi
 		elif [[ $transferetype == "upftp" ]]; then
 			#Create configfile for lftp processbar
 			cat "$ftplogin_file" >> "$ftptransfere_processbar"
 			# ~ is /home/USER/
-			echo "du -s \"$ftpincomplete$changed_name\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
+			if [[ -f "$filepath" ]]; then
+				echo "du -s \"$ftpincomplete${orig_name%.*}\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
+			elif [[ -d "$filepath" ]]; then
+				echo "du -s \"$ftpincomplete$orig_name\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
+			fi
 			echo "quit" >> "$ftptransfere_processbar"
+		elif [[ $transferetype == "fxp" ]]; then
+			# todo
+			echo "missing"
 		fi
 		{ #run processbar loop
 		while :; do
-			if [[ ${#changed_name[@]} -gt 2 ]]; then
-				echo "INFO: Progress not possible due to a lot of changing files"
-				sed "5s#.*#***************************	Transferring: ${orig_name} - x% in x at x MB/s. ETA: x  #" -i "$logfile"
-				break
-			fi
 			if [[ $transferetype == "downftp" ]]; then
 				eval $transfered_size
 			elif [[ $transferetype == "upftp" ]]; then
