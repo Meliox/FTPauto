@@ -32,13 +32,13 @@ function videoFile {
 				if [[ "${#found_files[@]}" -eq 1 ]] && [[ -d "$filepath" ]]; then
 					# one file is found in a directory
 					# rename file to top directory
-					mkdir -p "$tempdir"
-					ln -s "${found_files[0]}" "$tempdir$(basename "$(dirname "${found_files[0]}")").${found_files[0]##*.}"
+					mkdir -p "$tempdir$orig_name"
+					ln -s "${found_files[0]}" "$tempdir$orig_name/$(basename "$(dirname "${found_files[0]}")").${found_files[0]##*.}"
 				elif [[ "${#found_files[@]}" -gt 1 ]]; then
 					# multiple files found, rename those to top directory
 					for n in "${found_files[@]}"; do
-						mkdir -p "$tempdir"
-						ln -s "$n" "$tempdir$(basename "$n")"
+						mkdir -p "$tempdir$orig_name"
+						ln -s "$n" "$tempdir$orig_name/$(basename "$n")"
 					done
 				fi
 				transfer_path="$tempdir" # update transfer path
