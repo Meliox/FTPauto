@@ -142,9 +142,12 @@ function cleanup {
 		stty sane
 		if [[ "$safelock" != "true" ]]; then 
 			# remove pids and lockfile
-			if [[ -n "$pid_transfer" ]]; then kill -9 $pid_transfer &> /dev/null; fi
-			if [[ -n "$pid_f_process" ]]; then kill -9 $pid_f_process &> /dev/null; fi
-			if [[ -f "$lockfile" ]] && [[ -n $(sed -n '4p' $lockfile) ]]; then kill -9 $(sed -n '4p' $lockfile) &> /dev/null; fi
+			kill $(sed -n '2p' $lockfile) &> /dev/null
+			wait $(sed -n '2p' "$lockfile") 2>/dev/null
+			kill $(sed -n '3p' $lockfile) &> /dev/null
+			wait $(sed -n '3p' "$lockfile") 2>/dev/null
+			kill $(sed -n '4p' $lockfile) &> /dev/null
+			wait $(sed -n '4p' "$lockfile") 2>/dev/null
 			local array=( "$lockfile" )
 			removeClean "${array[@]}"
 			#remove all files created
