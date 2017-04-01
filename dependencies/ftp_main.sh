@@ -129,8 +129,10 @@ case "$1" in
 		TransferEndTime=$(date +%s)
 	;;
 	"stop-process-bar" )
-		kill -9 $(sed -n '3p' $lockfile) &> /dev/null
-		kill -9 $(sed -n '4p' $lockfile) &> /dev/null
+		kill $(sed -n '3p' $lockfile) &> /dev/null
+		wait $(sed -n '3p' "$lockfile") 2>/dev/null
+		kill $(sed -n '4p' $lockfile) &> /dev/null
+		wait $(sed -n '4p' "$lockfile") 2>/dev/null
 	;;
 esac
 }
@@ -267,8 +269,7 @@ function ftp_transfere {
 			echo -e "\e[00;31mERROR: FTP transfer failed for some reason!\e[00m"
 			echo "INFO: Keep trying until $(date --date=@$quittime '+%d/%m/%y-%a-%H:%M:%S')"
 			# ok done, kill processbar
-			kill -9 $(sed -n '3p' "$lockfile") &> /dev/null
-			kill -9 $(sed -n '4p' "$lockfile") &> /dev/null
+			ftp_transfer_process "stop-process-bar"
 			echo -e "\e[00;31mTransfer terminated: $(date '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 			waittime=$(($retry_download*60))
 			echo "INFO: Pausing session and trying again $retry_download"mins" later"
