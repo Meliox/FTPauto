@@ -182,7 +182,7 @@ function ftp_transfere {
 		# moving part, locally
 		if [[ -n $ftpincomplete ]]; then
 			if [[ $transfer_type = file ]]; then
-				echo "queue !mv \"$ftpincomplete${orig_name%.*}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+				echo "queue !mv \"$ftpincomplete${orig_name}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
 			elif [[ $transfer_type = directory ]]; then
 				echo "queue !mv \"$ftpincomplete$orig_name\" \"$ftpcomplete$orig_name\"" >> "$ftptransfere_file"
 				echo "queue mv \"$ftpincomplete\" \"$ftpcomplete\"" >> "$ftptransfere_file"
@@ -219,7 +219,7 @@ function ftp_transfere {
 		if [[ -n "$ftpincomplete" ]]; then
 			# correction for file and path
 			if [[ -f "$filepath" ]]; then
-				echo "queue mv \"$ftpincomplete${orig_name%.*}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+				echo "queue mv \"$ftpincomplete${orig_name}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
 			elif [[ -d "$filepath" ]]; then
 				echo "queue mv \"$ftpincomplete$orig_name\" \"$ftpcomplete\"" >> "$ftptransfere_file"
 			fi
