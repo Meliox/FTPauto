@@ -3,12 +3,12 @@
 FTPauto is a simple, but highly advanced and configurable FTP-client wrap-around written in #Bash for Unix. It is based on [lftp](http://lftp.yar.ru/) and  helps to automate simple transfers - yet FTPauto allows much more.
 
 # Features
-* Send files easily with lftp
+* Send files easily with lftp (To and from FTP, and between serveres - FXP)
 * Highly customizable command line
 * Monitor free space or server status on FTP-server
 * Progressbar with estimated time of transferes
-* Transfer logs
-* Queue system of transfers
+* History (Transfer logs)
+* Queue system of transfers (failed transferes, queue)
 * Packing/splitting directory/files into rar-files. Including sfv to verify files at end-server.
 * Multiple users (different configuration)
 * Delay transfer to start at a specific time
@@ -120,10 +120,9 @@ FTP
 	SERVER --> client   : upftp
 	server <-- CLIENT   : downftp
 FXP
-	SERVER <-> client   : upfxp
-	server <-> CLIENT   : downfxp
+	SERVER <-> server   : fxp
 ```
-The capital letters state where FTPauto is executed and therefor giving the correct path is important. see [example](https://github.com/Meliox/FTPauto#transferetype-example)
+The capital letters state where FTPauto is executed and therefor giving the correct path is important. For FXP transferes ftphost1 is SERVER. For example, see [example](https://github.com/Meliox/FTPauto#transferetype-example)
 
 The rest of the settings should be selfexplanatory. The config can be found here: https://github.com/Meliox/FTPauto/blob/master/dependencies/help.sh#L90.
 
