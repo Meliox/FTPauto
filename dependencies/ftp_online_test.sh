@@ -46,7 +46,7 @@ function writeable_test {
 	# Confirm that path is writeable etc.
 	echo -n "INFO: Checking if set path is writeable..."
 	echo "Testing ftp settings for ftpautodownload" > "$ftpcheck_testfile"
-	cat "$ftplogin_file" >> "$ftpcheck_file"
+	cat "$ftplogin_file1" >> "$ftpcheck_file"
 	echo "put -O \"$ftpincomplete\" \"$ftpcheck_file\"" >> "$ftpcheck_file"
 	echo "rm \"$ftpincomplete$(basename $ftpcheck_file)\"" >> "$ftpcheck_file"
 	echo "quit" >> "$ftpcheck_file"
@@ -56,7 +56,7 @@ function writeable_test {
 function online {
 		echo -n "INFO: Checking if server is alive..."
 		#returns 1 if ftp server is offline, takes up to 1 min!
-		cat "$ftplogin_file" >> $ftpalive_file
+		cat "$ftplogin_file1" >> $ftpalive_file
 		echo "ls" >> $ftpalive_file
 		echo "quit" >> $ftpalive_file
 		$lftp -f "$ftpalive_file" &> /dev/null

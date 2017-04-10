@@ -151,9 +151,9 @@ function load_user {
 		exit 1
 	fi
 	# confirm that config is most recent version
-	if [[ $config_version -lt "5" ]] && [[ $option != "add" ]] && [[ $option != "edit" ]]; then
-		echo -e "\e[00;31mERROR: Config is version 4, please update it to version 5. See --help for more info!\e[00m\n"
-		exit 0
+	if [[ $config_version -ne "6" ]] && [[ $option != "add" ]] && [[ $option != "edit" ]]; then
+		echo -e "\e[00;31mERROR: Please update it to version 6. See --help for more info!\e[00m\n"
+		exit 1
 	fi
 }
 
@@ -329,7 +329,7 @@ case "${option[0]}" in
 		fi
 	;;
 	"online" ) # Perform server test
-		loadDependency DFtpLogin && ftp_login
+		loadDependency DFtpLogin && ftp_login 1
 		loadDependency DFtpOnlineTest && online_test
 		cleanup session
 		if [[ $is_online -eq 0 ]]; then
@@ -339,7 +339,7 @@ case "${option[0]}" in
 		fi
 	;;
 	"freespace" ) # check free space
-		loadDependency DFtpLogin && ftp_login
+		loadDependency DFtpLogin && ftp_login 1
 		loadDependency DFtpSizeManagement && ftp_sizemanagement info
 		cleanup session
 		if [[ $is_online -eq 1 ]]; then

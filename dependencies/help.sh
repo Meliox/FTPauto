@@ -91,7 +91,7 @@ function show_example {
 #shows an example for configuration
 	echo
 	echo	"#This the the configuration file for FTPauto"
-	echo	"config_version=\"5\""
+	echo	"config_version=\"6\""
 	echo	"#Place the file in $scriptdir/run/'$username'/config and load with --user='$username'"
 	echo
 	echo	"#HOWTO: Edit the info between the qoutes \"TEST\", here the word TEST"
@@ -106,11 +106,12 @@ function show_example {
 	echo	""
 	echo	"#### DOWN/UP MODE ####"
 	echo	" # If you just want to send/receive items, change these"
-	echo	"ftpuser=\"user\" # username"
-	echo	"ftppass=\"pass\" # password"
-	echo	"ftphost=\"ip\" # ip address for ftp server"
-	echo	"ftpport=\"port\" # ftp port"
-	echo	"ssl=\"false\" # Set to true to use ftps else set it to false"
+	echo	"ftpuser1=\"user\" # username"
+	echo	"ftppass1=\"pass\" # password"
+	echo	"ftphost1=\"ip\" # ip address for ftp server"
+	echo	"ftpport1=\"port\" # ftp port"
+	echo	"ftpssl1=\"false\" # Set to true to use ftps else set it to false"
+	echo	"ftpcustom1=\"\" # Enter settings separated by ';', eg. set cache:expire 1; set cache:size 2"
 	echo	""
 	echo	"#### FXP MODE ####"
 	echo	" # If you just want to send/receive items from one server to another, change these also!"
@@ -118,7 +119,8 @@ function show_example {
 	echo	"ftppass2=\"pass\" # password"
 	echo	"ftphost2=\"ip\" # ip address for ftp server"
 	echo	"ftpport2=\"port\" # ftp port"
-	echo	"ssl2=\"false\" # use ftps or not"
+	echo	"ftpssl2=\"false\" # use ftps or not"
+	echo	"ftpcustom2=\"\" # Enter settings separated by ';', eg. set cache:expire 1; set cache:size 2"
 	echo
 	echo	"#### Log settings ###"
 	echo	"logrotate=\"false\" #enabled logrotating to move old to log.old"

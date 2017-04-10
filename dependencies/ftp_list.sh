@@ -65,8 +65,8 @@ function ftp_list {
 function get_content {
 	# remove old file first
 	rm -f "$ftplist_file"
-	loadDependency DFtpLogin && ftp_login # we need to generate a new each time as download removes it
-	cat "$ftplogin_file" >> "$ftplist_file"
+	loadDependency DFtpLogin && ftp_login 1 # we need to generate a new each time as download removes it
+	cat "$ftplogin_file1" >> "$ftplist_file"
 	echo "ls -aFl "$dir" > ~/../..$ftp_content" >> "$ftplist_file"
 	echo "quit" >> "$ftplist_file"
 	$lftp -f "$ftplist_file" &> /dev/null
@@ -93,5 +93,5 @@ function get_content {
 	# cleanup
 	rm -f "$ftplist_file"
 	rm -f "$ftp_content"
-	rm -f "$ftplogin_file"
+	rm -f "$ftplogin_file1"
 }

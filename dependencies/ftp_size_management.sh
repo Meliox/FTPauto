@@ -2,7 +2,7 @@
 function ftp_sizemanagement { #checking if freespace is sufficient before filetransfer, show ftpspace used
 	if [[ $test_mode != "true" ]]; then
 		local mode=$1
-		cat "$ftplogin_file" >> "$ftpfreespace_file"
+		cat "$ftplogin_file1" >> "$ftpfreespace_file"
 		echo "du -s $ftpincomplete > ~/../../$ftp_size_file" >> "$ftpfreespace_file"
 		echo "wait" >> "$ftpfreespace_file"
 		echo "du -s $ftpcomplete > ~/../../$ftp_size_file" >> "$ftpfreespace_file"

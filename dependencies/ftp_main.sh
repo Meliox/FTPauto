@@ -155,7 +155,10 @@ function ftp_transfere {
 		echo "set mirror:exclude-regex \"$lftp_exclude\"" >> "$ftptransfere_file"
 		echo "set mirror:no-empty-dirs true" >> "$ftptransfere_file"
 	fi
+	
 	if [[ $transferetype == "downftp" ]]; then
+	{
+		cat "$ftplogin_file1" >> "$ftptransfere_file"
 		# create final directories if they don't exists
 		echo "!mkdir -p \"$ftpcomplete\"" >> "$ftptransfere_file"
 		if [[ -n $ftpincomplete ]]; then
@@ -191,7 +194,9 @@ function ftp_transfere {
 		fi
 		echo "wait" >> "$ftptransfere_file"
 	elif [[ $transferetype == "upftp" ]]; then
-		echo "mkdir -p \"$ftpcomplete\"" >> "$ftptransfere_file"
+	{
+		cat "$ftplogin_file1" >> "$ftptransfere_file"
+		echo "mkdir -p \"${ftpcomplete}\"" >> "$ftptransfere_file"
 		# handle files for transfer
 		if [[ -n $ftpincomplete ]]; then
 			echo "mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
@@ -301,7 +306,7 @@ function ftp_processbar { #Showing how download is proceeding
 			fi
 		elif [[ $transferetype == "upftp" ]]; then
 			#Create configfile for lftp processbar
-			cat "$ftplogin_file" >> "$ftptransfere_processbar"
+			cat "$ftplogin_file1" >> "$ftptransfere_processbar"
 			# ~ is /home/USER/
 			if [[ -f "$filepath" ]]; then
 				echo "du -s \"$ftpincomplete${orig_name%.*}\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
@@ -513,13 +518,12 @@ if [[ -n "$exec_pre" ]]; then
 fi
 
 #Prepare login
-loadDependency DFtpLogin && ftp_login
+loadDependency DFtpLogin && ftp_login 1
 
 #confirm server is online
 if [[ $confirm_online == "true" ]]; then
 	loadDependency DFtpOnlineTest && online_test
 fi
-
 
 #Check if enough free space on ftp
 if [[ "$ftpsizemanagement" == "true" ]]; then
