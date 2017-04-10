@@ -6,7 +6,7 @@ function videoFile {
 		echo "INFO: Single file passed (not compressed). Continuing..."
 	elif [[ -f "$filepath" ]] && [[ "$filepath" =~ (\.(rar)$) ]]; then
 		# a single rar file is passed investigate using rar mount
-		echo "INFO: Single rar file passed. Looking inside rarfile(s) for videofile(s)..."
+		echo "INFO: A rar file is passed. Looking inside rarfile for videofile(s)..."
 		echo -e "\e[00;33mINFO: Size calculations may be incorrect.\e[00m"
 		mountsystem mount
 	elif [[ -d "$filepath" ]]; then
@@ -107,7 +107,7 @@ function mountsystem {
 						echo -e "\e[00;33mINFO: No large videofile(s) found (> 80% of total size).\e[00m"
 					fi
 				else
-					echo -e "\e[00;33mINFO: No videofile(s) found inside rarfile(s).\e[00m"
+					echo -e "\e[00;33mINFO: No videofile(s) found inside rarfile(s). File(s) will be transferred instead.\e[00m"
 				fi
 			else
 				echo -e "\e[00;33mINFO: No rarfile(s) are found in path.\e[00m"

@@ -100,7 +100,11 @@ function get_size {
 			size=$(cat "$transfersize" | awk '{print $1}')
 		fi
 		size=$(echo "scale=2; "$size" / (1024*1024)" | bc)
-		echo "INFO: Size to transfere: ${size}MB"
+		if [[ ${#exclude_array[@]} -eq 0 ]]; then
+			echo "INFO: Size to transfere: ${size}MB"
+		else
+			echo "INFO: Size to transfere(regex used): ${size}MB"
+		fi
 		cleanup session
 	elif [[ "$transferetype" == upftp ]]; then
 		# look up directory or file size locally
@@ -122,7 +126,7 @@ function get_size {
 			exclude_expression="${exclude_expression[@]}"
 			sizeBytes=$(find -L "$dir" \! \( $exclude_expression \) -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}') # in bytes
 			size=$(echo "scale=2; $sizeBytes / (1024*1024)" | bc)
-			echo "INFO: Updated size to transfere(filter used): ${size}MB"
+			echo "INFO: Updated size to transfere(regex used): ${size}MB"
 		fi
 	fi
 }
