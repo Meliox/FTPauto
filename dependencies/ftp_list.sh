@@ -10,7 +10,7 @@ function ftp_list {
 		# make sure number is inserted
 		while ! [[ "$REPLY" =~ [0-9] ]] && [[ $REPLY != "x" ]]; do
 			read -p " Enter number to expand directory or download by also adding a \"d\", fx. 1d ? (x to exit) "
-		done			
+		done
 		number=$REPLY
 		if [[ "$number" == "x" ]]; then
 			break
@@ -49,7 +49,6 @@ function ftp_list {
 			continue
 		fi
 	done
-	
 	# Ask to start transfer if something is in queue
 	if [[ -e "$queue_file" ]]; then
 		read -p " Do you want to start the download (y/n)? "
@@ -67,7 +66,7 @@ function get_content {
 	rm -f "$ftplist_file"
 	loadDependency DFtpLogin && ftp_login 1 # we need to generate a new each time as download removes it
 	cat "$ftplogin_file1" >> "$ftplist_file"
-	echo "ls -aFl "$dir" > ~/../..$ftp_content" >> "$ftplist_file"
+	echo "ls -aFl \"${dir}\" > ~/../..$ftp_content" >> "$ftplist_file"
 	echo "quit" >> "$ftplist_file"
 	$lftp -f "$ftplist_file" &> /dev/null
 	if [[ $? -eq 0 ]]; then

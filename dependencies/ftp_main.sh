@@ -1,6 +1,6 @@
 #!/bin/bash
 function delay {
-# if --delay is set, wait until it ends. If start/end time is set in config use them. Delay overrules everything
+	# if --delay is set, wait until it ends. If start/end time is set in config use them. Delay overrules everything
 	local current_epoch target_epoch sleep_seconds timediff
 	if [[ -n $delay ]]; then
 		current_epoch=$(date +%s)
@@ -26,6 +26,7 @@ function delay {
 }
 
 function countdown {
+	# calculate and show countdown in display
 	local OLD_IFS arr seconds start end cur left IFS
 	OLD_IFS="${IFS}"
 	IFS=":"
@@ -46,109 +47,117 @@ function countdown {
 }
 
 function queue {
-# queuesystem. If something already is running for the user, add it to queue.
+	# queuesystem. If something already is running for the user, add it to queue.
 	local option i old_id
 	option=$2
 	case "$1" in
 		"add" )
-			if [[ $queue_running == true ]]; then
-				# task has been started from queue, no need to add it
-				true
+		if [[ $queue_running == true ]]; then
+			# task has been started from queue, no need to add it
+			true
+		else
+			# figure out ID
+			id_old=$id
+			if [[ -e "$queue_file" ]]; then
+				#get last id
+				id=$(( $(tail -1 "$queue_file" | cut -d'|' -f1) + 1 ))
 			else
-				# figure out ID
-				id_old=$id
-				if [[ -e "$queue_file" ]]; then
-					#get last id
-					id=$(( $(tail -1 "$queue_file" | cut -d'|' -f1) + 1 ))
-				else
-					#assume this is the first one
-					id="1"
-				fi
-				get_size "$filepath" &> /dev/null
-				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep "$filepath") ]] && [[ -z $option ]]; then
-					echo -e "INFO: Item already in queue. Doing nothing...\n"
-					exit 0
-				elif [[ "$option" == failed ]]; then
-					failed="true"
-					# remove ID from queue
-					sed "/^"$id_old"/d" -i "$queue_file"
-					echo "$id|$source|$filepath|$sortto|${size}MB|true|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-					echo -e "\e[00;33mINFO: Failing item: $(basename "$filepath")\e[00m"
-				elif [[ "$option" == end ]]; then
-					source="${source}Q"
-					echo "$id|$source|$filepath|$sortto|${size}MB|false|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-					echo -e "INFO: Queueing: $(basename "$filepath"), id=$id\n"
-					exit 0
-				else
-					echo "INFO: Queueid: $id"
-					echo "$id|$source|$filepath|$sortto|${size}MB|false|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-				fi
+				#assume this is the first one
+				id="1"
 			fi
+			get_size "$filepath" &> /dev/null
+			if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep "$filepath") ]] && [[ -z $option ]]; then
+				# passing an item which is already in queue, do nothing
+				echo -e "INFO: Item already in queue. Doing nothing...\n"
+				exit 0
+			elif [[ "$option" == failed ]]; then
+				# passing a failed item, remove it, and add it with the status failed
+				failed="true"
+				# remove ID from queue
+				sed "/^"$id_old"/d" -i "$queue_file"
+				echo "$id|$source|$filepath|$sortto|${size}MB|true|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+				echo -e "\e[00;33mINFO: Failing item: $(basename "$filepath")\e[00m"
+			elif [[ "$option" == end ]]; then
+				# passed item should only be queued, then exit
+				source="${source}Q"
+				echo "$id|$source|$filepath|$sortto|${size}MB|false|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+				echo -e "INFO: Queueing: $(basename "$filepath"), id=$id\n"
+				exit 0
+			else
+				# passed item should be queued, e.g. when something already is being transferred
+				echo "INFO: Queueid: $id"
+				echo "$id|$source|$filepath|$sortto|${size}MB|false|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+			fi
+		fi
 		;;
 		"remove" )
-			#remove item according to id
-			sed "/^"$id"/d" -i "$queue_file"
-			# if queue is true then continue to run else stop
-			if [[ $continue_queue == true ]]; then
-				queue next
-			else
-				cleanup end
-			fi
+		#remove item according to id
+		sed "/^"$id"/d" -i "$queue_file"
+		# if queue is true then continue to run else stop
+		if [[ $continue_queue == true ]]; then
+			queue next
+		else
+			cleanup end
+		fi
 		;;
 		"next" )
-			# Process next item in queue from top
-			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
-				i="1"
-				failed="true"
-				# look for non failed items
-				while [[ $failed == true ]]; do
-					# load next item from top
-					id=$(awk 'BEGIN{FS="|";OFS=" "}NR==$i{print $1}' "$queue_file")
-					# check if ID has failed
-					failed=$(awk 'BEGIN{FS="|";OFS=" "}NR==$i{print $6}' "$queue_file")
-					let i++
-				done
-				if [[ $failed == false ]]; then
-					source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $2}' "$queue_file")
-					filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $3}' "$queue_file")
-					sort=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $4}' "$queue_file")
-					# execute main script again
-					queue_running="true"
-					if [[ -f "$lockfile" ]]; then
-						# ensure that lockfile isn't created running queue
-						lockfileRunning="true"
-					fi
-					echo "---------------------- Running queue ----------------------"
-					echo "Transfering id=$id, $(basename "$filepath")"
-					start_main --path="$filepath" --user="$username" --sortto="$sort"
-				else
-					echo "---------------------- Failed queue -----------------------"
-					while read line; do
-						id=$(echo $line | cut -d'|' -f1)
-						source=$(echo $line | cut -d'|' -f2)
-						path=$(echo $line | cut -d'|' -f3)
-						sort=$(echo $line | cut -d'|' -f4)
-						size=$(echo $line | cut -d'|' -f5)
-						time=$(echo $line | cut -d'|' -f7)
-						echo "ID|PATH|SORT TO|SIZE(MB)|TIME"
-						echo "$id|$source|$path|$sort|$size|$time"
-					done < "$queue_file"
-					echo -e "\nINFO: Queue does not contain non failed items. Program will end\n"
-					cleanup end
-					exit 1
+		# Process next item in queue from top
+		if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
+			i="1"
+			failed="true"
+			# look for non failed items
+			while [[ $failed == true ]]; do
+				# load next item from top
+				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==$i{print $1}' "$queue_file")
+				# check if ID has failed
+				failed=$(awk 'BEGIN{FS="|";OFS=" "}NR==$i{print $6}' "$queue_file")
+				let i++
+			done
+			if [[ $failed == false ]]; then
+				# found a non failed item, which will be downloaded
+				source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $2}' "$queue_file")
+				filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $3}' "$queue_file")
+				sort=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $4}' "$queue_file")
+				# execute main script again
+				queue_running="true"
+				if [[ -f "$lockfile" ]]; then
+					# ensure that lockfile isn't created running queue
+					lockfileRunning="true"
 				fi
+				echo "---------------------- Running queue ----------------------"
+				echo "Transfering id=$id, $(basename "$filepath")"
+				start_main --path="$filepath" --user="$username" --sortto="$sort"
 			else
-				echo "----------------------- Empty queue -----------------------"
-				if [[ -f "$queue_file" ]]; then rm "$queue_file"; fi
-				echo -e "INFO: Queue is empty. Program will end\n"
+				# all items in the queue are marked as failed, e.g. nothing to transfer
+				echo "---------------------- Failed queue -----------------------"
+				while read line; do
+					id=$(echo $line | cut -d'|' -f1)
+					source=$(echo $line | cut -d'|' -f2)
+					path=$(echo $line | cut -d'|' -f3)
+					sort=$(echo $line | cut -d'|' -f4)
+					size=$(echo $line | cut -d'|' -f5)
+					time=$(echo $line | cut -d'|' -f7)
+					echo "ID|PATH|SORT TO|SIZE(MB)|TIME"
+					echo "$id|$source|$path|$sort|$size|$time"
+				done < "$queue_file"
+				echo -e "\nINFO: Queue does not contain non failed items. Program will end\n"
 				cleanup end
-				exit 0
+				exit 1
 			fi
+		else
+			# no queuefile found, e.g. nothing to transfer
+			echo "----------------------- Empty queue -----------------------"
+			if [[ -f "$queue_file" ]]; then rm "$queue_file"; fi
+			echo -e "INFO: Queue is empty. Program will end\n"
+			cleanup end
+			exit 0
+		fi
 		;;
 	esac
 }
 
 function ftp_transfer_process {
+	# used to start and stop the lftp transfer and progressbar
 	local pid_f_process
 	case "$1" in
 		"start" ) #start progressbar and transfer
@@ -189,8 +198,8 @@ function ftp_transfere {
 		echo "set mirror:exclude-regex \"$lftp_exclude\"" >> "$ftptransfere_file"
 		echo "set mirror:no-empty-dirs true" >> "$ftptransfere_file"
 	fi
-	
 	if [[ $transferetype == "downftp" ]]; then
+	# handle lftp transfere for downftp
 	{
 		cat "$ftplogin_file1" >> "$ftptransfere_file"
 		# create final directories if they don't exists
@@ -228,6 +237,7 @@ function ftp_transfere {
 		echo "wait" >> "$ftptransfere_file"
 	}
 	elif [[ $transferetype == "upftp" ]]; then
+	# handle lftp transfere for upftp
 	{
 		cat "$ftplogin_file1" >> "$ftptransfere_file"
 		echo "mkdir -p \"${ftpcomplete}\"" >> "$ftptransfere_file"
@@ -266,6 +276,7 @@ function ftp_transfere {
 		fi
 	}
 	elif [[ $transferetype == "fxp" ]]; then
+		# handle lftp transfere for fxp
 		ftp_login 2
 		cat "$ftplogin_file2" >> "$ftptransfere_file"
 		# first login and create final directories if they don't exists on ftphost2
@@ -415,8 +426,7 @@ function ftp_processbar { #Showing how download is proceeding
 					percentage=$(echo $percentage | sed 's/\(.*\)../\1/')
 					speed=$(echo "scale=2; ( ($TransferredNew - $TransferredOld) / 1024 ) / ( $ProgressTimeNew - $ProgressTimeOld )" | bc) # MB/s
 					eta=$(echo "( ($sizeBytes / 1024 ) - $TransferredNew ) / ($speed * 1024 )" | bc)
-					etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))")
-					
+					etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))"
 					# Calculate average speed. Needs to be calculated each time as transfer stops ftp_processbar
 					SpeedOld+=( "$speed" )
 					if [[ -n "${#SpeedOld[@]}" ]]; then
@@ -542,193 +552,190 @@ function lockfile {
 }
 
 function main {
-#setting paths
-filepath="$1"
-transfer_path="$filepath"
-orig_name=$(basename "$filepath")
-# if filepath is a file, correct temppath
-if [[ -f "$filepath" ]]; then
-	tempdir="$scriptdir/run/$username-temp/${orig_name%.*}-temp/"
-elif [[ -d "$filepath" ]]; then
-	tempdir="$scriptdir/run/$username-temp/${orig_name}-temp/"
-fi
-ScriptStartTime=$(date +%s)
-echo "INFO: Process start-time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
-echo "INFO: Preparing transfer: $filepath"
-echo "INFO: Lunched from: $source"
-
-#add to queue file, to get ID initialized
-queue add
-
-echo "INFO: Simultaneous transfers: $parallel"
-
-#Checking transferesize
-get_size "$filepath"
-
-#Execute preexternal command
-if [[ -n "$exec_pre" ]]; then
-	if [[ $test_mode != "true" ]]; then
-		echo "INFO: Executing external command - START"
-		echo "      $exec_pre"
-		eval "$exec_pre" | (while read; do echo "      $REPLY"; done)
-	else
-		echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_pre\"\e[00m"
+	#setting paths
+	filepath="$1"
+	transfer_path="$filepath"
+	orig_name=$(basename "$filepath")
+	# if filepath is a file, correct temppath
+	if [[ -f "$filepath" ]]; then
+		tempdir="$scriptdir/run/$username-temp/${orig_name%.*}-temp/"
+	elif [[ -d "$filepath" ]]; then
+		tempdir="$scriptdir/run/$username-temp/${orig_name}-temp/"
 	fi
-	echo "INFO: Executing external command - ENDED"
-fi
+	ScriptStartTime=$(date +%s)
+	echo "INFO: Process start-time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
+	echo "INFO: Preparing transfer: $filepath"
+	echo "INFO: Lunched from: $source"
 
-#Prepare login
-loadDependency DFtpLogin && ftp_login 1
-
-#confirm server is online
-if [[ $confirm_online == "true" ]]; then
-	loadDependency DFtpOnlineTest && online_test
-fi
-
-#Check if enough free space on ftp
-if [[ "$ftpsizemanagement" == "true" ]]; then
-	if [[ $transferetype == "upftp" ]]; then
-		loadDependency DFtpSizeManagement && ftp_sizemanagement check
-	elif [[ $transferetype == "downftp" ]]; then
-		freesize=$(( $(df -P "$ftpincomplete" | tail -1 | awk '{ print $3}') / (1024*1024) ))
-		freespaceneeded="$size"
-		while [[ "$freesize" -lt "$freespaceneeded" ]]; do
-			echo "INFO: Not enough free space"
-			echo "INFO: Trying again in 1 min"
-			sleep 60
-			# recalculate free space
-			freesize=$(( $(df -P "$ftpincomplete" | tail -1 | awk '{ print $3}') / (1024*1024) ))
-		done
-	fi
-fi
-
-## Sendoption
-echo "INFO: Sendoption: $send_option"
-#Is largest file too large
-if [[ "$send_option" == "split" ]]; then
-	if [[ -n $(builtin type -p rar) ]] || [[ -n $(builtin type -p cksfv) ]]; then
-		if [[ $transferetype == "upftp" ]]; then
-			loadDependency DLargeFile && largefile "$filepath" "exclude_array[@]"
-		elif [[ $transferetype == "downftp" ]]; then
-			echo -e "\e[00;33mERROR: send_option=split is not supported in mode=$transferetype. Exiting ...\e[00m"
-			cleanup session; cleanup end
-			echo -e "INFO: Program has ended\n"
-			exit 1
-		fi
-	else
-		echo -e "\e[00;33mERROR: send_option=split is not supported as rar or cksfv is missing. Exiting ...\e[00m"
-		cleanup session; cleanup end
-		echo -e "INFO: Program has ended\n"
-		exit 1
-	fi
-# Try to only send videofile
-elif [[ "$send_option" == "video" ]]; then
-	if [[ -n $(builtin type -p rar2fs) ]]; then
-		if [[ $transferetype == "upftp" ]]; then
-			loadDependency DVideoFile && videoFile
-		elif [[ $transferetype == "downftp" ]]; then
-			echo -e "\e[00;33mERROR: send_option=video is not supported in mode=$transferetype. Exiting ...\e[00m"
-			cleanup session; cleanup end
-			echo -e "INFO: Program has ended\n"
-			exit 1
-		fi
-	else
-		echo -e "\e[00;33mERROR: send_option=video is not supported as rarfs is missing. Exiting ...\e[00m"
-		cleanup session; cleanup end
-		echo -e "INFO: Program has ended\n"
-		exit 1
-	fi
-fi
-
-# Try to sort files
-if [[ "$sort" == "true" ]] || [[ -n "$sortto" ]]; then
-	loadDependency DSort && sortFiles "$sortto"
-fi
-
-# Delay transfer if needed
-delay
-
-# Transfer files
-ftp_transfere
-
-# Checking for remaining space
-if [[ "$ftpsizemanagement" == "true" ]] && [[ $failed != true ]]; then
-	ftp_sizemanagement info # already loaded previously
-fi
-
-# Update logfile
-if [[ $failed != true ]]; then
-	logrotate
-fi
-
-# Clean up current session
-cleanup session
-
-#send push notification
-if [[ -n $push_user ]]; then
-	if [[ $test_mode ]]; then
-		echo -e "\e[00;31mTESTMODE: Would send notification \""$orig_name" "Sendoption=$send_option Size=$size MB Time=$transferTime2 Average speed=$SpeedAverage MB/s Path=$ftpcomplete"\" to token=$push_token and user=$push_user \e[00m"
-	elif [[ $failed == true ]]; then
-		loadDependency DPushOver && Pushover "Failed: $orig_name" "Sendoption:        $send_option
-Size:                     $size MB
-Time:                   $transferTime2
-Average speed: $SpeedAverage MB/s
-Path:                    $ftpcomplete"
-	else
-	loadDependency DPushOver && Pushover "$orig_name" "Sendoption:        $send_option
-Size:                     $size MB
-Time:                   $transferTime2
-Average speed: $SpeedAverage MB/s
-Path:                    $ftpcomplete"
-	fi
-fi
-
-#Execute external command
-if [[ -n $exec_post ]] && [[ $failed != true ]]; then
-	if [[ $test_mode != "true" ]]; then
-		if [[ $allow_background == "true" ]]; then
-			echo "INFO: Executing external command(In background) - START"
-			echo "      $exec_post"
-			eval $exec_post &
+	#add to queue file, to get ID initialized
+	queue add
+	echo "INFO: Simultaneous transfers: $parallel"
+	#Checking transferesize
+	get_size "$filepath"
+	#Execute preexternal command
+	if [[ -n "$exec_pre" ]]; then
+		if [[ $test_mode != "true" ]]; then
+			echo "INFO: Executing external command - START"
+			echo "      $exec_pre"
+			eval "$exec_pre" | (while read; do echo "      $REPLY"; done)
 		else
-			echo "INFO: Executing external command - START:"
-			echo "      $exec_post"
-			eval $exec_post | (while read; do echo "      $REPLY"; done)
-			echo "INFO: Executing external command - ENDED"
+			echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_pre\"\e[00m"
 		fi
-	else
-		echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_post\"\e[00m"
+	echo "INFO: Executing external command - ENDED"
 	fi
-fi
 
-# final
-ScriptEndTime=$(date +%s)
-TotalTransferTime=$(( $ScriptEndTime - $ScriptStartTime ))
-if [[ $failed == true ]]; then
-	echo -e "\e[00;37mINFO: \e[00;31mTransfere failed\e[00m"
-else
-	echo -e "\e[00;37mINFO: \e[00;32mTransfere finished\e[00m"
-fi
-echo "                       Name: $orig_name"
-echo "                       Size: $size MB"
-echo "                      Speed: $SpeedAverage MB/s"
-echo "              Transfer time: $transferTime2"
-echo "                 Start time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
-echo "                   End time: $(date --date=@$ScriptEndTime '+%d/%m/%y-%a-%H:%M:%S')"
-echo "                 Total time: $(printf '%02dh:%02dm:%02ds' "$(($TotalTransferTime/(60*60)))" "$((($TotalTransferTime/60)%60))" "$(($TotalTransferTime%60))")"
+	#Prepare login
+	loadDependency DFtpLogin && ftp_login 1
 
-# Remove finished one
-if [[ $failed != true ]]; then
-	queue remove
-fi
-# Run queue
-queue next
+	#confirm server is online
+	if [[ $confirm_online == "true" ]]; then
+		loadDependency DFtpOnlineTest && online_test
+	fi
+
+	#Check if enough free space on ftp
+	if [[ "$ftpsizemanagement" == "true" ]]; then
+		if [[ $transferetype == "upftp" ]]; then
+			loadDependency DFtpSizeManagement && ftp_sizemanagement check
+		elif [[ $transferetype == "downftp" ]]; then
+			freesize=$(( $(df -P "$ftpincomplete" | tail -1 | awk '{ print $3}') / (1024*1024) ))
+			freespaceneeded="$size"
+			while [[ "$freesize" -lt "$freespaceneeded" ]]; do
+				echo "INFO: Not enough free space"
+				echo "INFO: Trying again in 1 min"
+				sleep 60
+				# recalculate free space
+				freesize=$(( $(df -P "$ftpincomplete" | tail -1 | awk '{ print $3}') / (1024*1024) ))
+			done
+		fi
+	fi
+
+	## Sendoption
+	echo "INFO: Sendoption: $send_option"
+	#Is largest file too large
+	if [[ "$send_option" == "split" ]]; then
+		if [[ -n $(builtin type -p rar) ]] || [[ -n $(builtin type -p cksfv) ]]; then
+			if [[ $transferetype == "upftp" ]]; then
+				loadDependency DLargeFile && largefile "$filepath" "exclude_array[@]"
+			elif [[ $transferetype == "downftp" ]]; then
+				echo -e "\e[00;33mERROR: send_option=split is not supported in mode=$transferetype. Exiting ...\e[00m"
+				cleanup session; cleanup end
+				echo -e "INFO: Program has ended\n"
+				exit 1
+			fi
+		else
+			echo -e "\e[00;33mERROR: send_option=split is not supported as rar or cksfv is missing. Exiting ...\e[00m"
+			cleanup session; cleanup end
+			echo -e "INFO: Program has ended\n"
+			exit 1
+		fi
+	# Try to only send videofile
+	elif [[ "$send_option" == "video" ]]; then
+		if [[ -n $(builtin type -p rar2fs) ]]; then
+			if [[ $transferetype == "upftp" ]]; then
+				loadDependency DVideoFile && videoFile
+			elif [[ $transferetype == "downftp" ]]; then
+				echo -e "\e[00;33mERROR: send_option=video is not supported in mode=$transferetype. Exiting ...\e[00m"
+				cleanup session; cleanup end
+				echo -e "INFO: Program has ended\n"
+				exit 1
+			fi
+		else
+			echo -e "\e[00;33mERROR: send_option=video is not supported as rarfs is missing. Exiting ...\e[00m"
+			cleanup session; cleanup end
+			echo -e "INFO: Program has ended\n"
+			exit 1
+		fi
+	fi
+
+	# Try to sort files
+	if [[ "$sort" == "true" ]] || [[ -n "$sortto" ]]; then
+		loadDependency DSort && sortFiles "$sortto"
+	fi
+
+	# Delay transfer if needed
+	delay
+
+	# Transfer files
+	ftp_transfere
+
+	# Checking for remaining space
+	if [[ "$ftpsizemanagement" == "true" ]] && [[ $failed != true ]]; then
+		ftp_sizemanagement info # already loaded previously
+	fi
+
+	# Update logfile
+	if [[ $failed != true ]]; then
+		logrotate
+	fi
+
+	# Clean up current session
+	cleanup session
+
+	#send push notification
+	if [[ -n $push_user ]]; then
+		if [[ $test_mode ]]; then
+			echo -e "\e[00;31mTESTMODE: Would send notification \""$orig_name" "Sendoption=$send_option Size=$size MB Time=$transferTime2 Average speed=$SpeedAverage MB/s Path=$ftpcomplete"\" to token=$push_token and user=$push_user \e[00m"
+		elif [[ $failed == true ]]; then
+			loadDependency DPushOver && Pushover "Failed: $orig_name" "Sendoption:        $send_option
+Size:                     $size MB
+Time:                   $transferTime2
+Average speed: $SpeedAverage MB/s
+Path:                    $ftpcomplete"
+		else
+		loadDependency DPushOver && Pushover "$orig_name" "Sendoption:        $send_option
+Size:                     $size MB
+Time:                   $transferTime2
+Average speed: $SpeedAverage MB/s
+Path:                    $ftpcomplete"
+		fi
+	fi
+
+	#Execute external command
+	if [[ -n $exec_post ]] && [[ $failed != true ]]; then
+		if [[ $test_mode != "true" ]]; then
+			if [[ $allow_background == "true" ]]; then
+				echo "INFO: Executing external command(In background) - START"
+				echo "      $exec_post"
+				eval $exec_post &
+			else
+				echo "INFO: Executing external command - START:"
+				echo "      $exec_post"
+				eval $exec_post | (while read; do echo "      $REPLY"; done)
+				echo "INFO: Executing external command - ENDED"
+			fi
+		else
+			echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_post\"\e[00m"
+		fi
+	fi
+
+	# final
+	ScriptEndTime=$(date +%s)
+	TotalTransferTime=$(( $ScriptEndTime - $ScriptStartTime ))
+	if [[ $failed == true ]]; then
+		echo -e "\e[00;37mINFO: \e[00;31mTransfere failed\e[00m"
+	else
+		echo -e "\e[00;37mINFO: \e[00;32mTransfere finished\e[00m"
+	fi
+	echo "                       Name: $orig_name"
+	echo "                       Size: $size MB"
+	echo "                      Speed: $SpeedAverage MB/s"
+	echo "              Transfer time: $transferTime2"
+	echo "                 Start time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
+	echo "                   End time: $(date --date=@$ScriptEndTime '+%d/%m/%y-%a-%H:%M:%S')"
+	echo "                 Total time: $(printf '%02dh:%02dm:%02ds' "$(($TotalTransferTime/(60*60)))" "$((($TotalTransferTime/60)%60))" "$(($TotalTransferTime%60))")"
+
+	# Remove finished one
+	if [[ $failed != true ]]; then
+		queue remove
+	fi
+	# Run queue
+	queue next
 }
 
 function start_main {
-#Look for which options has been used
-while :; do
-	case "$1" in
+	#Look for which options has been used
+	while :; do
+		case "$1" in
 		--path=* ) filepath="${1#--path=}"; shift;;
 		--user=* ) user="${1#--user=}"; shift;;
 		--exec_post=* ) exec_post="${1#--exec_post=}"; shift;;
@@ -741,54 +748,54 @@ while :; do
 		--test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;
 		* ) break ;;
 		--) shift; break;;
-	esac
-done
+		esac
+	done
 
-# main program starts here
+	# main program starts here
 
-# confirm filepath
-if [[ -z "$filepath" ]]; then
-	# if --path is not used, try and run queue
-	queue next
-elif [[ -z "$(find "$filepath" -type d 2>/dev/null)" ]] && [[ -z "$(find "$filepath" -type f -print | head -n 1 2>/dev/null)" ]] || [[ -z "$(find "$filepath" -type f -print | head -n 1 2>/dev/null)" ]]; then
-	# path with files or file not found
-	if [[ "$transferetype" == "downftp" ]] || [[ "$transferetype" == fxp ]]; then
-		# server <-- client, assume path is OK - we will know for sure when size is found
-		true
-	elif [[ "$transferetype" == "upftp" ]]; then		
-		# server --> client
-		echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m\n"
-		exit 1
-	else
-		echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Have a look on your config (--user=$user --edit)!\e[00m\n"
-		exit 1
+	# confirm filepath
+	if [[ -z "$filepath" ]]; then
+		# if --path is not used, try and run queue
+		queue next
+	elif [[ -z "$(find "$filepath" -type d 2>/dev/null)" ]] && [[ -z "$(find "$filepath" -type f -print | head -n 1 2>/dev/null)" ]] || [[ -z "$(find "$filepath" -type f -print | head -n 1 2>/dev/null)" ]]; then
+		# path with files or file not found
+		if [[ "$transferetype" == "downftp" ]] || [[ "$transferetype" == fxp ]]; then
+			# server <-- client, assume path is OK - we will know for sure when size is found
+			true
+		elif [[ "$transferetype" == "upftp" ]]; then
+			# server --> client
+			echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m\n"
+			exit 1
+		else
+			echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Have a look on your config (--user=$user --edit)!\e[00m\n"
+			exit 1
+		fi
 	fi
-fi
-# Save transfer to queue and exit
-if [[ $queue == true ]]; then
-	queue add end
-fi
+	# Save transfer to queue and exit
+	if [[ $queue == true ]]; then
+		queue add end
+	fi
 
-# Create lockfile
-if [[ "$lockfileRunning" == "true" ]]; then
-	echo "INFO: Updating lockfile"
-else
-	lockfile
-fi
+	# Create lockfile
+	if [[ "$lockfileRunning" == "true" ]]; then
+		echo "INFO: Updating lockfile"
+	else
+		lockfile
+	fi
 
-echo "INFO: Transfer-option: $transferetype"
+	echo "INFO: Transfer-option: $transferetype"
 
-#Load dependencies
-loadDependency DSetup
+	#Load dependencies
+	loadDependency DSetup
 
-#Check wether we have an external config, user config or no config at all
-loadConfig
+	# Load user config
+	loadConfig
 
-# OK nothing running and --path is real, lets continue
-# fix spaces: "/This\ is\ a\ path"
-# Note: The use of normal backslashes is NOT supported
-filepath="$(echo "$filepath" | sed 's/\\./ /g')"
+	# OK nothing running and --path is real, lets continue
+	# fix spaces: "/This\ is\ a\ path"
+	# Note: The use of normal backslashes is NOT supported
+	filepath="$(echo "$filepath" | sed 's/\\./ /g')"
 
-#start program
-main "$filepath"
+	#start program
+	main "$filepath"
 }

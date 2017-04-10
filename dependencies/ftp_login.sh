@@ -1,8 +1,9 @@
 #!/bin/bash
 function ftp_login {
+	# generate ftp login details based in input. The argument passed is (1 or 2).
 	local number OIFS IFS ftpcustom ftpssl ftpuser ftppass ftphost ftppass ftploginfile
 	number="$1"
-	# corrcet variables
+	# correct variables so that they can be loaded properly later
 	ftpcustom="ftpcustom${number}"
 	ftpssl="ftpssl${number}"
 	ftpuser="ftpuser${number}"
@@ -10,16 +11,21 @@ function ftp_login {
 	ftphost="ftphost${number}"
 	ftpport="ftpport${number}"
 	ftploginfile="ftplogin_file${number}"
-	#Timeout settings
+	# set timeout settings
 	echo "set net:timeout 10" >> "${!ftploginfile}"
 	echo "set net:max-retries 3" >> "${!ftploginfile}"
 	echo "set net:reconnect-interval-base 10" >> "${!ftploginfile}"
 	echo "set net:reconnect-interval-multiplier 1" >> "${!ftploginfile}"
 	echo "set net:reconnect-interval-max 60" >> "${!ftploginfile}"
-	# write custom config to file, will overwrite any of above settings
+	# write custom configurations to file, will overwrite any of above settings
 	if ((verbose)); then
 		echo "debug 8 -t -o $lftpdebug" >> "${!ftploginfile}"
 	fi
+        # write ssl setting to file
+        if [[ "${!ftpssl}" == true ]]; then
+                echo "set ftp:ssl-force true" >> "${!ftploginfile}"
+                echo "set ssl:verify-certificate false" >> "${!ftploginfile}"
+        fi
 	if [[ -n "${!ftpcustom}" ]]; then
 		OIFS="$IFS"
 		IFS=';'
@@ -27,11 +33,6 @@ function ftp_login {
 			echo "$i" >> "${!ftploginfile}"
 		done
 		IFS="$OIFS"
-	fi
-	# write ssl setting to file
-	if [[ "${!ftpssl}" == true ]]; then
-		echo "set ftp:ssl-force true" >> "${!ftploginfile}"
-		echo "set ssl:verify-certificate false" >> "${!ftploginfile}"
 	fi
 	# only allow the normal transfere types
 	if  [[ "$transferetype" =~ "upftp" ]] || [[ "$transferetype" =~ "downftp" ]] || [[ "$transferetype" =~ "fxp" ]]; then

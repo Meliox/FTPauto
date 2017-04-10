@@ -1,11 +1,12 @@
 #!/bin/bash
 function write_config {
-#write show_example to config
+	local config
+	# write show_example to config
 	echo -n "Preparing config ..."
 	if [[ -z "$username" ]]; then
 		user=default
 	fi
-	local config="$scriptdir/users/$username/config"
+	config="$scriptdir/users/$username/config"
 	mkdir -p "$scriptdir/users/$username"
 	if [[ -f "$config" ]]; then
 		read -p " Config already exits($config), do you want to overwrite(y/n)? "
@@ -28,7 +29,7 @@ echo -e "
   FTPauto is a bash command line tool to send files from a local server to\n  a remote easily. Numerous options may be specified such a checking free space for \n  transferring, multiple user support, delay of transfer and category support. It is\n  especially powerful in combination with Flexget
 
   For more information read the README or see homepage.
-  
+
 IMPORTANT: Default is always used if --user isn't used!
 
 \033[1mOptions\033[0m
@@ -50,7 +51,7 @@ IMPORTANT: Default is always used if --user isn't used!
 	  --path=<PATH>     | <PATH> used to transfer now!
 	  --queue           | Sends <PATH> to queue WITHOUT starting script if autostart=false in config.
                                NOTE that --path <ITEM> is required for this to work.
-                               Might also be used to start transfer in background if autostart=true	   
+                               Might also be used to start transfer in background if autostart=true
 	  --source=<SOURCE> | Source is used to show how the download has been started. The
                                following is possible:
                                MANDL=manual download(if nothing is used)
@@ -80,7 +81,7 @@ IMPORTANT: Default is always used if --user isn't used!
 	--exec_pre         | Execute commands before download
 	--force            | Transfer file despite something is running
 	--help             | Print help info
-	--progress         | While transferring, this will print out progress if enabled in config	
+	--progress         | While transferring, this will print out progress if enabled in config
 	--quiet            | Suppresses all output
 	--test             | Shows what transfer is going to happen
 	--verbose          | Debugs to console
@@ -174,12 +175,12 @@ function show_example {
 }
 
 function create_log_file {
-	if [ ! -e "$logfile" ]; then
+	if [[ ! -e "$logfile" ]]; then
 		echo "INFO: First time usage. Logfile is created"
 		echo "***************************	FTPauto - $s_version" >> "$logfile"
 		echo "***************************	STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> "$logfile"
-		if [[ $ftpsizemanagement == "true" ]]; then
-			echo "***************************	FTP INFO: 0/"$totalmb"MB (Free "$freemb"MB)" >> "$logfile"
+		if [[ $ftpsizemanagement == true ]]; then
+			echo "***************************	FTP INFO: 0/${totalmb}MB (Free ${freemb}MB)" >> "$logfile"
 		else
 			echo "***************************	FTP INFO: (not used yet)" >> "$logfile"
 		fi

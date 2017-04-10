@@ -1,6 +1,7 @@
 #!/bin/bash
 #version 0.3
 function sortFiles {
+	# $1 is the argument passed using --sort=<Directory>. No trailing slash is needed
 	if [[ -n "$1" ]]; then
 		if [[ "$1" == "nosort" ]]; then
 			echo "INFO: No sorting. Transferring to default complete directory: \"$ftpcomplete\""

@@ -1,12 +1,12 @@
 #!/bin/bash
 ### code below
 function setup {
-	#
+	# add local paths here
 	PATH=$HOME/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-	# programs
+	# if programs has been installed in custom locations the executeable can be set here
 	lftp=$(which lftp)
 	rar2fs=$(which rar2fs)
-	# paths
+	# paths for internal files
 	queue_file="$scriptdir/run/$username.queue"
 	lockfile="$scriptdir/run/$username.lck"
 	logfile="$scriptdir/users/$username/log"
@@ -33,8 +33,9 @@ function setup {
 }
 
 function get_size {
-	#called with $filepath
-	local dir="$1"
+	# called with $filepath
+	local dir n count i exp path t_size directorysize sizeBytes
+	dir="$1"
 	if [[ "$transferetype" == downftp ]] || [[ "$transferetype" == fxp ]]; then
 		#client
 		loadDependency DFtpLogin && ftp_login 1
@@ -102,13 +103,14 @@ function get_size {
 		echo "INFO: Size to transfere: ${size}MB"
 		cleanup session
 	elif [[ "$transferetype" == upftp ]]; then
-		#server
+		# look up directory or file size locally
 		directorysize=$(du -bsL "$dir" | awk '{print $1}')
 		size=$(echo "scale=2; "$directorysize" / (1024*1024)" | bc)
 		echo "INFO: Size to transfere: ${size}MB"
+		# exclude files matching passed regex
 		if [[ -n "${#exclude_array[@]}" ]]; then
 			exclude_expression=()
-			local n="1"
+			n="1"
 			for i in "${exclude_array[@]}"; do
 				exclude_expression+=("-iname *$i*")
 				#add -or if not finished
@@ -126,7 +128,8 @@ function get_size {
 }
 
 function removeClean {
-	local array=("$@")
+	local array
+	array=("$@")
 	# removes passed files
 	for i in "${array[@]}"; do
 		rm -f "$i"
@@ -134,27 +137,20 @@ function removeClean {
 }
 
 function cleanup {
+	local array
 	case "$1" in
 	"die" ) #used when script stops on user input
 		echo -e "\n*** Ouch! Exiting ***\n"
 		stty sane
-		if [[ "$safelock" != "true" ]]; then 
-			# remove pids and lockfile
-			kill $(sed -n '2p' $lockfile) &> /dev/null
-			wait $(sed -n '2p' "$lockfile") 2>/dev/null
-			kill $(sed -n '3p' $lockfile) &> /dev/null
-			wait $(sed -n '3p' "$lockfile") 2>/dev/null
-			kill $(sed -n '4p' $lockfile) &> /dev/null
-			wait $(sed -n '4p' "$lockfile") 2>/dev/null
-			local array=( "$lockfile" )
-			removeClean "${array[@]}"
-			#remove all files created
+		if [[ "$safelock" != "true" ]]; then
+			# 1) stop processes, 2) cleanup session, 3) remove lockfile/end session
+			cleanup stop
 			cleanup session
 			cleanup end
 			sed "5s#.*#***************************	Transfer: Aborted #" -i $logfile
 		fi
 		exit 1;;
-	"session" ) #use to end transfer
+	"session" ) #use to end session of transfer
 		if [[ $test_mode == "true" ]]; then
 			read -sn 1 -p "Press ANY button to continue cleanup..."
 		fi
@@ -163,21 +159,20 @@ function cleanup {
 			unset mount_in_use
 		fi
 		# removal of all files creates
-		local array=( "$ftplogin_file1" "$ftplogin_file2" "$ftptransfere_file" "$ftp_size_file" "$ftpfreespace_file" "$lftptransfersize" "$lftptransfersize2" "$transfersize" "$transfersize2" "$proccess_bar_file" "$ftpalive_file" "$ftpcheck_file" "$ftpcheck_testfile" "$ftptransfere_processbar" )
+		array=( "$ftplogin_file1" "$ftplogin_file2" "$ftptransfere_file" "$ftp_size_file" "$ftpfreespace_file" "$lftptransfersize" "$lftptransfersize2" "$transfersize" "$transfersize2" "$proccess_bar_file" "$ftpalive_file" "$ftpcheck_file" "$ftpcheck_testfile" "$ftptransfere_processbar" )
 		removeClean "${array[@]}"
 		# removal of tempdirs
 		if [[ -d "$scriptdir/run/$username-temp" ]]; then rm -r "$scriptdir/run/$username-temp"; fi;
 		echo -e "INFO: Cleanup done"
 	;;
 	"end" ) #use to end script
-		local array=( "$lockfile" )
-		removeClean "${array[@]}"
+		removeClean "( "$lockfile" )"
 		sed "5s#.*#***************************	#" -i $logfile
 		echo -e "\e[00;32mExiting successfully...\e[00m\n"
 	;;
 	"stop" ) #use to terminate all pids found in the lockfile
 		for i in {1..4}; do
-			if [[ -n "$(sed -n "$i p" $lockfile)" ]]; then kill -9 $(sed -n "$i p" $lockfile) &> /dev/null;	fi
+			if [[ -n "$(sed -n "${i}p" $lockfile)" ]]; then kill $(sed -n "${i}p" $lockfile) &> /dev/null; wait $(sed -n "$i p" $lockfile) 2>/dev/null;  fi
 		done
 	;;
 esac

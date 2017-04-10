@@ -356,7 +356,7 @@ case "${option[0]}" in
 		if [ -t 0 ]; then stty -echo -icanon time 0 min 0; fi
 		keypress=""
 		local count=0
-		while [[ "x$keypress" == "x" ]]; do		
+		while [[ "x$keypress" == "x" ]]; do
 			local title="$(sed -n 5p < "$logfile" | cut -d',' -f1 | cut -d' ' -f2)"
 			local percentage="$(sed -n 5p < "$logfile" | cut -d',' -f2 | cut -d' ' -f2)"
 			percentage="${percentage%\%}"
