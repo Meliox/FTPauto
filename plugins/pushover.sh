@@ -3,7 +3,7 @@
 #For more info, see https://pushover.net/
 function Pushover {
 version="1.2"
-push_title="NEW: $1"
+push_title="$1"
 push_message="$2"
 #send message through curl
 CURL="$(which curl)"
