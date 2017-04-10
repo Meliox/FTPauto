@@ -7,7 +7,7 @@ function videoFile {
 	elif [[ -f "$filepath" ]] && [[ "$filepath" =~ (\.(rar)$) ]]; then
 		# a single rar file is passed investigate using rar mount
 		echo "INFO: Single rar file passed. Looking inside rarfile(s) for videofile(s)..."
-		echo -e "\e[00;33m "INFO: Size calculations may be incorrect."\e[00m"
+		echo -e "\e[00;33mINFO: Size calculations may be incorrect.\e[00m"
 		mountsystem mount
 	elif [[ -d "$filepath" ]]; then
 		# search and calculate total size of all video files found in found_file to get what percentage of transfer consists of videofiles

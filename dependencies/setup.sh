@@ -88,7 +88,7 @@ function get_size {
 					path="$path/"
 					continue
 				fi
-				if [[ -n $(echo "$line") ]]; then
+				if [[ -n "$line" ]]; then
 					# make sure line contains something
 					if [[ "$(echo "$line" | awk {'print $5'})" -gt "0" ]]; then
 						# remove entries without size
@@ -154,6 +154,7 @@ function cleanup {
 			removeClean "${array[@]}"
 			#remove all files created
 			cleanup session
+			cleanup end
 			sed "5s#.*#***************************	Transfer: Aborted #" -i $logfile
 		fi
 		exit 1;;
@@ -166,11 +167,11 @@ function cleanup {
 			unset mount_in_use
 		fi
 		# removal of all files creates
-		local array=( "$ftplogin_file" "$ftptransfere_file" "$ftp_size_file" "$ftpfreespace_file" "$lftptransfersize" "$lftptransfersize2" "$transfersize" "$proccess_bar_file" "$ftpalive_file" "$ftpcheck_file" "$ftpcheck_testfile" "$ftptransfere_processbar" )
+		local array=( "$ftplogin_file1" "$ftplogin_file2" "$ftptransfere_file" "$ftp_size_file" "$ftpfreespace_file" "$lftptransfersize" "$lftptransfersize2" "$transfersize" "$transfersize2" "$proccess_bar_file" "$ftpalive_file" "$ftpcheck_file" "$ftpcheck_testfile" "$ftptransfere_processbar" )
 		removeClean "${array[@]}"
 		# removal of tempdirs
 		if [[ -d "$scriptdir/run/$username-temp" ]]; then rm -r "$scriptdir/run/$username-temp"; fi;
-		echo -e "INFO: Cleanup done\n"
+		echo -e "INFO: Cleanup done"
 	;;
 	"end" ) #use to end script
 		local array=( "$lockfile" )

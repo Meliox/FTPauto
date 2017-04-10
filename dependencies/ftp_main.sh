@@ -1,6 +1,7 @@
 #!/bin/bash
 function delay {
 # if --delay is set, wait until it ends. If start/end time is set in config use them. Delay overrules everything
+	local current_epoch target_epoch sleep_seconds timediff
 	if [[ -n $delay ]]; then
 		current_epoch=$(date +%s)
 		target_epoch=$(date -d "$delay" +%s)
@@ -25,27 +26,29 @@ function delay {
 }
 
 function countdown {
-        local OLD_IFS="${IFS}"
-        IFS=":"
-        local ARR=( $1 )
-        local SECONDS=$((  (ARR[0] * 60 * 60) + (ARR[1] * 60) + ARR[2]  ))
-        local START=$(date +%s)
-        local END=$((START + SECONDS))
-        local CUR=$START
-        while [[ $CUR -lt $END ]]; do
-                CUR=$(date +%s)
-                LEFT=$((END-CUR))
-                printf "\r%02d:%02d:%02d" \
-                        $((LEFT/3600)) $(( (LEFT/60)%60)) $((LEFT%60))
-                sleep 1
-        done
-        IFS="${OLD_IFS}"
-        echo "        "
+	local OLD_IFS arr seconds start end cur left IFS
+	OLD_IFS="${IFS}"
+	IFS=":"
+	arr=( $1 )
+	seconds=$((  (arr[0] * 60 * 60) + (arr[1] * 60) + arr[2]  ))
+	start=$(date +%s)
+	end=$((start + seconds))
+	cur=$Sstart
+	while [[ $CUR -lt $END ]]; do
+		cur=$(date +%s)
+		left=$((end-cur))
+		printf "\r%02d:%02d:%02d" \
+				$((left/3600)) $(((left/60)%60)) $((left%60))
+		sleep 1
+	done
+	IFS="${OLD_IFS}"
+	echo "        "
 }
 
 function queue {
 # queuesystem. If something already is running for the user, add it to queue.
-	local option=$2
+	local option id source sort filepath
+	option=$2
 	case "$1" in
 		"add" )
 			if [[ $queue_running == "true" ]]; then
@@ -65,7 +68,7 @@ function queue {
 					echo -e "INFO: Item already in queue. Doing nothing...\n"
 					exit 0
 				elif [[ "$option" == "end" ]]; then
-					source=$source"Q"
+					source="${source}Q"
 					echo "$id|$source|$filepath|$sortto|$size"MB"|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 					echo -e "INFO: Queueing: $(basename "$filepath"), id=$id\n"
 					exit 0
@@ -91,7 +94,7 @@ function queue {
 				#load next item from top
 				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file")
 				source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $2}' "$queue_file")
-				local filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $3}' "$queue_file")
+				filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $3}' "$queue_file")
 				sort=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $4}' "$queue_file")
 				# execute mainscript again
 				queue_running="true"
@@ -114,32 +117,32 @@ function queue {
 }
 
 function ftp_transfer_process {
-case "$1" in
-	"start" ) #start progressbar and transfer
-		TransferStartTime=$(date +%s)
-		ftp_processbar &
-		local pid_f_process=$!
-		sed "3c $pid_f_process" -i "$lockfile"
-		echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $(date --date=@$TransferStartTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
-		$lftp -f "$ftptransfere_file" &> /dev/null &
-		local pid_transfer=$!
-		sed "2c $pid_transfer" -i "$lockfile"
-		wait $pid_transfer
-		pid_transfer_status="$?"
-		TransferEndTime=$(date +%s)
-	;;
-	"stop-process-bar" )
-		kill $(sed -n '3p' $lockfile) &> /dev/null
-		wait $(sed -n '3p' "$lockfile") 2>/dev/null
-		kill $(sed -n '4p' $lockfile) &> /dev/null
-		wait $(sed -n '4p' "$lockfile") 2>/dev/null
-	;;
-esac
+	local pid_f_process pid_transfer
+	case "$1" in
+		"start" ) #start progressbar and transfer
+			TransferStartTime=$(date +%s)
+			ftp_processbar &
+			pid_f_process=$!
+			sed "3c $pid_f_process" -i "$lockfile"
+			echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $(date --date=@$TransferStartTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
+			$lftp -f "$ftptransfere_file" &> /dev/null &
+			pid_transfer=$!
+			sed "2c $pid_transfer" -i "$lockfile"
+			wait $pid_transfer
+			pid_transfer_status="$?"
+			TransferEndTime=$(date +%s)
+		;;
+		"stop-process-bar" )
+			kill $(sed -n '3p' $lockfile) &> /dev/null
+			wait $(sed -n '3p' "$lockfile") 2>/dev/null
+			kill $(sed -n '4p' $lockfile) &> /dev/null
+			wait $(sed -n '4p' "$lockfile") 2>/dev/null
+		;;
+	esac
 }
 
 function ftp_transfere {
-	#Cleanup before writing config
-	if [[ -f "$ftptransfere_file" ]]; then rm "$ftptransfere_file"; fi
+	local lftp_exclude quittime waittime
 	#prepare new transfer
 	{
 	cat "$ftplogin_file" >> "$ftptransfere_file"
@@ -295,12 +298,13 @@ function ftp_transfere {
 }
 
 function ftp_processbar { #Showing how download is proceeding
+	local transfered_size ProgressTimeNew TransferredNew TransferredNewMB TotalTimeDiff TimeDiff percentage speed eta etatime SpeedOld sum SpeedAverage cols percentagebarlength string string2 TransferredOld ProgressTimeOld
 	if [[ $test_mode != "true" ]]; then
 		sleep 5 #wait for transfer to start
 		if [[ $transferetype == "downftp" ]]; then
-			local transfered_size="du -s \"$ftpincomplete$changed_name\" > \"$proccess_bar_file\""
+			transfered_size="du -s \"$ftpincomplete$changed_name\" > \"$proccess_bar_file\""
 			if [[ $transfer_type = file ]]; then
-				echo "du -s \"$ftpincomplete${orig_name%.*}\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
+				echo "du -s \"$ftpincomplete${orig_name}\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
 			elif [[ $transfer_type = directory ]]; then
 				echo "du -s \"$ftpincomplete$orig_name\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
 			fi
@@ -351,24 +355,24 @@ function ftp_processbar { #Showing how download is proceeding
 				TimeDiff=$(printf '%02dh:%02dm:%02ds' "$(($TotalTimeDiff/(60*60)))" "$((($TotalTimeDiff/60)%60))" "$(($TotalTimeDiff%60))")
 				# Ensure value are valid
 				if [[ "$(( $TransferredNew - $TransferredOld ))" -ge "1" ]] && [[ "$(( $TransferredNew - $TransferredOld ))" =~ ^[0-9]+$ ]]; then
-						percentage=$(echo "scale=4; ( "$TransferredNew" / ( "$sizeBytes" / ( 1024 ) ) ) * 100" | bc)
-						percentage=$(echo $percentage | sed 's/\(.*\)../\1/')
-						speed=$(echo "scale=2; ( ($TransferredNew - $TransferredOld) / 1024 ) / ( $ProgressTimeNew - $ProgressTimeOld )" | bc) # MB/s
-						eta=$(echo "( ($sizeBytes / 1024 ) - $TransferredNew ) / ($speed * 1024 )" | bc)
-						etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))")
-						
-						# Calculate average speed. Needs to be calculated each time as transfer stops ftp_processbar
-						SpeedOld+=( "$speed" )
-						if [[ -n "${#SpeedOld[@]}" ]]; then
-							sum="0"
-							for i in "${SpeedOld[@]}"; do
-								sum=$(echo "( $sum + $i )" | bc)
-							done
-							SpeedAverage=$(echo "scale=2; $sum / ${#SpeedOld[@]}" | bc)
-							sed "5c $SpeedAverage" -i "$lockfile"
-							# we can start overwriting progresline
-							tput cuu 1;	tput el1
-						fi
+					percentage=$(echo "scale=4; ( "$TransferredNew" / ( "$sizeBytes" / ( 1024 ) ) ) * 100" | bc)
+					percentage=$(echo $percentage | sed 's/\(.*\)../\1/')
+					speed=$(echo "scale=2; ( ($TransferredNew - $TransferredOld) / 1024 ) / ( $ProgressTimeNew - $ProgressTimeOld )" | bc) # MB/s
+					eta=$(echo "( ($sizeBytes / 1024 ) - $TransferredNew ) / ($speed * 1024 )" | bc)
+					etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))")
+					
+					# Calculate average speed. Needs to be calculated each time as transfer stops ftp_processbar
+					SpeedOld+=( "$speed" )
+					if [[ -n "${#SpeedOld[@]}" ]]; then
+						sum="0"
+						for i in "${SpeedOld[@]}"; do
+							sum=$(echo "( $sum + $i )" | bc)
+						done
+						SpeedAverage=$(echo "scale=2; $sum / ${#SpeedOld[@]}" | bc)
+						sed "5c $SpeedAverage" -i "$lockfile"
+						# we can start overwriting progresline
+						tput cuu 1;	tput el1
+					fi
 					else
 						speed="?"
 						SpeedAverage="?"
@@ -377,10 +381,10 @@ function ftp_processbar { #Showing how download is proceeding
 				fi
 				#update file and output the current line
 				sed "5s#.*#***************************	Transferring: ${orig_name}, $percentage%%, in $TimeDiff, $speed MB/s(current), ETA: $etatime, ${SpeedAverage} MB/s (avg)   #" -i "$logfile"
-				local cols=$(($(tput cols) - 2))
-				local percentagebarlength=$(echo "scale=0; $percentage * $cols / 100" | bc)
-				local string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
-				local string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength - 1))"\})"
+				cols=$(($(tput cols) - 2))
+				percentagebarlength=$(echo "scale=0; $percentage * $cols / 100" | bc)
+				string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
+				string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength - 1))"\})"
 				if [[ $percentagebarlength -eq 0 ]]; then
 					printf "\r[$string2]      (no transfere information yet) ($(date '+%H:%M:%S'))"
 				else
