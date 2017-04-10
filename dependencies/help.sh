@@ -142,7 +142,7 @@ function show_example {
 	echo	"continue_queue=\"true\" # Script will continue downloading if something is queued"
 	echo	"retries=\"3\" # How many times should the transfer be tried, before giving up"
 	echo 	"retry_download=\"10\" # retry again in minutes after minimum space is reached OR server is offline."
-	echo	"retry_download_max=\"10\" # retry for how many hours, before quitting"
+	echo	"retry_download_max=\"30\" # retry for how many minites, before quitting. Recommended 30 mins. For each try 3 tries to establish connection with furthermore be tried"
 	echo
 	echo	"## Extra settings"
 	echo	"force=\"false\" # Transfer regardless of lockfiles/other transfers"

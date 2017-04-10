@@ -2,11 +2,6 @@
 function ftp_login {
 	local number OIFS IFS ftpcustom ftpssl ftpuser ftppass ftphost ftppass ftploginfile
 	number="$1"
-		#Timeout settings
-	#	echo "set net:timeout 10" >> "$ftplogin_file$number"
-	#	echo "set net:max-retries 5" >> "$ftplogin_file$number"
-	#	echo "set net:reconnect-interval-base 5" >> "$ftplogin_file$number"
-	#	echo "set net:reconnect-interval-multiplier 2" >> "$ftplogin_file$number"
 	# corrcet variables
 	ftpcustom="ftpcustom${number}"
 	ftpssl="ftpssl${number}"
@@ -15,7 +10,13 @@ function ftp_login {
 	ftphost="ftphost${number}"
 	ftpport="ftpport${number}"
 	ftploginfile="ftplogin_file${number}"
-	# write custom config to file
+	#Timeout settings
+	echo "set net:timeout 10" >> "${!ftploginfile}"
+	echo "set net:max-retries 3" >> "${!ftploginfile}"
+	echo "set net:reconnect-interval-base 10" >> "${!ftploginfile}"
+	echo "set net:reconnect-interval-multiplier 1" >> "${!ftploginfile}"
+	echo "set net:reconnect-interval-max 60" >> "${!ftploginfile}"
+	# write custom config to file, will overwrite any of above settings
 	if ((verbose)); then
 		echo "debug 8 -t -o $lftpdebug" >> "${!ftploginfile}"
 	fi

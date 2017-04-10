@@ -6,10 +6,10 @@ function delay {
 		current_epoch=$(date +%s)
 		target_epoch=$(date -d "$delay" +%s)
 		if [[ $target_epoch -gt $current_epoch ]]; then
-			sleep_seconds=$(( $target_epoch - $current_epoch ))
+			sleep_seconds=$(( target_epoch - current_epoch ))
 			if [[ $test_mode != "true" ]]; then
 				echo "INFO: Transfere has been postponed until $delay"
-				timediff=$(printf '%2d:%2d:%2d' "$(($sleep_seconds/(60*60)))" "$((($sleep_seconds/60)%60))" "$(($sleep_seconds%60))")
+				timediff=$(printf '%2d:%2d:%2d' "$((sleep_seconds/(60*60)))" "$(((sleep_seconds/60)%60))" "$((sleep_seconds%60))")
 				countdown "$timediff"
 			else
 				echo -e "\e[00;31mTESTMODE: Would delay until $delay\e[00m"
@@ -33,8 +33,8 @@ function countdown {
 	seconds=$((  (arr[0] * 60 * 60) + (arr[1] * 60) + arr[2]  ))
 	start=$(date +%s)
 	end=$((start + seconds))
-	cur=$Sstart
-	while [[ $CUR -lt $END ]]; do
+	cur=$start
+	while [[ $cur -lt $end ]]; do
 		cur=$(date +%s)
 		left=$((end-cur))
 		printf "\r%02d:%02d:%02d" \
@@ -47,15 +47,16 @@ function countdown {
 
 function queue {
 # queuesystem. If something already is running for the user, add it to queue.
-	local option id source sort filepath
+	local option i old_id
 	option=$2
 	case "$1" in
 		"add" )
-			if [[ $queue_running == "true" ]]; then
+			if [[ $queue_running == true ]]; then
 				# task has been started from queue, no need to add it
 				true
 			else
 				# figure out ID
+				id_old=$id
 				if [[ -e "$queue_file" ]]; then
 					#get last id
 					id=$(( $(tail -1 "$queue_file" | cut -d'|' -f1) + 1 ))
@@ -64,17 +65,23 @@ function queue {
 					id="1"
 				fi
 				get_size "$filepath" &> /dev/null
-				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep "$filepath") ]]; then
+				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep "$filepath") ]] && [[ -z $option ]]; then
 					echo -e "INFO: Item already in queue. Doing nothing...\n"
 					exit 0
-				elif [[ "$option" == "end" ]]; then
+				elif [[ "$option" == failed ]]; then
+					failed="true"
+					# remove ID from queue
+					sed "/^"$id_old"/d" -i "$queue_file"
+					echo "$id|$source|$filepath|$sortto|${size}MB|true|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+					echo -e "\e[00;33mINFO: Failing item: $(basename "$filepath")\e[00m"
+				elif [[ "$option" == end ]]; then
 					source="${source}Q"
-					echo "$id|$source|$filepath|$sortto|$size"MB"|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+					echo "$id|$source|$filepath|$sortto|${size}MB|false|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 					echo -e "INFO: Queueing: $(basename "$filepath"), id=$id\n"
 					exit 0
 				else
 					echo "INFO: Queueid: $id"
-					echo "$id|$source|$filepath|$sortto|$size"MB"|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+					echo "$id|$source|$filepath|$sortto|${size}MB|false|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 				fi
 			fi
 		;;
@@ -82,33 +89,58 @@ function queue {
 			#remove item according to id
 			sed "/^"$id"/d" -i "$queue_file"
 			# if queue is true then continue to run else stop
-			if [[ $continue_queue == "true" ]]; then
+			if [[ $continue_queue == true ]]; then
 				queue next
 			else
 				cleanup end
 			fi
 		;;
 		"next" )
-			# Process next item in queue
+			# Process next item in queue from top
 			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
-				#load next item from top
-				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $1}' "$queue_file")
-				source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $2}' "$queue_file")
-				filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $3}' "$queue_file")
-				sort=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $4}' "$queue_file")
-				# execute mainscript again
-				queue_running="true"
-				if [[ -f "$lockfile" ]]; then
-					# ensure that lockfile isn't created running queue
-					lockfileRunning="true"
+				i="1"
+				failed="true"
+				# look for non failed items
+				while [[ $failed == true ]]; do
+					# load next item from top
+					id=$(awk 'BEGIN{FS="|";OFS=" "}NR==$i{print $1}' "$queue_file")
+					# check if ID has failed
+					failed=$(awk 'BEGIN{FS="|";OFS=" "}NR==$i{print $6}' "$queue_file")
+					let i++
+				done
+				if [[ $failed == false ]]; then
+					source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $2}' "$queue_file")
+					filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $3}' "$queue_file")
+					sort=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $4}' "$queue_file")
+					# execute main script again
+					queue_running="true"
+					if [[ -f "$lockfile" ]]; then
+						# ensure that lockfile isn't created running queue
+						lockfileRunning="true"
+					fi
+					echo "---------------------- Running queue ----------------------"
+					echo "Transfering id=$id, $(basename "$filepath")"
+					start_main --path="$filepath" --user="$username" --sortto="$sort"
+				else
+					echo "---------------------- Failed queue -----------------------"
+					while read line; do
+						id=$(echo $line | cut -d'|' -f1)
+						source=$(echo $line | cut -d'|' -f2)
+						path=$(echo $line | cut -d'|' -f3)
+						sort=$(echo $line | cut -d'|' -f4)
+						size=$(echo $line | cut -d'|' -f5)
+						time=$(echo $line | cut -d'|' -f7)
+						echo "ID|PATH|SORT TO|SIZE(MB)|TIME"
+						echo "$id|$source|$path|$sort|$size|$time"
+					done < "$queue_file"
+					echo -e "\nINFO: Queue does not contain non failed items. Program will end\n"
+					cleanup end
+					exit 1
 				fi
-				echo "---------------------- Running queue ----------------------"
-				echo "Transfering id=$id, $(basename "$filepath")"
-				start_main --path="$filepath" --user="$username" --sortto="$sort"
 			else
 				echo "----------------------- Empty queue -----------------------"
 				if [[ -f "$queue_file" ]]; then rm "$queue_file"; fi
-				echo -e "INFO: Program has ended\n"
+				echo -e "INFO: Queue is empty. Program will end\n"
 				cleanup end
 				exit 0
 			fi
@@ -117,7 +149,7 @@ function queue {
 }
 
 function ftp_transfer_process {
-	local pid_f_process pid_transfer
+	local pid_f_process
 	case "$1" in
 		"start" ) #start progressbar and transfer
 			TransferStartTime=$(date +%s)
@@ -128,8 +160,8 @@ function ftp_transfer_process {
 			$lftp -f "$ftptransfere_file" &> /dev/null &
 			pid_transfer=$!
 			sed "2c $pid_transfer" -i "$lockfile"
-			wait $pid_transfer
-			pid_transfer_status="$?"
+			wait $pid_transfer 2>/dev/null
+			pid_transfer_status=$?
 			TransferEndTime=$(date +%s)
 		;;
 		"stop-process-bar" )
@@ -282,28 +314,26 @@ function ftp_transfere {
 	if [[ $test_mode != "true" ]]; then
 		ftp_transfer_process start
 		#did lftp end properly
-		while [[ $pid_transfer_status -eq 1 ]]; do
-			quittime=$(( $ScriptStartTime + $retry_download_max*60*60 )) #hours
+		while [[ $pid_transfer_status -ne 0 ]]; do
+			quittime=$(( ScriptStartTime + retry_download_max*60 )) #minutes
 			if [[ $(date +%s) -gt $quittime ]]; then
-				echo -e "\e[00;31mERROR: FTP transfer failed after max retries($retry_download_max hours)!\e[00m"
-				echo -e "INFO: Program is being stopped\n"
-				#remove processbar processes
+				echo -e "\e[00;31mERROR: FTP transfer failed after max ($retry_download_max minutes)!\e[00m"
+				# remove processbar processes
 				ftp_transfer_process "stop-process-bar"
-				cleanup session
-				cleanup end
-				exit 0
+				# mark transfer as failed
+				queue add failed
+				break
+			else
+				echo -e "\e[00;31mERROR: FTP transfer failed for some reason!\e[00m"
+				echo "INFO: Retrying until $(date --date=@$quittime '+%d/%m/%y-%a-%H:%M:%S')"
+				# Kill processbar
+				ftp_transfer_process "stop-process-bar"
+				echo "INFO: Pausing session and trying again in 60s"
+				sed "3s#.*#***************************	FTP INFO: DOWNLOAD POSTPONED! Trying again in ${retry_download}mins#" -i "$logfile"
+				sleep 60
+				# restart transfer
+				ftp_transfer_process start
 			fi
-			echo -e "\e[00;31mERROR: FTP transfer failed for some reason!\e[00m"
-			echo "INFO: Keep trying until $(date --date=@$quittime '+%d/%m/%y-%a-%H:%M:%S')"
-			# ok done, kill processbar
-			ftp_transfer_process "stop-process-bar"
-			echo -e "\e[00;31mTransfer terminated: $(date '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
-			waittime=$(($retry_download*60))
-			echo "INFO: Pausing session and trying again $retry_download"mins" later"
-			sed "3s#.*#***************************	FTP INFO: DOWNLOAD POSTPONED! Trying again in ${retry_download}mins#" -i "$logfile"
-			sleep $waittime
-			# restart transfer
-			ftp_transfer_process start
 		done
 		echo -e "\e[00;37mINFO: \e[00;32mTransfer ended: $(date --date=@$TransferEndTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 		#remove processbar processes
@@ -376,9 +406,9 @@ function ftp_processbar { #Showing how download is proceeding
 				# Get new transferred information
 				TransferredNew=$(cat "$proccess_bar_file" | awk '{print $1}')
 				TransferredNewMB=$(echo $TransferredNew / 1024 | bc)
-				TotalTimeDiff=$(( $ProgressTimeNew - $TransferStartTime ))
+				TotalTimeDiff=$(( ProgressTimeNew - TransferStartTime ))
 				# calculate data
-				TimeDiff=$(printf '%02dh:%02dm:%02ds' "$(($TotalTimeDiff/(60*60)))" "$((($TotalTimeDiff/60)%60))" "$(($TotalTimeDiff%60))")
+				TimeDiff=$(printf '%02dh:%02dm:%02ds' "$((TotalTimeDiff/(60*60)))" "$(((TotalTimeDiff/60)%60))" "$((TotalTimeDiff%60))")
 				# Ensure value are valid
 				if [[ "$(( $TransferredNew - $TransferredOld ))" -ge "1" ]] && [[ "$(( $TransferredNew - $TransferredOld ))" =~ ^[0-9]+$ ]]; then
 					percentage=$(echo "scale=4; ( "$TransferredNew" / ( "$sizeBytes" / ( 1024 ) ) ) * 100" | bc)
@@ -622,32 +652,39 @@ delay
 ftp_transfere
 
 # Checking for remaining space
-if [[ "$ftpsizemanagement" == "true" ]]; then
+if [[ "$ftpsizemanagement" == "true" ]] && [[ $failed != true ]]; then
 	ftp_sizemanagement info # already loaded previously
 fi
 
 # Update logfile
-logrotate
+if [[ $failed != true ]]; then
+	logrotate
+fi
 
 # Clean up current session
 cleanup session
 
 #send push notification
 if [[ -n $push_user ]]; then
-	if [[ $test_mode != "true" ]]; then
-		loadDependency DPushOver && Pushover "$orig_name" "Sendoption:        $send_option
+	if [[ $test_mode ]]; then
+		echo -e "\e[00;31mTESTMODE: Would send notification \""$orig_name" "Sendoption=$send_option Size=$size MB Time=$transferTime2 Average speed=$SpeedAverage MB/s Path=$ftpcomplete"\" to token=$push_token and user=$push_user \e[00m"
+	elif [[ $failed == true ]]; then
+		loadDependency DPushOver && Pushover "Failed: $orig_name" "Sendoption:        $send_option
 Size:                     $size MB
 Time:                   $transferTime2
 Average speed: $SpeedAverage MB/s
 Path:                    $ftpcomplete"
 	else
-		echo -e "\e[00;31mTESTMODE: Would send notification \""$orig_name" "Sendoption=$send_option Size=$size MB Time=$transferTime2 Average speed=$SpeedAverage MB/s Path=$ftpcomplete"\" to token=$push_token and user=$push_user \e[00m"
+	loadDependency DPushOver && Pushover "$orig_name" "Sendoption:        $send_option
+Size:                     $size MB
+Time:                   $transferTime2
+Average speed: $SpeedAverage MB/s
+Path:                    $ftpcomplete"
 	fi
 fi
-echo
 
 #Execute external command
-if [[ -n $exec_post ]]; then
+if [[ -n $exec_post ]] && [[ $failed != true ]]; then
 	if [[ $test_mode != "true" ]]; then
 		if [[ $allow_background == "true" ]]; then
 			echo "INFO: Executing external command(In background) - START"
@@ -667,7 +704,11 @@ fi
 # final
 ScriptEndTime=$(date +%s)
 TotalTransferTime=$(( $ScriptEndTime - $ScriptStartTime ))
-echo -e "\e[00;37mINFO: \e[00;32mFinished\e[00m"
+if [[ $failed == true ]]; then
+	echo -e "\e[00;37mINFO: \e[00;31mTransfere failed\e[00m"
+else
+	echo -e "\e[00;37mINFO: \e[00;32mTransfere finished\e[00m"
+fi
 echo "                       Name: $orig_name"
 echo "                       Size: $size MB"
 echo "                      Speed: $SpeedAverage MB/s"
@@ -677,7 +718,9 @@ echo "                   End time: $(date --date=@$ScriptEndTime '+%d/%m/%y-%a-%
 echo "                 Total time: $(printf '%02dh:%02dm:%02ds' "$(($TotalTransferTime/(60*60)))" "$((($TotalTransferTime/60)%60))" "$(($TotalTransferTime%60))")"
 
 # Remove finished one
-queue remove
+if [[ $failed != true ]]; then
+	queue remove
+fi
 # Run queue
 queue next
 }

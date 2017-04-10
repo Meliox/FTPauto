@@ -264,8 +264,10 @@ case "${option[0]}" in
 			path=$(echo $line | cut -d'|' -f3)
 			sort=$(echo $line | cut -d'|' -f4)
 			size=$(echo $line | cut -d'|' -f5)
-			time=$(echo $line | cut -d'|' -f6)
-			echo $id $source $path $sort $size $time
+			failed=$(echo $line | cut -d'|' -f6)
+			time=$(echo $line | cut -d'|' -f7)
+			echo "ID|PATH|SORT TO|SIZE(MB)|FAILED STATUS|TIME"
+			echo "$id|$source|$path|$sort|$size|$failed|$time"
 		done < "$queue_file"
 		message "List has been shown." "0"
 	;;
