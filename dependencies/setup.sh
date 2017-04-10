@@ -35,37 +35,28 @@ function setup {
 function get_size {
 	#called with $filepath
 	local dir="$1"
-	if [[ "$transferetype" == "downftp" ]]; then
+	if [[ "$transferetype" == downftp ]] || [[ "$transferetype" == fxp ]]; then
 		#client
-		# size lookup without expression
-		loadDependency DFtpLogin && ftp_login
-		cat "$ftplogin_file" > "$lftptransfersize"
+		loadDependency DFtpLogin && ftp_login 1
+		cat "$ftplogin_file1" > "$lftptransfersize" >> "$lftptransfersize"
 		echo "du -bs \"$dir\" > ~/../..$transfersize" >> "$lftptransfersize"
-		echo "ls -l \"$dir\" > ~/../..$transfersize" >> "$lftptransfersize2"
+		echo "ls -lR \"$dir\" > ~/../..$transfersize2" >> "$lftptransfersize"
 		echo "exit" >> "$lftptransfersize"
 		"$lftp" -f "$lftptransfersize" &> /dev/null
 		# figure out if it is a file or directory
 		local count=0
 		while read line; do
 			let ++count
-		done <"$lftptransfersize2"
+		done <"$transfersize2"
 		if [[ $count -gt 0 ]]; then
 			echo "INFO: Transfering a directory"
 			transfer_type="directory"
 		else
 			echo "INFO: Transfering a file"
 			transfer_type="file"
-		fi		
-		size=$(cat "$transfersize" | awk '{print $1}')
-		size=$(echo "scale=2; "$size" / (1024*1024)" | bc)
-		echo "INFO: Size to transfere: "$size"MB"
-		cleanup session
+		fi
 		if [[ -n "${#exclude_array[@]}" ]]; then
 			# size lookup if expression is used
-			cat "$ftplogin_file" > "$lftptransfersize"
-			echo "ls -lR \"$dir\" > ~/../..$transfersize" >> "$lftptransfersize"
-			echo "exit" >> "$lftptransfersize"
-			"$lftp" -f "$lftptransfersize" &> /dev/null
 			# prepare regex
 			local exp=() n="0"
 			for i in "${exclude_array[@]}"; do
@@ -76,6 +67,7 @@ function get_size {
 				let n++
 			done
 			# loop through result from lftp
+			size=0
 			while read line; do
 				if [[ -n $(echo "$line" | egrep '('$exp')') ]]; then
 					# ignore files in regex
@@ -100,16 +92,20 @@ function get_size {
 					fi
 					t_size=$(echo "$line" | awk {'print $5'})
 					#full_path="$path$(echo "$line" | awk {'print $9'})"
-					size=$(( $size + $t_size ))
+					size=$(echo $size + $t_size | bc)
 				fi
-			done < "$transfersize"
+			done < "$transfersize2"
+		else
+			size=$(cat "$transfersize" | awk '{print $1}')
 		fi
+		size=$(echo "scale=2; "$size" / (1024*1024)" | bc)
+		echo "INFO: Size to transfere: ${size}MB"
 		cleanup session
-	elif [[ "$transferetype" == "upftp" ]]; then
+	elif [[ "$transferetype" == upftp ]]; then
 		#server
 		directorysize=$(du -bsL "$dir" | awk '{print $1}')
 		size=$(echo "scale=2; "$directorysize" / (1024*1024)" | bc)
-		echo "INFO: Size to transfere: "$size"MB"
+		echo "INFO: Size to transfere: ${size}MB"
 		if [[ -n "${#exclude_array[@]}" ]]; then
 			exclude_expression=()
 			local n="1"
@@ -123,8 +119,8 @@ function get_size {
 			done
 			exclude_expression="${exclude_expression[@]}"
 			sizeBytes=$(find -L "$dir" \! \( $exclude_expression \) -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}') # in bytes
-			size=$(echo "scale=2; "$sizeBytes" / (1024*1024)" | bc)
-			echo "INFO: Updated size to transfere(filter used): "$size"MB"
+			size=$(echo "scale=2; $sizeBytes / (1024*1024)" | bc)
+			echo "INFO: Updated size to transfere(filter used): ${size}MB"
 		fi
 	fi
 }

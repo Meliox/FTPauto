@@ -145,9 +145,8 @@ function ftp_transfere {
 	local lftp_exclude quittime waittime
 	#prepare new transfer
 	{
-	cat "$ftplogin_file" >> "$ftptransfere_file"
-	# optional use regexp to exclude files during mirror
-	if [[ -n "${#exclude_array[@]}" ]]; then
+	# Write regexp to config for directory transferes
+	if [[ -n "${#exclude_array[@]}" ]] && ( [[ $transfer_type = directory ]] || [[ -d "$transfer_path" ]] ); then
 		for ((i=0;i<${#exclude_array[@]};i++)); do
 			if [[ $i -gt 0 ]]; then
 				lftp_exclude="$lftp_exclude|"
@@ -163,24 +162,24 @@ function ftp_transfere {
 	{
 		cat "$ftplogin_file1" >> "$ftptransfere_file"
 		# create final directories if they don't exists
-		echo "!mkdir -p \"$ftpcomplete\"" >> "$ftptransfere_file"
+		echo "!mkdir -p \"${ftpcomplete}\"" >> "$ftptransfere_file"
 		if [[ -n $ftpincomplete ]]; then
-			echo "!mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
+			echo "!mkdir -p \"${ftpincomplete}\"" >> "$ftptransfere_file"
 		fi
 		# fail if transfers fails
 		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 		# from get_size we know if its a file or a path!
 		if [[ $transfer_type = file ]]; then
 			if [[ -n $ftpincomplete ]]; then
-				echo "queue get -c -O \"$ftpincomplete\" \"$transfer_path\"" >> "$ftptransfere_file"
+				echo "queue get -c -O \"${ftpincomplete}\" \"${transfer_path}\"" >> "$ftptransfere_file"
 			elif [[ -z $ftpincomplete ]]; then
-				echo "queue get -c -O \"$ftpcomplete\" \"$transfer_path\"" >> "$ftptransfere_file"
+				echo "queue get -c -O \"${ftpcomplete}\" \"${transfer_path}\"" >> "$ftptransfere_file"
 			fi
 		elif [[ $transfer_type = directory ]]; then
 			if [[ -n $ftpincomplete ]]; then
-				echo "queue mirror --no-umask -p --parallel=$parallel -c \"$transfer_path\" \"$ftpincomplete\"" >> "$ftptransfere_file"
+				echo "queue mirror --no-umask -p --parallel=$parallel -c \"${transfer_path}\" \"${ftpincomplete}\"" >> "$ftptransfere_file"
 			elif [[ -z $ftpincomplete ]]; then
-				echo "queue mirror --no-umask -p --parallel=$parallel -c \"$transfer_path\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+				echo "queue mirror --no-umask -p --parallel=$parallel -c \"${transfer_path}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
 			fi
 		fi
 		# wait for transferes to finish
@@ -188,37 +187,37 @@ function ftp_transfere {
 		# moving part, locally
 		if [[ -n $ftpincomplete ]]; then
 			if [[ $transfer_type = file ]]; then
-				echo "queue !mv \"$ftpincomplete${orig_name}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+				echo "queue !mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
 			elif [[ $transfer_type = directory ]]; then
-				echo "queue !mv \"$ftpincomplete$orig_name\" \"$ftpcomplete$orig_name\"" >> "$ftptransfere_file"
-				echo "queue mv \"$ftpincomplete\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+				echo "queue !mv \"${ftpincomplete}${orig_name}/\" \"${ftpcomplete}/\"" >> "$ftptransfere_file"
 			fi
 			echo "wait" >> "$ftptransfere_file"
 		fi
 		echo "wait" >> "$ftptransfere_file"
+	}
 	elif [[ $transferetype == "upftp" ]]; then
 	{
 		cat "$ftplogin_file1" >> "$ftptransfere_file"
 		echo "mkdir -p \"${ftpcomplete}\"" >> "$ftptransfere_file"
 		# handle files for transfer
-		if [[ -n $ftpincomplete ]]; then
-			echo "mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
+		if [[ -n "${ftpincomplete}" ]]; then
+			echo "mkdir -p \"${ftpincomplete}\"" >> "$ftptransfere_file"
 		fi
 		# fail if transfers fails
 		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 		if [[ -f "$transfer_path" ]]; then
 			# single file
 			if [[ -n "$ftpincomplete" ]]; then
-				echo "queue put -c -O \"$ftpincomplete\" \"$transfer_path\" " >> "$ftptransfere_file"
+				echo "queue put -c -O \"$ftpincomplete\" \"${transfer_path}\" " >> "$ftptransfere_file"
 			elif [[ -z "$ftpincomplete" ]]; then
-				echo "queue put -c -O \"$ftpcomplete\" \"$transfer_path\" " >> "$ftptransfere_file"
+				echo "queue put -c -O \"$ftpcomplete\" \"${transfer_path}\" " >> "$ftptransfere_file"
 			fi
 		elif [[ -d "$transfer_path" ]]; then
 			# directory
 			if [[ -n "$ftpincomplete" ]]; then
-				echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"$transfer_path\" \"$ftpincomplete\"" >> "$ftptransfere_file" #needs fixing
+				echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${ftpincomplete}\"" >> "$ftptransfere_file" #needs fixing
 			elif [[ -z "$ftpincomplete" ]]; then
-				echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"$transfer_path\" \"$ftpcomplete\"" >> "$ftptransfere_file" #needs fixing
+				echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${ftpcomplete}\"" >> "$ftptransfere_file" #needs fixing
 			fi
 		fi
 		# wait for transferes to finish
@@ -227,31 +226,51 @@ function ftp_transfere {
 		if [[ -n "$ftpincomplete" ]]; then
 			# correction for file and path
 			if [[ -f "$filepath" ]]; then
-				echo "queue mv \"$ftpincomplete${orig_name}\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+				echo "queue mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
 			elif [[ -d "$filepath" ]]; then
-				echo "queue mv \"$ftpincomplete$orig_name\" \"$ftpcomplete\"" >> "$ftptransfere_file"
+				echo "queue mv \"${ftpincomplete}${orig_name}/\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
 			fi
 			echo "wait" >> "$ftptransfere_file"
 		fi
-	elif [[ $transferetype == "fxp" ]]; then #NOT WORKING
-		ftppath=${filepath##*/ftp/}
-		ftppath=${ftppath%%/$orig_name/}
-		echo "set ftp:use-fxp yes" >> "$ftptransfere_file"
-		echo "set ftp:fxp-passive-source yes" >> "$ftptransfere_file"
-		i=0
-		for n in "${changed_name[@]}"; do
-			if [[ ! -d ${transfer_path[$i]} ]]; then
-				#perhaps not working?
-				echo "mkdir \"$ftpincomplete${changed_name[$i]}\"" >> "$ftptransfere_file"
-				echo "get ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"/$ftppath/${changed_name[$i]}/\" ftp://$ftpuser:$ftppass@$ftphost:$ftpport:\"$ftpincomplete\"" >> "$ftptransfere_file"
-			else
-				echo "queue mirror --no-umask -p -c --parallel=$parallel ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"/$ftppath/${changed_name[$i]}/\" ftp://$ftpuser:$ftppass@$ftphost:$ftpport:\"$ftpincomplete\"" >> "$ftptransfere_file"
+	}
+	elif [[ $transferetype == "fxp" ]]; then
+		ftp_login 2
+		cat "$ftplogin_file2" >> "$ftptransfere_file"
+		# first login and create final directories if they don't exists on ftphost2
+		echo "mkdir -p \"$ftpcomplete\"" >> "$ftptransfere_file"
+		if [[ -n $ftpincomplete ]]; then
+			echo "mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
+		fi
+		# fail if transfers fails
+		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
+		# from get_size we know if its a file or a path!
+		if [[ $transfer_type = file ]]; then
+			# single file
+			if [[ -n "$ftpincomplete" ]]; then
+				echo "queue get -c ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"$transfer_path\" -o ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"$ftpincomplete\"" >> "$ftptransfere_file"
+			elif [[ -z "$ftpincomplete" ]]; then
+				echo "queue get -c ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"$transfer_path\" -o ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"$ftpcomplete\"" >> "$ftptransfere_file"
+			fi
+		elif [[ $transfer_type = directory ]]; then
+			# directory
+			if [[ -n "$ftpincomplete" ]]; then
+				echo "queue mirror --no-umask -p --parallel=$parallel -c -RL ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"${transfer_path}\" ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"${ftpincomplete}\"" >> "$ftptransfere_file" #needs fixing
+			elif [[ -z "$ftpincomplete" ]]; then
+				echo "queue mirror --no-umask -p --parallel=$parallel -c -RL ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"${transfer_path}\" ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"${ftpincomplete}\"" >> "$ftptransfere_file" #needs fixing
+			fi
+		fi
+		# wait for transferes to finish
+		echo "wait" >> "$ftptransfere_file"
+		# moving part, remotely, if ftpincomplete directory is used
+		if [[ -n "$ftpincomplete" ]]; then
+			# correction for file and path
+			if [[ $transfer_type = file ]]; then
+				echo "queue mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
+			elif [[ $transfer_type = directory ]]; then
+				echo "queue mv \"${ftpincomplete}${orig_name}/\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
 			fi
 			echo "wait" >> "$ftptransfere_file"
-			echo "queue mv \"$ftpincomplete${changed_name[$i]}\" \"$ftpcomplete${orig_name[$i]}\"" >> "$ftptransfere_file"
-			echo "wait" >> "$ftptransfere_file"
-			let i++
-		done
+		fi
 	else
 		echo -e "\e[00;31mERROR: FTP setting not recognized\e[00m\n"
 		cleanup die
@@ -313,20 +332,27 @@ function ftp_processbar { #Showing how download is proceeding
 			cat "$ftplogin_file1" >> "$ftptransfere_processbar"
 			# ~ is /home/USER/
 			if [[ -f "$filepath" ]]; then
-				echo "du -s \"$ftpincomplete${orig_name%.*}\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
+				echo "du -s \"$ftpincomplete${orig_name}\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
 			elif [[ -d "$filepath" ]]; then
 				echo "du -s \"$ftpincomplete$orig_name\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
 			fi
 			echo "quit" >> "$ftptransfere_processbar"
 		elif [[ $transferetype == "fxp" ]]; then
-			# todo
-			echo "missing"
+			#Create configfile for lftp processbar
+			cat "$ftplogin_file2" >> "$ftptransfere_processbar"
+			# ~ is /home/USER/
+			if [[ $transfer_type = file ]]; then
+				echo "du -s \"$ftpincomplete${orig_name}\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
+			elif [[ $transfer_type = directory ]]; then
+				echo "du -s \"$ftpincomplete$orig_name\" > ~/../..$proccess_bar_file" >> "$ftptransfere_processbar"
+			fi
+			echo "quit" >> "$ftptransfere_processbar"
 		fi
 		{ #run processbar loop
 		while :; do
 			if [[ $transferetype == "downftp" ]]; then
 				eval $transfered_size
-			elif [[ $transferetype == "upftp" ]]; then
+			elif [[ $transferetype == "upftp" ]] || [[ $transferetype == "fxp" ]]; then
 				$lftp -f "$ftptransfere_processbar" &> /dev/null &
 				pid_process=$!
 				sed "4c $pid_process" -i "$lockfile"
@@ -681,11 +707,10 @@ done
 if [[ -z "$filepath" ]]; then
 	# if --path is not used, try and run queue
 	queue next
-elif [[ -z $(find "$filepath" -type d 2>/dev/null) ]] && [[ -z $(find "$filepath" -type f -print | head -n 1 2>/dev/null) ]] || [[ -z $(find "$filepath" -type f -print | head -n 1 2>/dev/null) ]]; then
+elif [[ -z "$(find "$filepath" -type d 2>/dev/null)" ]] && [[ -z "$(find "$filepath" -type f -print | head -n 1 2>/dev/null)" ]] || [[ -z "$(find "$filepath" -type f -print | head -n 1 2>/dev/null)" ]]; then
 	# path with files or file not found
-	if [[ "$transferetype" == "downftp" ]]; then
-		# server <-- client, assume path is OK
-		lockfile
+	if [[ "$transferetype" == "downftp" ]] || [[ "$transferetype" == fxp ]]; then
+		# server <-- client, assume path is OK - we will know for sure when size is found
 		true
 	elif [[ "$transferetype" == "upftp" ]]; then		
 		# server --> client
