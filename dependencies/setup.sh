@@ -34,7 +34,7 @@ function setup {
 
 function get_size {
 	# called with $filepath
-	local dir n count i exp path t_size directorysize sizeBytes
+	local dir n count i exp path t_size directorysize
 	dir="$1"
 	if [[ "$transferetype" == downftp ]] || [[ "$transferetype" == fxp ]]; then
 		#client
@@ -99,6 +99,7 @@ function get_size {
 		else
 			size=$(cat "$transfersize" | awk '{print $1}')
 		fi
+		sizeBytes="$size"
 		size=$(echo "scale=2; "$size" / (1024*1024)" | bc)
 		if [[ ${#exclude_array[@]} -eq 0 ]]; then
 			echo "INFO: Size to transfere: ${size}MB"
