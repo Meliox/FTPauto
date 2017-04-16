@@ -25,7 +25,7 @@ function videoFile {
 				echo "      $(basename "$n") $(echo "scale=2; $found_file_size / (1024*1024)" | bc)MB"
 			done
 			echo "INFO: Total size found: $(echo "scale=2; $found_file_size_total / (1024*1024)" | bc)MB. "
-			found_file_percentage=$(echo "scale=3; $found_file_size_total / $directorysize * 100" | bc | cut -d'.' -f1)
+			found_file_percentage=$(echo "scale=3; $found_file_size_total / $sizeBytes * 100" | bc | cut -d'.' -f1)
 			if [[ $found_file_percentage -gt 80 ]]; then
 				echo "INFO: File(s) found is ${found_file_percentage}% > 80%. Everything OK"
 				# update path and correct filename(s)
@@ -89,7 +89,7 @@ function mountsystem {
 						found_file_size_total=$(echo "$found_file_size_total + $found_file_size" | bc)
 						echo "      $(basename "$n") $(echo "scale=2; $found_file_size / (1024*1024)" | bc)MB"
 					done
-					found_file_percentage=$(echo "scale=3; $found_file_size_total / $directorysize * 100" | bc | cut -d'.' -f1)
+					found_file_percentage=$(echo "scale=3; $found_file_size_total / $sizeBytes * 100" | bc | cut -d'.' -f1)
 					if [[ $found_file_percentage -gt 80 ]]; then
 						# videofiles were succesfully found
 						echo "INFO: File(s) found is ${found_file_percentage}% > 80%. Everything OK"
