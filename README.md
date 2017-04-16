@@ -21,6 +21,8 @@ FTPauto is a simple, but highly advanced and configurable FTP-client wrap-around
 
 If you find this tool helpful, a small donation is appreciated, [![Donate](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=K8XPMSEBERH3W).
 
+![screenshot](https://cloud.githubusercontent.com/assets/5264368/25070558/36a0d0be-22a2-11e7-8629-da2b9aeba111.png)
+
 - - -
 # Index
 * [Requirements](#requirements)
