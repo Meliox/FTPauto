@@ -426,7 +426,7 @@ function ftp_processbar { #Showing how download is proceeding
 					percentage=$(echo $percentage | sed 's/\(.*\)../\1/')
 					speed=$(echo "scale=2; ( ($TransferredNew - $TransferredOld) / 1024 ) / ( $ProgressTimeNew - $ProgressTimeOld )" | bc) # MB/s
 					eta=$(echo "( ($sizeBytes / 1024 ) - $TransferredNew ) / ($speed * 1024 )" | bc)
-					etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))"
+					etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))")
 					# Calculate average speed. Needs to be calculated each time as transfer stops ftp_processbar
 					SpeedOld+=( "$speed" )
 					if [[ -n "${#SpeedOld[@]}" ]]; then
