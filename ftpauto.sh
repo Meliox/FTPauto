@@ -3,7 +3,7 @@ s_version="0.5.0"
 verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 script="$(readlink -f $0)"
 scriptdir=$(dirname $script)
-lastUpdate=1492337467
+lastUpdate=1493548154
 message=""
 
 control_c() {

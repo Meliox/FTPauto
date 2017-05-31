@@ -108,16 +108,16 @@ function queue {
 			# look for non failed items
 			while [[ $failed == true ]]; do
 				# load next item from top
-				id=$(awk 'BEGIN{FS="|";OFS=" "}NR==$i{print $1}' "$queue_file")
+				id=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $1}' "$queue_file")
 				# check if ID has failed
-				failed=$(awk 'BEGIN{FS="|";OFS=" "}NR==$i{print $6}' "$queue_file")
+				failed=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $6}' "$queue_file")
 				let i++
 			done
 			if [[ $failed == false ]]; then
 				# found a non failed item, which will be downloaded
-				source=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $2}' "$queue_file")
-				filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $3}' "$queue_file")
-				sort=$(awk 'BEGIN{FS="|";OFS=" "}NR==1{print $4}' "$queue_file")
+				source=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $2}' "$queue_file")
+				filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $3}' "$queue_file")
+				sort=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $4}' "$queue_file")
 				# execute main script again
 				queue_running="true"
 				if [[ -f "$lockfile" ]]; then
