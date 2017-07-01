@@ -23,7 +23,7 @@ function sortFiles {
 		echo "INFO: Sorted to ${ftpcomplete}"
 	elif [[ $orig_name =~ \.XXX\. ]]; then
 		ftpcomplete=$ftpcomplete"XXX/"
-		echo "INFO: Sorted to ${ftpcomplete}XXX"
+		echo "INFO: Sorted to ${ftpcomplete}"
 	elif [[ $orig_name =~ (S[0-9][0-9]E[0-9][0-9]) ]] || [[ $orig_name =~ (E[0-9][0-9]) ]] || [[ $orig_name =~ (S[0-9][0-9]) ]] || [[ $orig_name =~ (\.(episode|ep|e|Part|pt)\.(([0-9][0-9]?)|(I|II|III|IV|V|VI|VII|VIII|IIX|IX|X|XI|XII))\.) ]]  || [[ $orig_name =~ ([[:digit:]](x|of)[[:digit:]]) ]] || [[ $orig_name =~ ([[:digit:]]{4}.[[:digit:]]{2}.[[:digit:]]{2})|([[:digit:]]{2}.[[:digit:]]{2}.[[:digit:]]{4}) ]]; then
 		# Sort to series folders if format matches
 		local series_name="${orig_name%%.S[[:digit:]]*}"
