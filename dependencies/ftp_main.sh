@@ -477,7 +477,7 @@ function logrotate {
 			transferTime2=$(printf '%02dh:%02dm:%02ds' "$(($transferTime/(60*60)))" "$((($transferTime/60)%60))" "$(($transferTime%60))")
 			SpeedAverage=$(sed -n 5p "$lockfile")
 			#Adds new info to 7th line
-			sed "7i $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')|"$source"|"$orig_name"|$size\MB|$transferTime2|$SpeedAverage\MB/s" -i "$logfile"
+			sed "7i $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')|${source}|${orig_name}|${size}MB|${transferTime2}|${SpeedAverage}MB/s" -i "$logfile"
 			lognumber=$((7 + $lognumber ))
 			#Add text to old file
 			if [[ $logrotate == "true" ]]; then
@@ -502,11 +502,11 @@ function logrotate {
 			totaldltime=$(echo "$totaldltime_seconds + $transferTime" | bc)
 			totaldltime=$(printf '%02dd:%02dh:%02dm:%02ds' "$(($totaldltime/(60*60*24)))" "$(($totaldltime/(60*60)%24))" "$((($totaldltime/60)%60))" "$(($totaldltime%60))")
 
-			sed "1s#.*#***************************	FTPauto - version $s_version#" -i "$logfile"
-			sed "2s#.*#***************************	STATS: "$totaldl"MB in $totalrls transfers in $totaldltime#" -i "$logfile"
-			sed "3s#.*#***************************	FTP INFO: N/A#" -i "$logfile"
-			sed "4s#.*#***************************	LASTDL: $(date)|${orig_name}|${SpeedAverage}MB/s#" -i "$logfile"
-			sed "5s#.*#***************************	#" -i "$logfile"
+			sed "1s#.*#*****  FTPauto ${s_version}#" -i "$logfile"
+			sed "2s#.*#*****  STATS: ${totaldl}MB in ${totalrls} transfers in ${totaldltime}#" -i "$logfile"
+			sed "3s#.*#*****  FTP INFO: N/A#" -i "$logfile"
+			sed "4s#.*#*****  LASTDL: $(date)|${orig_name}|${SpeedAverage}MB/s#" -i "$logfile"
+			sed "5s#.*#*****  #" -i "$logfile"
 		else
 			echo -e "\e[00;31mTESTMODE: LOGGING NOT STARTED\e[00m"
 	fi
