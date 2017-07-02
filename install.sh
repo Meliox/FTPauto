@@ -1,6 +1,6 @@
 #!/bin/bash
 ###
-scriptdir=$(dirname $(readlink -f $0))
+scriptdir=$(dirname "$(readlink -f "$0")")
 #
 ### code below
 #
@@ -31,7 +31,7 @@ function version_compare {
 	else
 		local IFS=.
 		local n1=($1) n2=($2)
-		for i in ${!n1[@]}; do
+		for i in "${!n1[@]}"; do
 			if [[ ${n1[i]} -gt ${n2[i]} ]]; then
 				new_version="true"
 				break
@@ -52,8 +52,8 @@ function lftp_update {
 	sudo apt-get -y build-dep lftp
 	sudo apt-get -y install gcc openssl build-essential automake readline-common libreadline6-dev pkg-config libgnutls-dev ncurses-dev &> /dev/null
 	# find latest lftp
-	cd "$scriptdir/dependencies"
-	local lftpversion=$(curl --silent http://lftp.tech/ftp/ | egrep -o '>lftp.(.*).+tar.gz' | tail -1)
+	cd "$scriptdir/dependencies" || exit
+	local lftpversion=$(curl --silent http://lftp.tech/ftp/ | grep -Eo '>lftp.(.*).+tar.gz' | tail -1)
 	lftpversion=${lftpversion#\>lftp\-}
 	lftpversion=${lftpversion%.tar.gz}
 	wget "http://lftp.tech/ftp/lftp-$lftpversion.tar.gz" &> /dev/null
@@ -81,7 +81,7 @@ function install_lftp {
 				fi
 			fi
 			echo -n "Checking lftp .."
-			if [[ -z $(builtin type -p $i) ]]; then
+			if [[ -z $(builtin type -p "$i") ]]; then
 				echo -e " \e[00;32m [OK]\e[00m"
 			fi
 		else
@@ -91,14 +91,14 @@ function install_lftp {
 		fi
 	else
 		# get online lftp version
-		local lftpversion=$(curl --silent http://lftp.tech/ftp/ | egrep -o '>lftp.(.*).+tar.gz<' | tail -1)
+		local lftpversion=$(curl --silent http://lftp.tech/ftp/ | grep -Eo '>lftp.(.*).+tar.gz<' | tail -1)
 		lftpversion=${lftpversion#\>lftp\-}
 		lftpversion=${lftpversion%.tar.gz<}
 		# get current lftp version
 		local c_lftpversion=$(lftp --version | egrep -o 'Version\ [0-9].[0-9].[0-9]' | cut -d' ' -f2)
 		version_compare "$lftpversion" "$c_lftpversion"
 		if [[ "$new_version" == "true" ]]; then
-			echo -e " [\e[00;33mv$lftpversion available, current version $c_lftpversion\e[00m] "
+			echo -e " [\e[00;33m$lftpversion available, current version $c_lftpversion\e[00m]"
 			read -p " Do you wish to update(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
 				lftp_update
@@ -108,6 +108,63 @@ function install_lftp {
 		else
 			echo -e " \e[00;32m [Latest]\e[00m"
 		fi
+	fi
+}
+
+function rar2fs_update {
+	if [[ -n $(builtin type -p rar2fs) ]]; then
+		echo -n "Removing old version ..."
+		sudo apt-get -y remove rar2fs &> /dev/null
+		# remove compiled version
+		sudo rm -rf "$scriptdir/dependencies/rar2fs*"
+		sudo rm -rf "$scriptdir/dependencies/unrar*"
+	fi
+	cd "$scriptdir/dependencies/"
+	# get latest stable release of rar2fs
+	var=$(curl -s https://api.github.com/repos/hasse69/rar2fs/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
+	wget -q "$var" -O rar2fs.tar.gz; tar zxf rar2fs.tar.gz; rm rar2fs.tar.gz; cd rar2f* || exit
+	wget -q http://www.rarlab.com/rar/unrarsrc-5.4.5.tar.gz && tar -zxf unrarsrc-5.4.5.tar.gz && rm unrarsrc-5.4.5.tar.gz
+	cd unrar && make lib && sudo make install-lib && cd ..
+	autoreconf -f -i &> /dev/null && ./configure --silent && make --silent && sudo checkinstall -y &> /dev/null
+}
+
+function install_rar2fs {
+	echo -n " Checking/updating rar2fs ..."
+	if [[ -n $(builtin type -p rar2fs) ]] && [[ $1 != update ]]; then
+		echo -e "\n \"rar2fs\" is not installed! It is needed to mount rarfiles in order to send videofile only. The file(s) will be transferred in original format otherwise"
+		read -p " Do you want to install it(needs to be compiled - SLOW)(y/n)? "
+		if [[ "$REPLY" == "y" ]]; then
+			sudo apt-get -y install automake1.9 fuse-utils libfuse-dev &> /dev/null
+			if [[ $? -eq 1 ]]; then
+				echo -e "INFO: Could not install program using sudo.\nYou have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\"\n... Exiting\n"; exit 0
+			else
+				rar2fs_update
+			fi
+		else
+			echo -e "Checking rar2fs ... [\e[00;33mSKIPPED\e[00m] NOTE: \"video\" will not work as send option"
+		fi
+		if [[ -z $(builtin type -p rar2fs) ]]; then
+			echo -e " \e[00;32m [OK]\e[00m"
+		fi
+	elif [[ $1 == update ]]; then
+		c_rar2fsversion=$(rar2fs --version | grep -Eo 'rar2fs\sv[0-9][0-9]?\.[0-9][0-9]?\.[0-9][0-9]?')
+		c_rar2fsversion=$(echo $c_rar2fsversion | cut -d' ' -f2 | cut -d'v' -f2)
+		rar2fsversion=$(curl -s https://api.github.com/repos/hasse69/rar2fs/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4 | cut -d '/' -f8 | cut -d'v' -f2)
+		version_compare "$rar2fsversion" "$c_rar2fsversion"
+		if [[ "$new_version" == "true" ]]; then
+			echo -e " [\e[00;33m$rar2fsversion available, current version $c_rar2fsversion\e[00m]"
+			read -p " Do you wish to update(y/n)? "
+			if [[ "$REPLY" == "y" ]]; then
+				rar2fs_update
+			else
+				echo -e " rar2fs update ... [\e[00;33mSKIPPED\e[00m]"
+			fi
+		else
+			echo -e " \e[00;32m [Latest]\e[00m"
+		fi
+	else
+		# rar2fs is not installed, hence no reason to update
+		echo -e " \e[00;32m [Not used]\e[00m"
 	fi
 }
 
@@ -139,12 +196,12 @@ function installContinue {
 			echo -e "\n \"$i\" is not installed. It is required at servers end to split large files before sending them. Otherwise large file will be send normally"
 			read -p " Do you want to install it(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
-				sudo apt-get -y install $i &> /dev/null
+				sudo apt-get -y install "$i" &> /dev/null
 				if [[ $? -eq 1 ]]; then
 					echo "INFO: Could not install program using sudo."
 					echo "You have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\""
 				fi
-				if [[ -z $(builtin type -p $i) ]]; then
+				if [[ -z $(builtin type -p "$i") ]]; then
 					echo -e " \e[00;32m [OK]\e[00m"
 				fi
 			else
@@ -156,32 +213,7 @@ function installContinue {
 		fi
 	done
 	# for mounting to work
-	echo -n " Checking rar2fs ..."
-	if [[ -z $(which rar2fs) ]]; then
-		echo -e "\n \"rar2fs\" is not installed! It is needed to mount rarfiles in order to only send videofile. The file(s) will be transferred as normally otherwise"
-		read -p " Do you want to install it(needs to be compiled - SLOW)(y/n)? "
-		if [[ "$REPLY" == "y" ]]; then
-			sudo apt-get -y install automake1.9 fuse-utils libfuse-dev &> /dev/null
-			if [[ $? -eq 1 ]]; then
-				echo -e "INFO: Could not install program using sudo.\nYou have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\"\n... Exiting\n"; exit 0
-			else
-				cd "$scriptdir/dependencies/"
-				# get latest stable release of rar2fs
-				var=$(curl -s https://api.github.com/repos/hasse69/rar2fs/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
-				wget -q "$var" -O rar2fs.tar.gz; tar zxf rar2fs.tar.gz; rm rar2fs.tar.gz; cd rar2f*
-				wget -q http://www.rarlab.com/rar/unrarsrc-5.4.5.tar.gz && tar -zxf unrarsrc-5.4.5.tar.gz && rm unrarsrc-5.4.5.tar.gz
-				cd unrar && make lib && sudo make install-lib && cd ..
-				autoreconf -f -i &> /dev/null && ./configure --silent && make --silent && sudo checkinstall -y &> /dev/null
-			fi
-		else
-			echo -e "Checking rar2fs ... [\e[00;33mSKIPPED\e[00m] NOTE: \"videofile_only\" will not work"
-		fi
-		if [[ -z $(builtin type -p rar2fs) ]]; then
-			echo -e " \e[00;32m [OK]\e[00m"
-		fi
-	else
-		echo -e "\e[00;32m [OK]\e[00m"
-	fi
+	install_rar2fs
 
 	echo "Finalizing ..."
 	# Install default user
@@ -224,14 +256,14 @@ function installStart {
 	programs=( "bc" "curl" "openssl" "date" "tail" "awk" "mkdir" "sed" "tput" "nano" "cut" "checkinstall")
 	for i in "${programs[@]}"; do
 		echo -n " Checking for $i ..."
-		if [[ -z $(builtin type -p $i) ]]; then
+		if [[ -z $(builtin type -p "$i") ]]; then
 			echo -e "\e[00;31m[Not found]\e[00m"
-			sudo apt-get -y install $i &> /dev/null
+			sudo apt-get -y install "$i" &> /dev/null
 			if [[ $? -eq 1 ]]; then
 				echo -e "INFO: Could not install program using sudo.\nYou have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\"\n... Exiting\n"; exit 0
 			fi
 			echo -n "Checking $i ..."
-			if [[ -n $(builtin type -p $i) ]]; then
+			if [[ -n $(builtin type -p "$i") ]]; then
 				echo -e "\e[00;32m [OK]\e[00m"
 			else
 				echo -e "\e[00;31mScript will not work without... exiting\e[00m\n"
@@ -287,8 +319,8 @@ function download {
 	wget -q "https://github.com/Meliox/FTPauto/archive/FTPauto-v$release_version.tar.gz"
 	echo -e "\e[00;32m [OK]\e[00m"
 	echo -n " Extracting ..."
-	tar -xzf "$scriptdir"/FTPauto-v"$release_version.tar.gz" --overwrite --strip-components 1
-	rm -f "$scriptdir"/FTPauto-v"$release_version.tar.gz"
+	tar -xzf "${scriptdir}/FTPauto-v${release_version}.tar.gz" --overwrite --strip-components 1
+	rm -f "${scriptdir}/FTPauto-v${release_version}.tar.gz"
 	echo -e "\e[00;32m [OK]\e[00m"
 	update
 	installContinue
@@ -297,7 +329,7 @@ function update {
 	getCurrentVersion
 	# get most recent stable version
 	echo -n " Checking/updating FTPauto ..."
-	local release=$(curl --silent https://github.com/Meliox/FTPauto/releases | egrep -o 'FTPauto-v(.*)+tar.gz' | sort -n | tail -1)
+	local release=$(curl --silent https://github.com/Meliox/FTPauto/releases | grep -Eo 'FTPauto-v(.*)+tar.gz' | sort -n | tail -1)
 	release_version=${release#$"FTPauto-v"}
 	release_version=${release_version%.tar.gz}
 	# comparasion
@@ -324,6 +356,7 @@ function update {
 		sed "6c lastUpdate=$(date +'%s')" -i "$scriptdir/ftpauto.sh" # set update time
 		sed "7c message=\"\"" -i "$scriptdir/ftpauto.sh" # reset update message
 		install_lftp
+		install_rar2fs update
 		echo ""; exit 0
 	fi
 }
