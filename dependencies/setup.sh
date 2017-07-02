@@ -171,7 +171,7 @@ function cleanup {
 		echo -e "INFO: Cleanup done"
 	;;
 	"end" ) #use to end script
-		removeClean "( "$lockfile" )"
+		removeClean "$lockfile"
 		sed "5s#.*#***************************	#" -i $logfile
 		echo -e "\e[00;32mExiting successfully...\e[00m\n"
 	;;
