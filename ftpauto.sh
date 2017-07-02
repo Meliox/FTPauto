@@ -1,7 +1,7 @@
 #!/bin/bash
 s_version="0.5.1"
 verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
-script="$(readlink -f $0)"
+script="$(readlink -f "$0")"
 scriptdir=$(dirname $script)
 lastUpdate=1493548154
 message=""
