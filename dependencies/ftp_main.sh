@@ -522,7 +522,6 @@ function loadConfig {
 
 function lockfile {
 	# upon start (from queue or --path) no option is available, hence create lockfile
-	echo "INFO: Writing lockfile: $lockfile"
 	if [[ -f "$lockfile" ]] && [[ $force != "true" ]]; then
 		# The file exists, find PID, transfere, confirm it still is running
 		mypid_script=$(sed -n 1p "$lockfile")
@@ -531,7 +530,7 @@ function lockfile {
 		kill -0 $mypid_script &> /dev/null
 		if [[ $? -eq 1 ]]; then
 			#Process is not running, continue
-			echo "INFO: No lockfile detected"
+			echo "INFO: Old lockfile found, but process is not running"
 			rm -f "$lockfile"
 		else
 			echo "INFO: The user $user is running something"
