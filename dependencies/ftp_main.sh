@@ -166,7 +166,7 @@ function ftp_transfer_process {
 			ftp_processbar &
 			pid_f_process=$!
 			sed "3c $pid_f_process" -i "$lockfile"
-			echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $(date --date=@$TransferStartTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
+			echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $(date --date=@$TransferStartTime '+%d/%m/%y-%a-%H:%M:%S')\n\e[00m"
 			$lftp -f "$ftptransfere_file" &> /dev/null &
 			pid_transfer=$!
 			sed "2c $pid_transfer" -i "$lockfile"
@@ -179,6 +179,7 @@ function ftp_transfer_process {
 			wait $(sed -n '3p' "$lockfile") 2>/dev/null
 			kill $(sed -n '4p' $lockfile) &> /dev/null
 			wait $(sed -n '4p' "$lockfile") 2>/dev/null
+
 		;;
 	esac
 }
@@ -347,9 +348,9 @@ function ftp_transfere {
 				ftp_transfer_process start
 			fi
 		done
-		echo -e "\e[00;37mINFO: \e[00;32mTransfer ended: $(date --date=@$TransferEndTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 		#remove processbar processes
 		ftp_transfer_process "stop-process-bar"
+		echo -e "\n\e[00;37mINFO: \e[00;32mTransfer ended: $(date --date=@$TransferEndTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 	else
 		echo -e "\e[00;31mTESTMODE: LFTP-transfer NOT STARTED\e[00m"
 		echo "Would execute the following in lftp:"
