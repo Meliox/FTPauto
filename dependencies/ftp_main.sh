@@ -490,15 +490,15 @@ function logrotate {
 			if [ "$lognumber" -ne 0 ]; then
 				sed $lognumber,'$d' -i "$logfile"
 			fi
-			totaldl=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f2)
+			totaldl=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f4)
 			totaldl=${totaldl%MB}
 			if [[ -z "$totaldl" ]]; then
 				totaldl="0"
 			fi
 			totaldl=$(echo "$totaldl + $size" | bc)
-			totalrls=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f4)
+			totalrls=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f6)
 			totalrls=$(echo "$totalrls + 1" | bc)
-			totaldltime=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f7)
+			totaldltime=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f10)
 			totaldltime_seconds=$(awk 'BEGIN{split("'$totaldltime'",a,":"); print a[1]*(60*60*24)+a[2]*(60*60)+a[3]*60+a[4];}')
 			totaldltime=$(echo "$totaldltime_seconds + $transferTime" | bc)
 			totaldltime=$(printf '%02dd:%02dh:%02dm:%02ds' "$(($totaldltime/(60*60*24)))" "$(($totaldltime/(60*60)%24))" "$((($totaldltime/60)%60))" "$(($totaldltime%60))")
