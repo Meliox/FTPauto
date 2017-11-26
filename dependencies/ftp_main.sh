@@ -455,6 +455,8 @@ function ftp_processbar { #Showing how download is proceeding
 				string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength - 1))"\})"
 				if [[ $percentagebarlength -eq 0 ]]; then
 					printf "\r[$string2]      (no transfere information yet) ($(date '+%H:%M:%S'))"
+				elif [[ $(echo "scale=0; $cols - $percentagebarlength - 1" | bc) -eq 0 ]]; then
+					printf "\r[$string>]      $percentage%% ETA ${etatime}@${speed}MB/s. ${TransferredNewMB}MB@${SpeedAverage}MB/s(avg). ($(date '+%H:%M:%S'))"
 				else
 					printf "\r[$string>$string2]      $percentage%% ETA ${etatime}@${speed}MB/s. ${TransferredNewMB}MB@${SpeedAverage}MB/s(avg). ($(date '+%H:%M:%S'))"
 				fi
