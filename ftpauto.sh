@@ -3,7 +3,7 @@ s_version="0.5.2"
 verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 script="$(readlink -f "$0")"
 scriptdir=$(dirname $script)
-lastUpdate=1493548154
+lastUpdate=1511410224
 message=""
 
 control_c() {
@@ -232,6 +232,22 @@ case "${option[0]}" in
 			message "Failed." "1"
 		fi
 	;;
+	"retry" ) # resets all failed downloads so that they can be retried
+		confirm queue_file "Empty queue!" "0"
+		mv "$queue_file" "${queue_file}.old"
+		while read line; do
+			id=$(echo $line | cut -d'|' -f1)
+			source=$(echo $line | cut -d'|' -f2)
+			path=$(echo $line | cut -d'|' -f3)
+			sort=$(echo $line | cut -d'|' -f4)
+			size=$(echo $line | cut -d'|' -f5)
+			failed=$(echo $line | cut -d'|' -f6)
+			time=$(echo $line | cut -d'|' -f7)
+			echo "$id|$source|$path|$sort|$size|false|$time" >> "$queue_file"
+		done < "${queue_file}.old"
+		rm "${queue_file}.old"
+		message "OK." "0"
+	;;
 	"download" )
 		safelock="false"
 		# set source
@@ -432,6 +448,7 @@ while :; do
 		--sort ) if (($# > 1 )); then sortto="$2"; download_argument+=("--sortto=$sortto"); else invalid_arg "$@"; fi; shift 2;;
 		--sort=* ) sortto=${1#--sort=}; download_argument+=("--sortto=$sortto"); shift;;
 		--path ) if (($# > 1 )); then option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; path="$2"; download_argument+=("--path=$path"); else invalid_arg "$@"; fi; shift 2;;
+		--retry ) option[1]=retry; shift;;
 		--path=* ) option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; path="${1#--path=}"; download_argument+=("--path=$path"); shift;;
 		--source=* ) source=${1#--source=}; download_argument+=("--source=$source"); if [[ -z $source ]]; then invalid_arg "$@"; exit 1; fi; shift;;
 		--source | -s ) if (($# > 1 )); then source="$2"; download_argument+=("--source=$source"); else invalid_arg "$@"; fi; shift 2;;
