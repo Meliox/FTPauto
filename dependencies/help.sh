@@ -47,7 +47,7 @@ IMPORTANT: Default is always used if --user isn't used!
 	= Options =
 	  --clear           | Remove everything in queue
 	  --down            | Move <ID> down
-	  --retry           | Retry all failed downloads
+	  --retry           | Resets all failed downloads. Retry with --start.
 	  --forget          | Remove <ID> from queue
 	  --path=<PATH>     | <PATH> used to transfer now!
 	  --queue           | Sends <PATH> to queue WITHOUT starting script if autostart=false in config.
