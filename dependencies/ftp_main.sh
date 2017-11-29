@@ -760,19 +760,19 @@ function start_main {
 	if [[ -z "$filepath" ]]; then
 		# if --path is not used, try and run queue
 		queue next
-	elif [[ -z "$(find "$filepath" -type d 2>/dev/null)" ]] && [[ -z "$(find "$filepath" -type f -print | head -n 1 2>/dev/null)" ]] || [[ -z "$(find "$filepath" -type f -print | head -n 1 2>/dev/null)" ]]; then
-		# path with files or file not found
-		if [[ "$transferetype" == "downftp" ]] || [[ "$transferetype" == fxp ]]; then
-			# server <-- client, assume path is OK - we will know for sure when size is found
-			true
-		elif [[ "$transferetype" == "upftp" ]]; then
+	fi
+	if [[ "$transferetype" == "downftp" ]] || [[ "$transferetype" == "fxp" ]]; then
+		# server <-- client, assume path is OK - we will know for sure when size is found
+		true
+	elif [[ "$transferetype" == "upftp" ]]; then
+		if [[ ! -d "$filepath" ]] || [[ ! -f "$filepath"  ]]; then
 			# server --> client
 			echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m\n"
 			exit 1
-		else
+		fi
+	else
 			echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Have a look on your config (--user=$user --edit)!\e[00m\n"
 			exit 1
-		fi
 	fi
 	# Save transfer to queue and exit
 	if [[ $queue == true ]]; then
