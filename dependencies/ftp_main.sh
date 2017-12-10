@@ -189,7 +189,7 @@ function ftp_transfere {
 	#prepare new transfer
 	{
 	# Write regexp to config for directory transferes
-	if [[ "${#exclude_array[@]}" -gt 0 ]] && ( [[ $transfer_type = directory ]] || [[ -d "$transfer_path" ]] ); then
+	if [[ "${#exclude_array[@]}" -gt 0 ]] && [[-n "${exclude_array[@]}" ]] && ( [[ $transfer_type = directory ]] || [[ -d "$transfer_path" ]] ); then
 		for ((i=0;i<${#exclude_array[@]};i++)); do
 			if [[ $i -gt 0 ]]; then
 				lftp_exclude="$lftp_exclude|"
