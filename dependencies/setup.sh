@@ -149,7 +149,7 @@ function cleanup {
 		stty sane
 		if [[ "$safelock" != "true" ]]; then
 			# 1) stop processes, 2) cleanup session, 3) remove lockfile/end session
-			cleanup stop
+			cleanup stop-safe
 			cleanup session
 			cleanup end
 			sed "5s#.*#***************************	Transfer: Aborted #" -i $logfile
@@ -175,10 +175,15 @@ function cleanup {
 		sed "5s#.*#***************************	#" -i $logfile
 		echo -e "\e[00;32mExiting successfully...\e[00m\n"
 	;;
-	"stop" ) #use to terminate all pids found in the lockfile
-		for i in {1..4}; do
+	"stop-safe" ) #use to terminate all pids except main process
+		for i in {2..4}; do
 			if [[ -n "$(sed -n "${i}p" $lockfile)" ]]; then kill $(sed -n "${i}p" $lockfile) &> /dev/null; wait $(sed -n "$i p" $lockfile) 2>/dev/null;  fi
 		done
+	;;
+        "stop" ) #use to terminate all pids found in the lockfile
+                for i in {1..4}; do
+                        if [[ -n "$(sed -n "${i}p" $lockfile)" ]]; then kill $(sed -n "${i}p" $lockfile) &> /dev/null; wait $(sed -n "$i p" $lockfile) 2>/dev/null;  fi
+                done
 	;;
 esac
 }
