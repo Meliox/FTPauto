@@ -34,7 +34,7 @@ function setup {
 
 function get_size {
 	# called with $filepath
-	local dir n count i exp path t_size directorysize
+	local dir n count i exp path t_size
 	dir="$1"
 	if [[ "$transferetype" == downftp ]] || [[ "$transferetype" == fxp ]]; then
 		#client
@@ -56,7 +56,7 @@ function get_size {
 			echo "INFO: Transfering a file"
 			transfer_type="file"
 		fi
-		if [[ -n "${#exclude_array[@]}" ]]; then
+		if [[ "${#exclude_array[@]}" -gt 0 ]]; then
 			# size lookup if expression is used
 			# prepare regex
 			local exp=() n="0"
@@ -99,7 +99,7 @@ function get_size {
 		else
 			size=$(cat "$transfersize" | awk '{print $1}')
 		fi
-		sizeBytes="$size"
+		directorysize="$size"
 		size=$(echo "scale=2; "$size" / (1024*1024)" | bc)
 		if [[ ${#exclude_array[@]} -eq 0 ]]; then
 			echo "INFO: Size to transfere: ${size}MB"
@@ -113,7 +113,7 @@ function get_size {
 		size=$(echo "scale=2; "$directorysize" / (1024*1024)" | bc)
 		echo "INFO: Size to transfere: ${size}MB"
 		# exclude files matching passed regex
-		if [[ -n "${#exclude_array[@]}" ]]; then
+		if [[ "${#exclude_array[@]}" -gt 0 ]]; then
 			exclude_expression=()
 			n="1"
 			for i in "${exclude_array[@]}"; do
@@ -125,8 +125,8 @@ function get_size {
 				let n++
 			done
 			exclude_expression="${exclude_expression[@]}"
-			sizeBytes=$(find -L "$dir" \! \( $exclude_expression \) -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}') # in bytes
-			size=$(echo "scale=2; $sizeBytes / (1024*1024)" | bc)
+			directorysize=$(find -L "$dir" \! \( $exclude_expression \) -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}') # in bytes
+			size=$(echo "scale=2; $directorysize / (1024*1024)" | bc)
 			echo "INFO: Updated size to transfere(regex used): ${size}MB"
 		fi
 	fi
