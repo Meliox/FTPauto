@@ -189,7 +189,7 @@ function ftp_transfere {
 	#prepare new transfer
 	{
 	# Write regexp to config for directory transferes
-	if [[ -n "${#exclude_array[@]}" ]] && ( [[ $transfer_type = directory ]] || [[ -d "$transfer_path" ]] ); then
+	if [[ "${#exclude_array[@]}" -gt 0 ]] && ( [[ $transfer_type = directory ]] || [[ -d "$transfer_path" ]] ); then
 		for ((i=0;i<${#exclude_array[@]};i++)); do
 			if [[ $i -gt 0 ]]; then
 				lftp_exclude="$lftp_exclude|"
@@ -424,10 +424,10 @@ function ftp_processbar { #Showing how download is proceeding
 				TimeDiff=$(printf '%02dh:%02dm:%02ds' "$((TotalTimeDiff/(60*60)))" "$(((TotalTimeDiff/60)%60))" "$((TotalTimeDiff%60))")
 				# Ensure value are valid
 				if [[ "$(( $TransferredNew - $TransferredOld ))" -ge "1" ]] && [[ "$(( $TransferredNew - $TransferredOld ))" =~ ^[0-9]+$ ]]; then
-					percentage=$(echo "scale=4; ( "$TransferredNew" / ( "$sizeBytes" / ( 1024 ) ) ) * 100" | bc)
+					percentage=$(echo "scale=4; ( $TransferredNew / ( $directorysize / ( 1024 ) ) ) * 100" | bc)
 					percentage=$(echo $percentage | sed 's/\(.*\)../\1/')
 					speed=$(echo "scale=2; ( ($TransferredNew - $TransferredOld) / 1024 ) / ( $ProgressTimeNew - $ProgressTimeOld )" | bc) # MB/s
-					eta=$(echo "( ($sizeBytes / 1024 ) - $TransferredNew ) / ($speed * 1024 )" | bc)
+					eta=$(echo "( ($directorysize / 1024 ) - $TransferredNew ) / ($speed * 1024 )" | bc)
 					etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))")
 					# Calculate average speed. Needs to be calculated each time as transfer stops ftp_processbar
 					SpeedOld+=( "$speed" )
@@ -760,19 +760,19 @@ function start_main {
 	if [[ -z "$filepath" ]]; then
 		# if --path is not used, try and run queue
 		queue next
-	fi
-	if [[ "$transferetype" == "downftp" ]] || [[ "$transferetype" == "fxp" ]]; then
-		# server <-- client, assume path is OK - we will know for sure when size is found
-		true
-	elif [[ "$transferetype" == "upftp" ]]; then
-		if [[ ! -d "$filepath" ]] || [[ ! -f "$filepath"  ]]; then
+	elif [[ -z "$(find "$filepath" -type d 2>/dev/null)" ]] && [[ -z "$(find "$filepath" -type f -print | head -n 1 2>/dev/null)" ]] || [[ -z "$(find "$filepath" -type f -print | head -n 1 2>/dev/null)" ]]; then
+		# path with files or file not found
+		if [[ "$transferetype" == "downftp" ]] || [[ "$transferetype" == fxp ]]; then
+			# server <-- client, assume path is OK - we will know for sure when size is found
+			true
+		elif [[ "$transferetype" == "upftp" ]]; then
 			# server --> client
 			echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m\n"
 			exit 1
-		fi
-	else
+		else
 			echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Have a look on your config (--user=$user --edit)!\e[00m\n"
 			exit 1
+		fi
 	fi
 	# Save transfer to queue and exit
 	if [[ $queue == true ]]; then

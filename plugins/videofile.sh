@@ -12,9 +12,15 @@ function videoFile {
 	elif [[ -d "$filepath" ]]; then
 		# search and calculate total size of all video files found in found_file to get what percentage of transfer consists of videofiles
 		found_files=()
-		while IFS=  read -r -d $'\0'; do
-			found_files+=("$REPLY")
-		done < <(find "$filepath" \( -type f \) -and \( -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" \) -and \! \( $exclude_expression \) -print0)
+		if [[ "${#exclude_array[@]}" -gt 0 ]]; then
+			while IFS=  read -r -d $'\0'; do
+				found_files+=("$REPLY")
+			done < <(find "$filepath" \( -type f \) -and \( -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" \) -and \! \( $exclude_expression \) -print0)
+		else
+                        while IFS=  read -r -d $'\0'; do
+                                found_files+=("$REPLY")
+                        done < <(find "$filepath" \( -type f \) -and \( -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" \) -print0)
+		fi
 		# for found video files, evaluate their total size and if nothing is found try rar mount
 		if [[ "${#found_files[@]}" -gt 0 ]]; then
 			echo "INFO: ${#found_files[@]} video file(s) found:"
@@ -25,7 +31,7 @@ function videoFile {
 				echo "      $(basename "$n") $(echo "scale=2; $found_file_size / (1024*1024)" | bc)MB"
 			done
 			echo "INFO: Total size found: $(echo "scale=2; $found_file_size_total / (1024*1024)" | bc)MB. "
-			found_file_percentage=$(echo "scale=3; $found_file_size_total / $sizeBytes * 100" | bc | cut -d'.' -f1)
+			found_file_percentage=$(echo "scale=3; $found_file_size_total / $directorysize * 100" | bc | cut -d'.' -f1)
 			if [[ $found_file_percentage -gt 80 ]]; then
 				echo "INFO: File(s) found is ${found_file_percentage}% > 80%. Everything OK"
 				# update path and correct filename(s)
@@ -62,9 +68,15 @@ function mountsystem {
 			# search filepath for rarfile(s)
 			local rarset found_files found_file_size_total found_file_size found_file_percentage
 			rarset=()
-			while IFS=  read -r -d $'\0'; do
-				rarset+=("$REPLY")
-			done < <(find "$filepath" \! \( $exclude_expression \) -and \( -name '*.rar' \) -print0 | sort -z)
+			if [[ "${#exclude_array[@]}" -gt 0 ]]; then
+				while IFS=  read -r -d $'\0'; do
+					rarset+=("$REPLY")
+				done < <(find "$filepath" \! \( $exclude_expression \) -and \( -name '*.rar' \) -print0 | sort -z)
+			else
+				while IFS=  read -r -d $'\0'; do
+                                        rarset+=("$REPLY")
+                                done < <(find "$filepath" \( -name '*.rar' \) -print0 | sort -z)
+			fi
 			if [[ "${#rarset[@]}" -gt 0 ]]; then
 				echo "INFO: ${#rarset[@]} rarfile(s) found:"
 				for i in "${rarset[@]}"; do
@@ -77,9 +89,15 @@ function mountsystem {
 				mount_in_use="true"
 				# search tempdir for videofiles
 				found_files=()
-				while IFS=  read -r -d $'\0'; do
-					found_files+=("$REPLY")
-				done < <(find "$tempdir$orig_name-rarmount" \( -type f \) -and \( -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" \) -and \! \( $exclude_expression \) -print0)	
+				if [[ "${#exclude_array[@]}" -gt 0 ]]; then
+					while IFS=  read -r -d $'\0'; do
+						found_files+=("$REPLY")
+					done < <(find "$tempdir$orig_name-rarmount" \( -type f \) -and \( -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" \) -and \! \( $exclude_expression \) -print0)
+				else
+					while IFS=  read -r -d $'\0'; do
+                                                found_files+=("$REPLY")
+                                        done < <(find "$tempdir$orig_name-rarmount" \( -type f \) -and \( -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" \) -print0)
+				fi
 				# verify that they make up 80% of everything
 				if [[ "${#found_files[@]}" -gt 0 ]]; then
 					echo "INFO: ${#found_files[@]} video file(s) found:"
@@ -89,7 +107,7 @@ function mountsystem {
 						found_file_size_total=$(echo "$found_file_size_total + $found_file_size" | bc)
 						echo "      $(basename "$n") $(echo "scale=2; $found_file_size / (1024*1024)" | bc)MB"
 					done
-					found_file_percentage=$(echo "scale=3; $found_file_size_total / $sizeBytes * 100" | bc | cut -d'.' -f1)
+					found_file_percentage=$(echo "scale=3; $found_file_size_total / $directorysize * 100" | bc | cut -d'.' -f1)
 					if [[ $found_file_percentage -gt 80 ]]; then
 						# videofiles were succesfully found
 						echo "INFO: File(s) found is ${found_file_percentage}% > 80%. Everything OK"
