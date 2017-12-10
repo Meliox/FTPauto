@@ -449,7 +449,7 @@ while :; do
 		--sort=* ) sortto=${1#--sort=}; download_argument+=("--sortto=$sortto"); shift;;
 		--path ) if (($# > 1 )); then option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; path="$2"; download_argument+=("--path=$path"); else invalid_arg "$@"; fi; shift 2;;
 		--retry ) option[0]=retry; shift;;
-		--path=* ) option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; path="${1#--path=}"; download_argument+=("--path=$path"); shift;;
+		--path=* ) option[0]="download"; if [[ -z ${option[1]} ]]; then option[1]="start";fi; path="${1#--path=}"; path=${path%/}; download_argument+=("--path=$path"); shift;;
 		--source=* ) source=${1#--source=}; download_argument+=("--source=$source"); if [[ -z $source ]]; then invalid_arg "$@"; exit 1; fi; shift;;
 		--source | -s ) if (($# > 1 )); then source="$2"; download_argument+=("--source=$source"); else invalid_arg "$@"; fi; shift 2;;
 		# Other

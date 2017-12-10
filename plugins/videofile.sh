@@ -47,7 +47,7 @@ function videoFile {
 						ln -s "$n" "$tempdir$orig_name/$(basename "$n")"
 					done
 				fi
-				transfer_path="$tempdir" # update transfer path
+				transfer_path="$tempdir$orig_name" # update transfer path
 				#Update filesize to be transferred
 				get_size "$transfer_path"
 			else
