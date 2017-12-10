@@ -12,7 +12,7 @@ function videoFile {
 	elif [[ -d "$filepath" ]]; then
 		# search and calculate total size of all video files found in found_file to get what percentage of transfer consists of videofiles
 		found_files=()
-		if [[ "${#exclude_array[@]}" -gt 0 ]]; then
+		if [[ "${#exclude_array[@]}" -gt 0 ]] && [[-n "${exclude_array[@]}" ]]; then
 			while IFS=  read -r -d $'\0'; do
 				found_files+=("$REPLY")
 			done < <(find "$filepath" \( -type f \) -and \( -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" \) -and \! \( $exclude_expression \) -print0)
@@ -68,7 +68,7 @@ function mountsystem {
 			# search filepath for rarfile(s)
 			local rarset found_files found_file_size_total found_file_size found_file_percentage
 			rarset=()
-			if [[ "${#exclude_array[@]}" -gt 0 ]]; then
+			if [[ "${#exclude_array[@]}" -gt 0 ]] && [[-n "${exclude_array[@]}" ]]; then
 				while IFS=  read -r -d $'\0'; do
 					rarset+=("$REPLY")
 				done < <(find "$filepath" \! \( $exclude_expression \) -and \( -name '*.rar' \) -print0 | sort -z)
@@ -89,7 +89,7 @@ function mountsystem {
 				mount_in_use="true"
 				# search tempdir for videofiles
 				found_files=()
-				if [[ "${#exclude_array[@]}" -gt 0 ]]; then
+				if [[ "${#exclude_array[@]}" -gt 0 ]] && [[-n "${exclude_array[@]}" ]]; then
 					while IFS=  read -r -d $'\0'; do
 						found_files+=("$REPLY")
 					done < <(find "$tempdir$orig_name-rarmount" \( -type f \) -and \( -name "*.avi" -or -name "*.mkv" -or -name "*.img" -or -name "*.iso" -or -name "*.mp4" \) -and \! \( $exclude_expression \) -print0)
