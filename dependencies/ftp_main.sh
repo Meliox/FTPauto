@@ -464,6 +464,7 @@ function ftp_processbar { #Showing how download is proceeding
 			# update variables and wait
 			TransferredOld="$TransferredNew"
 			ProgressTimeOld="$ProgressTimeNew"
+			rm "$proccess_bar_file"
 			sleep $sleeptime
 		done
 		}
