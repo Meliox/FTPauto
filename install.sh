@@ -122,8 +122,13 @@ function rar2fs_update {
 	cd "$scriptdir/dependencies/"
 	# get latest stable release of rar2fs
 	var=$(curl -s https://api.github.com/repos/hasse69/rar2fs/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
-	wget -q "$var" -O rar2fs.tar.gz; tar zxf rar2fs.tar.gz; rm rar2fs.tar.gz; cd rar2f* || exit
-	wget -q http://www.rarlab.com/rar/unrarsrc-5.4.5.tar.gz && tar -zxf unrarsrc-5.4.5.tar.gz && rm unrarsrc-5.4.5.tar.gz
+	wget -q "$var"
+	name=$(basename $var)
+	tar zxf $name
+	rm $name
+	name=${name::-7}
+	cd $name
+	wget -q http://www.rarlab.com/rar/unrarsrc-5.6.3.tar.gz && tar -zxf unrarsrc-5.6.3.tar.gz && rm unrarsrc-5.6.3.tar.gz
 	cd unrar && make lib && sudo make install-lib && cd ..
 	autoreconf -f -i &> /dev/null && ./configure --silent && make --silent && sudo checkinstall -y &> /dev/null
 }
