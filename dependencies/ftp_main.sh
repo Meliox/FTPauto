@@ -537,11 +537,12 @@ function lockfile {
 			echo "INFO: Old lockfile found, but process is not running"
 			rm -f "$lockfile"
 		else
-			echo "INFO: The user $user is running something"
-			echo "      The script running is: $mypid_script"
-			echo "      The transfere is: $alreadyinprogres"
-			echo "      If that is wrong remove $lockfile"
-			echo "      Wait for it to end, or kill it: kill -9 $mypid_script"
+			echo "INFO: Already running"
+			echo "      The script pid: $mypid_script"
+			echo "      The transfere pid: $alreadyinprogres"
+			echo "      Transfer: $(sed -n 5p < "$logfile" | cut -d',' -f1 | cut -d' ' -f2)"
+			echo "      Lockfile: $lockfile"
+			echo "      See --help on how to stop it"
 			queue add end
 		fi
 	fi
