@@ -274,6 +274,7 @@ case "${option[0]}" in
 	;;
 	"list" ) # list content of queue file
 		confirm queue_file "Empty queue!" "0"
+		echo "ID|PATH|SORT TO|SIZE(MB)|FAILED STATUS|TIME"
 		while read line; do
 			id=$(echo $line | cut -d'|' -f1)
 			source=$(echo $line | cut -d'|' -f2)
@@ -282,7 +283,6 @@ case "${option[0]}" in
 			size=$(echo $line | cut -d'|' -f5)
 			failed=$(echo $line | cut -d'|' -f6)
 			time=$(echo $line | cut -d'|' -f7)
-			echo "ID|PATH|SORT TO|SIZE(MB)|FAILED STATUS|TIME"
 			echo "$id|$source|$path|$sort|$size|$failed|$time"
 		done < "$queue_file"
 		message "List has been shown." "0"
