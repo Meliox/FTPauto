@@ -683,8 +683,6 @@ function main {
 		elif [[ $failed == true ]]; then
 			loadDependency DPushOver && Pushover "Failed: $orig_name" "Sendoption:        $send_option
 Size:                     $size MB
-Time:                   $transferTime2
-Average speed: $SpeedAverage MB/s
 Path:                    $ftpcomplete"
 		else
 		loadDependency DPushOver && Pushover "$orig_name" "Sendoption:        $send_option
