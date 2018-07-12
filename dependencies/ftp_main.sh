@@ -115,7 +115,7 @@ function queue {
 			done
 			if [[ $failed == false ]]; then
 				# found a non failed item, which will be downloaded
-				i=$(grep -nE "^${id}|" "$queue_file" | grep -Eo '^[^:]+')
+				i=$(grep -n "^${id}|" "$queue_file" | grep -Eo '^[^:]+')
 				source=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $2}' "$queue_file")
 				filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $3}' "$queue_file")
 				sort=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $4}' "$queue_file")
