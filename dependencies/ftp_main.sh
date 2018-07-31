@@ -154,6 +154,13 @@ function queue {
 			exit 0
 		fi
 		;;
+                "fail" )
+                # failed item, remove it, and add it with the status failed
+                # remove ID from queue
+                sed "/^"$id"/d" -i "$queue_file"
+                echo "$id|$source|$filepath|$sortto|${size}MB|true|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+                echo -e "\e[00;33mINFO: Failing item: $(basename "$filepath")\e[00m"
+                ;;
 	esac
 }
 
@@ -768,7 +775,8 @@ function start_main {
 		elif [[ "$transferetype" == "upftp" ]]; then
 			# server --> client
 			echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m\n"
-			exit 1
+			queue fail
+			queue next
 		else
 			echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Have a look on your config (--user=$user --edit)!\e[00m\n"
 			exit 1
