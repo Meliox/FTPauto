@@ -113,7 +113,7 @@ function get_size {
 		size=$(echo "scale=2; "$directorysize" / (1024*1024)" | bc)
 		echo "INFO: Size to transfere: ${size}MB"
 		# exclude files matching passed regex
-		if [[ "${#exclude_array[@]}" -gt 0 ]] && [[-n "${exclude_array[@]}" ]]; then
+		if [[ "${#exclude_array[@]}" -gt 0 ]] && [[ -n "${exclude_array[@]}" ]]; then
 			exclude_expression=()
 			n="1"
 			for i in "${exclude_array[@]}"; do
