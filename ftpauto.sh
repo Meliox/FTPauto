@@ -1,5 +1,5 @@
 #!/bin/bash
-s_version="0.5.5"
+s_version="0.5.6"
 verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 script="$(readlink -f "$0")"
 scriptdir=$(dirname $script)
