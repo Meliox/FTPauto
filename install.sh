@@ -65,7 +65,8 @@ function lftp_update {
 				echo -e " lftp update ... [\e[00;33mSKIPPED\e[00m]"
 			fi
 		else
-			echo -e " \e[00;32m [Latest - v$lftpversion]\e[00m"
+			c_lftpversion=$(lftp --version | grep -Eo 'Version\ [0-9].[0-9].[0-9]' | cut -d' ' -f2)
+			echo -e " \e[00;32m [Latest - v$c_lftpversion]\e[00m"
 		fi
 	fi
 
@@ -96,7 +97,7 @@ function install_lftp {
 		echo -e "lftp is not installed! lftp is required for FTPauto to work!"
 		read -p " Do you want to install it(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
-			read -p " Do you want latest version(y)(needs to be compiled - SLOW - Any installed version will be removed) or the package from repo(y/n)? "
+			read -p " Do you want latest version(needs to be compiled - SLOW - Any installed version will be removed) or the package from repo(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
 				lftp_update install
 			else
@@ -163,7 +164,8 @@ function rar2fs_update {
 		autoreconf -f -i &> /dev/null && ./configure --silent && make --silent && sudo checkinstall -y &> /dev/null
 		echo -n " Checking for rar2fs ..."
 		if [[ -n $(builtin type -p rar2fs) ]]; then
-			echo -e " \e[00;32m [Latest - v$rar2fsversion]\e[00m"
+			c_rar2fsversion=$(rar2fs --version 2> /dev/null | grep -Eo 'rar2fs\sv[0-9][0-9]?\.[0-9][0-9]?\.[0-9][0-9]?' | cut -d' ' -f2 | cut -d'v' -f2)
+			echo -e " \e[00;32m [Latest - v$c_rar2fsversion]\e[00m"
 		else
 			echo -e "INFO: Could not install program using sudo.\nYou have to install \"rar2fs\" manually... Exiting\n"; exit 0
 		fi
