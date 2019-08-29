@@ -71,7 +71,7 @@ function lftp_update {
 
 	if [[ "$argument" == "install" ]]; then
 		sudo apt-get -y build-dep lftp
-		sudo apt-get -y install gcc openssl build-essential automake readline-common libreadline6-dev pkg-config libgnutls-dev ncurses-dev libssl-dev libncurses5-dev libreadline-dev zlib1g-dev &> /dev/null
+		sudo apt-get -y install gcc openssl build-essential automake readline-common libreadline-dev pkg-config ncurses-dev libssl-dev libncurses5-dev libreadline-dev zlib1g-dev &> /dev/null
 		# find latest lftp
 		cd "$scriptdir/dependencies" || exit
 		local lftpversion=$(curl --silent http://lftp.tech/ftp/ | grep -Eo '>lftp.(.*).+tar.gz' | tail -1)
@@ -80,10 +80,13 @@ function lftp_update {
 		wget "http://lftp.tech/ftp/lftp-$lftpversion.tar.gz" &> /dev/null
 		tar -xzvf "lftp-$lftpversion.tar.gz" &> /dev/null
 		rm "$scriptdir/dependencies/lftp-$lftpversion.tar.gz"
-		cd "lftp-$lftpversion" && ./configure --with-openssl --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
+		cd "lftp-$lftpversion" && ./configure --with-openssl --silent &> /dev/null && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
 		echo -n " Checking for lftp ..."
-		echo -e " \e[00;32m [Latest - v$lftpversion]\e[00m"
-	fi
+		if [[ -n $(builtin type -p lftp) ]]; then
+			echo -e " \e[00;32m [Latest - v$lftpversion]\e[00m"
+		else
+			echo -e "INFO: Could not install program using sudo.\nYou have to install \"lftp\" manually... Exiting\n"; exit 0
+		fi
 }
 
 function install_lftp {
@@ -133,7 +136,6 @@ function rar2fs_update {
 					sudo apt-get -y remove rar2fs &> /dev/null
 					# remove compiled version
 					sudo rm -rf "$scriptdir/dependencies/rar2fs*"
-					sudo rm -rf "$scriptdir/dependencies/unrar*"
 					argument="install"
 				fi
 			else
@@ -146,9 +148,6 @@ function rar2fs_update {
 	if [[ "$argument" == "install" ]]; then
 		# install
 		cd "$scriptdir/dependencies/"
-		#get unrar dependency for rar2fs
-		wget -q http://www.rarlab.com/rar/unrarsrc-5.6.3.tar.gz && tar -zxf unrarsrc-5.6.3.tar.gz && rm unrarsrc-5.6.3.tar.gz
-		cd unrar && make lib && sudo make install-lib && cd ..
 		# get latest stable release of rar2fs
 		var=$(curl -s https://api.github.com/repos/hasse69/rar2fs/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
 		wget -q "$var"
@@ -156,9 +155,17 @@ function rar2fs_update {
 		tar zxf "$name" && rm "$name"
 		name=${name::-7}
 		cd "$name"
+		#get unrar dependency for rar2fs
+		wget -q http://www.rarlab.com/rar/unrarsrc-5.6.3.tar.gz && tar -zxf unrarsrc-5.6.3.tar.gz && rm unrarsrc-5.6.3.tar.gz
+		cd unrar && make lib &> /dev/null && sudo make install-lib &> /dev/null && cd ..
+		#compile rar2fs
 		autoreconf -f -i &> /dev/null && ./configure --silent && make --silent && sudo checkinstall -y &> /dev/null
 		echo -n " Checking for rar2fs ..."
-		echo -e " \e[00;32m [Latest - v$rar2fsversion]\e[00m"
+		if [[ -n $(builtin type -p rar2fs) ]]; then
+			echo -e " \e[00;32m [Latest - v$rar2fsversion]\e[00m"
+		else
+			echo -e "INFO: Could not install program using sudo.\nYou have to install \"rar2fs\" manually... Exiting\n"; exit 0
+		fi
 	fi
 }
 
@@ -276,9 +283,9 @@ function install {
 			echo -e "\e[00;31m[Not found]\e[00m"
 			sudo apt-get -y install "$i" &> /dev/null
 			if [[ $? -eq 1 ]]; then
-				echo -e "INFO: Could not install program using sudo.\nYou have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\"\n... Exiting\n"; exit 0
+				echo -e "INFO: Could not install program using sudo.\nYou have to install \"$i\"... Exiting\n"; exit 0
 			fi
-			echo -n "Checking $i ..."
+			echo -n " Checking $i ..."
 			if [[ -n $(builtin type -p "$i") ]]; then
 				echo -e "\e[00;32m [OK]\e[00m"
 			else
@@ -294,8 +301,9 @@ function install {
 	# continue  part2 of the installation
 	installDependencies
 }
+
 function uninstall {
-	local programs=("lftp" "rar" "cksfv" "rar2fs" "gcc" "build-essential" "pkg-config" "automake" "libfuse-dev" "checkinstall" "openssl" "libssl-dev" "libncurses5-dev" "libreadline-dev" "zlib1g-dev" "autoconf")
+	local programs=("lftp" "rar" "cksfv" "rar2fs" "pkg-config" "automake" "libfuse-dev" "checkinstall" "libssl-dev" "libncurses5-dev" "libreadline-dev" "zlib1g-dev" "autoconf")
 	echo "The following will be removed: ${programs[@]}"
 	read -p " Do you want to remove all or one by one(all=y/one-by-one(safe)=n)? "
 	if [[ "$REPLY" == "y" ]]; then
@@ -330,6 +338,7 @@ function uninstall {
 	echo -e "\e[00;32m [OK]\e[00m\nComplete removal of FTPauto and dependencies complete!\n"
 	exit 0
 }
+
 function downloadScript {
 	echo -n " Downloading FTPauto..."
 	wget -q "https://github.com/Meliox/FTPauto/archive/FTPauto-v$release_version.tar.gz"
