@@ -70,7 +70,7 @@ function lftp_update {
 	fi
 
 	if [[ "$argument" == "install" ]]; then
-		sudo apt-get -y build-dep lftp
+		sudo apt-get -y build-dep lftp &> /dev/null
 		sudo apt-get -y install gcc openssl build-essential automake readline-common libreadline-dev pkg-config ncurses-dev libssl-dev libncurses5-dev libreadline-dev zlib1g-dev &> /dev/null
 		# find latest lftp
 		cd "$scriptdir/dependencies" || exit
