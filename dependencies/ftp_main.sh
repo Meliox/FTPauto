@@ -455,7 +455,7 @@ function ftp_processbar { #Showing how download is proceeding
 						etatime="?"
 				fi
 				#update file and output the current line
-				sed "5s#.*#***************************	Transferring: ${orig_name}, $percentage%%, in $TimeDiff, $speed MB/s(current), ETA: $etatime, ${SpeedAverage} MB/s (avg)   #" -i "$logfile"
+				sed "5s#.*#***************************	Transferring: ${orig_name}, $percentage\%, in $TimeDiff, $speed MB/s(current), ETA: $etatime, ${SpeedAverage} MB/s (avg)   #" -i "$logfile"
 				cols=$(($(tput cols) - 2))
 				percentagebarlength=$(echo "scale=0; $percentage * $cols / 100" | bc)
 				string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
