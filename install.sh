@@ -30,7 +30,7 @@ function version_compare {
 		new_version="false"
 	else
 		local IFS=.
-		local n1=("$1") n2=("$2")
+		local n1=($1) n2=($2)
 		for i in "${!n1[@]}"; do
 			if [[ ${n1[i]} -gt ${n2[i]} ]]; then
 				new_version="true"
@@ -65,7 +65,7 @@ function lftp_update {
 				echo -e " lftp update ... [\e[00;33mSKIPPED\e[00m]"
 			fi
 		else
-			echo -e " \e[00;32m [Latest]\e[00m"
+			echo -e " \e[00;32m [Latest - v$c_lftpversion]\e[00m"
 		fi
 	fi
 
@@ -139,7 +139,7 @@ function rar2fs_update {
 				echo -e " rar2fs update ... [\e[00;33mSKIPPED\e[00m]"
 			fi
 		else
-			echo -e " \e[00;32m [Latest]\e[00m"
+			echo -e " \e[00;32m [Latest -v$c_lftpversion]\e[00m"
 		fi
 	fi
 	if [[ "$argument" == "install" ]]; then
@@ -263,11 +263,6 @@ function installDependencies {
 }
 
 function install {
-	updateScript installNew
-	installDependencies
-}
-
-function installScript {
 	read -p " Do you wish to install(y/n)? "
 	if [[ "$REPLY" == "n" ]]; then
 		echo -e "... Exiting\n"; exit 0
@@ -296,9 +291,9 @@ function installScript {
 		fi
 	done
 	# ok we know have the required tools to update script
-	updateScript
+	updateScript installNew
 	# continue  part2 of the installation
-	installContinue
+	installDependencies
 }
 function uninstall {
 	local programs=("lftp" "nano" "rar" "cksfv" "rar2fs" "subversion" "gcc" "build-essential" "pkg-config" "automake" "fuse-utils" "libfuse-dev" "checkinstall" "curl" "openssl" "libssl-dev" "libncurses5-dev" "libreadline-dev" "zlib1g-dev")
@@ -351,6 +346,7 @@ function downloadScript {
 }
 
 function updateScript {
+	argument="$1"
 	getCurrentVersion
 	# get most recent stable version from git
 	echo -n " Checking/updating FTPauto ..."
@@ -362,8 +358,8 @@ function updateScript {
 	if [[ "$i_version" == "0" ]] && [[ $argument != installNew ]]; then
 		echo -e "\e[00;31m [ERROR]\e[00m\nNo installation found. Execute script with install as argument instead. Exiting.\n"
 		exit 0
-	elif [[ $argument == installNew ]]; then
-		echo -e "\e[00;32m [Found $release_version]\e[00m"
+	elif [[ "$new_version" == "true" ]] && [[ $argument == installNew ]]; then
+		echo -e "\e[00;32m [Found - v$release_version]\e[00m"
 		downloadScript
 	elif [[ "$new_version" == "true" ]]; then
 		echo -e "\e[00;33m [$release_version available]\e[00m"
@@ -374,7 +370,7 @@ function updateScript {
 			echo -e "\e[00;33m [Local version kept]\e[00m"
 		fi
 	else
-		echo -e "\e[00;32m [Latest]\e[00m"
+		echo -e "\e[00;32m [Latest -v $i_version]\e[00m"
 		sed "6c lastUpdate=$(date +'%s')" -i "$scriptdir/ftpauto.sh" # set update time
 		sed "7c message=\"\"" -i "$scriptdir/ftpauto.sh" # reset update message
 	fi
@@ -393,7 +389,6 @@ function startupmessage {
 }
 
 getCurrentVersion
-argument=$1
 case "$1" in
 	uninstall) startupmessage; uninstall;;
 	install) startupmessage; install;;
