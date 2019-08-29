@@ -87,6 +87,7 @@ function lftp_update {
 		else
 			echo -e "INFO: Could not install program using sudo.\nYou have to install \"lftp\" manually... Exiting\n"; exit 0
 		fi
+	fi
 }
 
 function install_lftp {
@@ -335,6 +336,8 @@ function uninstall {
 	echo -e "\e[00;32m [OK]\e[00m"
 	echo -n "Removing userfiles ..."
 	rm -rf "$scriptdir/run" "$scriptdir/users"
+	echo -n "Removing remainder of FTPauto ..."
+	rm -rf "$scriptdir"	
 	echo -e "\e[00;32m [OK]\e[00m\nComplete removal of FTPauto and dependencies complete!\n"
 	exit 0
 }
