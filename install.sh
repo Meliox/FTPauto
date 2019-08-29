@@ -65,7 +65,7 @@ function lftp_update {
 				echo -e " lftp update ... [\e[00;33mSKIPPED\e[00m]"
 			fi
 		else
-			echo -e " \e[00;32m [Latest - v$c_lftpversion]\e[00m"
+			echo -e " \e[00;32m [Latest - v$lftpversion]\e[00m"
 		fi
 	fi
 
@@ -81,7 +81,8 @@ function lftp_update {
 		tar -xzvf "lftp-$lftpversion.tar.gz" &> /dev/null
 		rm "$scriptdir/dependencies/lftp-$lftpversion.tar.gz"
 		cd "lftp-$lftpversion" && ./configure --with-openssl --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
-		echo -e " lftp vesion $lftpversion ... [\e[00;33mLATEST\e[00m]"
+		echo -n " Checking for lftp ..."
+		echo -e " \e[00;32m [Latest - v$lftpversion]\e[00m"
 	fi
 }
 
@@ -139,24 +140,25 @@ function rar2fs_update {
 				echo -e " rar2fs update ... [\e[00;33mSKIPPED\e[00m]"
 			fi
 		else
-			echo -e " \e[00;32m [Latest -v$c_lftpversion]\e[00m"
+			echo -e " \e[00;32m [Latest -v$rar2fsversion]\e[00m"
 		fi
 	fi
 	if [[ "$argument" == "install" ]]; then
 		# install
 		cd "$scriptdir/dependencies/"
+		#get unrar dependency for rar2fs
+		wget -q http://www.rarlab.com/rar/unrarsrc-5.6.3.tar.gz && tar -zxf unrarsrc-5.6.3.tar.gz && rm unrarsrc-5.6.3.tar.gz
+		cd unrar && make lib && sudo make install-lib && cd ..
 		# get latest stable release of rar2fs
 		var=$(curl -s https://api.github.com/repos/hasse69/rar2fs/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
 		wget -q "$var"
 		name=$(basename "$var")
-		tar zxf "$name"
-		rm "$name"
+		tar zxf "$name" && rm "$name"
 		name=${name::-7}
 		cd "$name"
-		wget -q http://www.rarlab.com/rar/unrarsrc-5.6.3.tar.gz && tar -zxf unrarsrc-5.6.3.tar.gz && rm unrarsrc-5.6.3.tar.gz
-		cd unrar && make lib && sudo make install-lib && cd ..
 		autoreconf -f -i &> /dev/null && ./configure --silent && make --silent && sudo checkinstall -y &> /dev/null
-		echo -e " rar2fs ... [\e[00;33mLATEST\e[00m]"
+		echo -n " Checking for rar2fs ..."
+		echo -e " \e[00;32m [Latest - v$rar2fsversion]\e[00m"
 	fi
 }
 
@@ -166,7 +168,7 @@ function install_rar2fs {
 		echo -e "\n \"rar2fs\" is not installed! It is needed to mount rarfiles in order to send videofile only. The file(s) will be transferred in original format otherwise"
 		read -p " Do you want to install it(needs to be compiled - SLOW)(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
-			sudo apt-get -y install automake1.9 fuse-utils libfuse-dev &> /dev/null
+			sudo apt-get -y install libfuse-dev autoconf &> /dev/null
 			if [[ $? -eq 1 ]]; then
 				echo -e "INFO: Could not install program using sudo.\nYou have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\"\n... Exiting\n"; exit 0
 			else
@@ -174,9 +176,6 @@ function install_rar2fs {
 			fi
 		else
 			echo -e "Checking rar2fs ... [\e[00;33mSKIPPED\e[00m] NOTE: \"video\" will not work as send option"
-		fi
-		if [[ -z $(builtin type -p rar2fs) ]]; then
-			echo -e " \e[00;32m [OK]\e[00m"
 		fi
 	elif [[ -n $(builtin type -p rar2fs) ]]; then
 		# rar2fs is installed, compare installed version to newest version
@@ -209,7 +208,7 @@ function installDependencies {
 	for i in "${programs[@]}"; do
 		echo -n " Checking $i ..."
 		if [[ -z $(builtin type -p "$i") ]]; then
-			echo -e "\n \"$i\" is not installed. It is required at servers end to split large files before sending them. Otherwise large file will be send normally"
+			echo -e "\n \"$i\" is not installed. It is required for servers to split large files before sending them. Otherwise large file will be send normally"
 			read -p " Do you want to install it(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
 				sudo apt-get -y install "$i" &> /dev/null
@@ -296,11 +295,11 @@ function install {
 	installDependencies
 }
 function uninstall {
-	local programs=("lftp" "nano" "rar" "cksfv" "rar2fs" "subversion" "gcc" "build-essential" "pkg-config" "automake" "fuse-utils" "libfuse-dev" "checkinstall" "curl" "openssl" "libssl-dev" "libncurses5-dev" "libreadline-dev" "zlib1g-dev")
+	local programs=("lftp" "rar" "cksfv" "rar2fs" "gcc" "build-essential" "pkg-config" "automake" "libfuse-dev" "checkinstall" "openssl" "libssl-dev" "libncurses5-dev" "libreadline-dev" "zlib1g-dev" "autoconf")
 	echo "The following will be removed: ${programs[@]}"
-	read -p " Do you want to remove all or one by one(y/n)? "
+	read -p " Do you want to remove all or one by one(all=y/one-by-one(safe)=n)? "
 	if [[ "$REPLY" == "y" ]]; then
-		echo -e "\n\e[00;31mWARNING: THIS WILL REMOVE ALL PROGRAMS, SOME MIGHT ALSO BE NEEDED BY OTHER PROGRAMS ON YOUR SYSTEMT.\e[00m\n"
+		echo -e "\n\e[00;31mWARNING: THIS WILL REMOVE ALL PROGRAMS, SOME MIGHT ALSO BE NEEDED BY OTHER PROGRAMS ON YOUR SYSTEM :WARNING.\e[00m\n"
 		read -p " ARE YOU SURE?(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
 			for i in "${programs[@]}"; do
@@ -328,7 +327,7 @@ function uninstall {
 	echo -e "\e[00;32m [OK]\e[00m"
 	echo -n "Removing userfiles ..."
 	rm -rf "$scriptdir/run" "$scriptdir/users"
-	echo -e "\e[00;32m [OK]\e[00m\nRemoval complete!\n"
+	echo -e "\e[00;32m [OK]\e[00m\nComplete removal of FTPauto and dependencies complete!\n"
 	exit 0
 }
 function downloadScript {
@@ -370,7 +369,7 @@ function updateScript {
 			echo -e "\e[00;33m [Local version kept]\e[00m"
 		fi
 	else
-		echo -e "\e[00;32m [Latest -v $i_version]\e[00m"
+		echo -e "\e[00;32m [Latest - v$i_version]\e[00m"
 		sed "6c lastUpdate=$(date +'%s')" -i "$scriptdir/ftpauto.sh" # set update time
 		sed "7c message=\"\"" -i "$scriptdir/ftpauto.sh" # reset update message
 	fi
