@@ -30,7 +30,7 @@ function version_compare {
 		new_version="false"
 	else
 		local IFS=.
-		local n1=($1) n2=($2)
+		local n1=("$1") n2=("$2")
 		for i in "${!n1[@]}"; do
 			if [[ ${n1[i]} -gt ${n2[i]} ]]; then
 				new_version="true"
@@ -43,24 +43,46 @@ function version_compare {
 }
 
 function lftp_update {
+	argument="$1"
 	if [[ -n $(builtin type -p lftp) ]]; then
-		echo -n "Removing old version ..."
-		sudo apt-get -y remove lftp &> /dev/null
-		# remove compiled version
-		sudo rm -rf "$scriptdir/dependencies/lftp*"
+		# lftp is installed, compare installed version to newest version
+		local lftpversion=$(curl --silent http://lftp.tech/ftp/ | grep -Eo '>lftp.(.*).+tar.gz<' | tail -1)
+		lftpversion=${lftpversion#\>lftp\-}
+		lftpversion=${lftpversion%.tar.gz<}
+		# get current lftp version
+		local c_lftpversion=$(lftp --version | grep -Eo 'Version\ [0-9].[0-9].[0-9]' | cut -d' ' -f2)
+		version_compare "$lftpversion" "$c_lftpversion"
+		if [[ "$new_version" == "true" ]]; then
+			echo -e " [\e[00;33m$lftpversion available, current version $c_lftpversion\e[00m]"
+			read -p " Do you wish to update(y/n)? "
+			if [[ "$REPLY" == "y" ]]; then
+				echo -n "Removing old version ..."
+				sudo apt-get -y remove lftp &> /dev/null
+				# remove compiled version
+				sudo rm -rf "$scriptdir/dependencies/lftp*"
+				argument="install"
+			else
+				echo -e " lftp update ... [\e[00;33mSKIPPED\e[00m]"
+			fi
+		else
+			echo -e " \e[00;32m [Latest]\e[00m"
+		fi
 	fi
-	sudo apt-get -y build-dep lftp
-	sudo apt-get -y install gcc openssl build-essential automake readline-common libreadline6-dev pkg-config libgnutls-dev ncurses-dev &> /dev/null
-	# find latest lftp
-	cd "$scriptdir/dependencies" || exit
-	local lftpversion=$(curl --silent http://lftp.tech/ftp/ | grep -Eo '>lftp.(.*).+tar.gz' | tail -1)
-	lftpversion=${lftpversion#\>lftp\-}
-	lftpversion=${lftpversion%.tar.gz}
-	wget "http://lftp.tech/ftp/lftp-$lftpversion.tar.gz" &> /dev/null
-	tar -xzvf "lftp-$lftpversion.tar.gz" &> /dev/null
-	rm "$scriptdir/dependencies/lftp-$lftpversion.tar.gz"
-	cd "lftp-$lftpversion" && ./configure --with-openssl --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
-	echo -e " lftp vesion $lftpversion ... [\e[00;33mLATEST\e[00m]"
+
+	if [[ "$argument" == "install" ]]; then
+		sudo apt-get -y build-dep lftp
+		sudo apt-get -y install gcc openssl build-essential automake readline-common libreadline6-dev pkg-config libgnutls-dev ncurses-dev libssl-dev libncurses5-dev libreadline-dev zlib1g-dev &> /dev/null
+		# find latest lftp
+		cd "$scriptdir/dependencies" || exit
+		local lftpversion=$(curl --silent http://lftp.tech/ftp/ | grep -Eo '>lftp.(.*).+tar.gz' | tail -1)
+		lftpversion=${lftpversion#\>lftp\-}
+		lftpversion=${lftpversion%.tar.gz}
+		wget "http://lftp.tech/ftp/lftp-$lftpversion.tar.gz" &> /dev/null
+		tar -xzvf "lftp-$lftpversion.tar.gz" &> /dev/null
+		rm "$scriptdir/dependencies/lftp-$lftpversion.tar.gz"
+		cd "lftp-$lftpversion" && ./configure --with-openssl --silent && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
+		echo -e " lftp vesion $lftpversion ... [\e[00;33mLATEST\e[00m]"
+	fi
 }
 
 function install_lftp {
@@ -71,71 +93,76 @@ function install_lftp {
 		if [[ "$REPLY" == "y" ]]; then
 			read -p " Do you want latest version(y)(needs to be compiled - SLOW - Any installed version will be removed) or the package from repo(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
-				lftp_update
+				lftp_update install
 			else
 				sudo apt-get -y install lftp &> /dev/null
 				if [[ $? -eq 1 ]]; then
-					echo "INFO: Could not install program using sudo."
-					echo "You have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\""
+					echo "ERROR: Installation of lftp failed. Please install manually before continuing."
 					echo -e "... Exiting\n"; exit 1
 				fi
 			fi
 			echo -n "Checking lftp .."
-			if [[ -z $(builtin type -p "$i") ]]; then
+			if [[ -z $(builtin type -p lftp) ]]; then
 				echo -e " \e[00;32m [OK]\e[00m"
 			fi
 		else
-			echo "FTPauto installation cannot continue without that. Exiting..."
+			echo "FTPauto will not work without lftp. Exiting..."
 			echo -e " Run install.sh uninstall to remove created files\n"
 			exit 0
 		fi
 	else
-		# get online lftp version
-		local lftpversion=$(curl --silent http://lftp.tech/ftp/ | grep -Eo '>lftp.(.*).+tar.gz<' | tail -1)
-		lftpversion=${lftpversion#\>lftp\-}
-		lftpversion=${lftpversion%.tar.gz<}
-		# get current lftp version
-		local c_lftpversion=$(lftp --version | egrep -o 'Version\ [0-9].[0-9].[0-9]' | cut -d' ' -f2)
-		version_compare "$lftpversion" "$c_lftpversion"
+		# lftp is installed, compare installed version to newest version
+		lftp_update
+	fi
+}
+
+function rar2fs_update {
+	argument="$1"
+	if [[ -n $(builtin type -p rar2fs) ]]; then
+		# rar2fs is installed, compare installed version to newest version
+		c_rar2fsversion=$(rar2fs --version 2> /dev/null | grep -Eo 'rar2fs\sv[0-9][0-9]?\.[0-9][0-9]?\.[0-9][0-9]?' | cut -d' ' -f2 | cut -d'v' -f2)
+		rar2fsversion=$(curl -s https://api.github.com/repos/hasse69/rar2fs/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4 | cut -d '/' -f8 | cut -d'v' -f2)
+		version_compare "$rar2fsversion" "$c_rar2fsversion"
 		if [[ "$new_version" == "true" ]]; then
-			echo -e " [\e[00;33m$lftpversion available, current version $c_lftpversion\e[00m]"
+			echo -e " [\e[00;33m$rar2fsversion available, current version $c_rar2fsversion\e[00m]"
 			read -p " Do you wish to update(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
-				lftp_update
+				if [[ -n $(builtin type -p rar2fs) ]]; then
+					echo -n "Removing old version ..."
+					sudo apt-get -y remove rar2fs &> /dev/null
+					# remove compiled version
+					sudo rm -rf "$scriptdir/dependencies/rar2fs*"
+					sudo rm -rf "$scriptdir/dependencies/unrar*"
+					argument="install"
+				fi
 			else
-				echo -e " lftp update ... [\e[00;33mSKIPPED\e[00m]"
+				echo -e " rar2fs update ... [\e[00;33mSKIPPED\e[00m]"
 			fi
 		else
 			echo -e " \e[00;32m [Latest]\e[00m"
 		fi
 	fi
-}
-
-function rar2fs_update {
-	if [[ -n $(builtin type -p rar2fs) ]]; then
-		echo -n "Removing old version ..."
-		sudo apt-get -y remove rar2fs &> /dev/null
-		# remove compiled version
-		sudo rm -rf "$scriptdir/dependencies/rar2fs*"
-		sudo rm -rf "$scriptdir/dependencies/unrar*"
+	if [[ "$argument" == "install" ]]; then
+		# install
+		cd "$scriptdir/dependencies/"
+		# get latest stable release of rar2fs
+		var=$(curl -s https://api.github.com/repos/hasse69/rar2fs/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
+		wget -q "$var"
+		name=$(basename "$var")
+		tar zxf "$name"
+		rm "$name"
+		name=${name::-7}
+		cd "$name"
+		wget -q http://www.rarlab.com/rar/unrarsrc-5.6.3.tar.gz && tar -zxf unrarsrc-5.6.3.tar.gz && rm unrarsrc-5.6.3.tar.gz
+		cd unrar && make lib && sudo make install-lib && cd ..
+		autoreconf -f -i &> /dev/null && ./configure --silent && make --silent && sudo checkinstall -y &> /dev/null
+		echo -e " rar2fs ... [\e[00;33mLATEST\e[00m]"
 	fi
-	cd "$scriptdir/dependencies/"
-	# get latest stable release of rar2fs
-	var=$(curl -s https://api.github.com/repos/hasse69/rar2fs/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
-	wget -q "$var"
-	name=$(basename $var)
-	tar zxf $name
-	rm $name
-	name=${name::-7}
-	cd $name
-	wget -q http://www.rarlab.com/rar/unrarsrc-5.6.3.tar.gz && tar -zxf unrarsrc-5.6.3.tar.gz && rm unrarsrc-5.6.3.tar.gz
-	cd unrar && make lib && sudo make install-lib && cd ..
-	autoreconf -f -i &> /dev/null && ./configure --silent && make --silent && sudo checkinstall -y &> /dev/null
 }
 
 function install_rar2fs {
 	echo -n " Checking/updating rar2fs ..."
-	if [[ -n $(builtin type -p rar2fs) ]] && [[ $1 != update ]]; then
+	if [[ -z $(builtin type -p rar2fs) ]]; then
 		echo -e "\n \"rar2fs\" is not installed! It is needed to mount rarfiles in order to send videofile only. The file(s) will be transferred in original format otherwise"
 		read -p " Do you want to install it(needs to be compiled - SLOW)(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
@@ -143,7 +170,7 @@ function install_rar2fs {
 			if [[ $? -eq 1 ]]; then
 				echo -e "INFO: Could not install program using sudo.\nYou have to install \"$i\" manually using root, typing \"su root\"; \"apt-get install $i\"\n... Exiting\n"; exit 0
 			else
-				rar2fs_update
+				rar2fs_update install
 			fi
 		else
 			echo -e "Checking rar2fs ... [\e[00;33mSKIPPED\e[00m] NOTE: \"video\" will not work as send option"
@@ -151,29 +178,13 @@ function install_rar2fs {
 		if [[ -z $(builtin type -p rar2fs) ]]; then
 			echo -e " \e[00;32m [OK]\e[00m"
 		fi
-	elif [[ $1 == update ]]; then
-		c_rar2fsversion=$(rar2fs --version | grep -Eo 'rar2fs\sv[0-9][0-9]?\.[0-9][0-9]?\.[0-9][0-9]?')
-		c_rar2fsversion=$(echo $c_rar2fsversion | cut -d' ' -f2 | cut -d'v' -f2)
-		rar2fsversion=$(curl -s https://api.github.com/repos/hasse69/rar2fs/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4 | cut -d '/' -f8 | cut -d'v' -f2)
-		version_compare "$rar2fsversion" "$c_rar2fsversion"
-		if [[ "$new_version" == "true" ]]; then
-			echo -e " [\e[00;33m$rar2fsversion available, current version $c_rar2fsversion\e[00m]"
-			read -p " Do you wish to update(y/n)? "
-			if [[ "$REPLY" == "y" ]]; then
-				rar2fs_update
-			else
-				echo -e " rar2fs update ... [\e[00;33mSKIPPED\e[00m]"
-			fi
-		else
-			echo -e " \e[00;32m [Latest]\e[00m"
-		fi
-	else
-		# rar2fs is not installed, hence no reason to update
-		echo -e " \e[00;32m [Not used]\e[00m"
+	elif [[ -n $(builtin type -p rar2fs) ]]; then
+		# rar2fs is installed, compare installed version to newest version
+		rar2fs_update
 	fi
 }
 
-function installContinue {
+function installDependencies {
 	echo "Installing dependency tools ..."
 	# create directories
 	echo -n " Creating directories ..."
@@ -197,7 +208,7 @@ function installContinue {
 	programs=( "rar" "cksfv" )
 	for i in "${programs[@]}"; do
 		echo -n " Checking $i ..."
-		if [[ -z $(builtin type -p $i) ]]; then
+		if [[ -z $(builtin type -p "$i") ]]; then
 			echo -e "\n \"$i\" is not installed. It is required at servers end to split large files before sending them. Otherwise large file will be send normally"
 			read -p " Do you want to install it(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
@@ -250,7 +261,13 @@ function installContinue {
 	echo -e "\n\e[00;32m[Installation done]\e[00m\nEnjoy! Start using FTPauto by using ftpauto.sh --help\n"
 	exit 0
 }
-function installStart {
+
+function install {
+	updateScript installNew
+	installDependencies
+}
+
+function installScript {
 	read -p " Do you wish to install(y/n)? "
 	if [[ "$REPLY" == "n" ]]; then
 		echo -e "... Exiting\n"; exit 0
@@ -279,12 +296,12 @@ function installStart {
 		fi
 	done
 	# ok we know have the required tools to update script
-	update
+	updateScript
 	# continue  part2 of the installation
 	installContinue
 }
 function uninstall {
-	local programs=("lftp" "nano" "rar" "cksfv" "rar2fs" "subversion" "gcc" "build-essential" "ncurses-dev" "readline-common" "pkg-config" "automake" "fuse-utils" "libfuse-dev" "checkinstall" "libreadline-dev" "curl" "openssl")
+	local programs=("lftp" "nano" "rar" "cksfv" "rar2fs" "subversion" "gcc" "build-essential" "pkg-config" "automake" "fuse-utils" "libfuse-dev" "checkinstall" "curl" "openssl" "libssl-dev" "libncurses5-dev" "libreadline-dev" "zlib1g-dev")
 	echo "The following will be removed: ${programs[@]}"
 	read -p " Do you want to remove all or one by one(y/n)? "
 	if [[ "$REPLY" == "y" ]]; then
@@ -292,17 +309,17 @@ function uninstall {
 		read -p " ARE YOU SURE?(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
 			for i in "${programs[@]}"; do
-				sudo apt-get -y remove $i &> /dev/null
+				sudo apt-get -y remove "$i" &> /dev/null
 				echo -e "$i \e[00;32m[REMOVED]\e[00m"
 			done
 		fi
 	else
 		for i in "${programs[@]}"; do
-			if builtin type -p $i &>/dev/null; then
+			if builtin type -p "$i" &>/dev/null; then
 				echo -n "Removing $i ..."
 				read -p " Do you want to remove it(y/n)? "
 				if [[ "$REPLY" == "y" ]]; then
-					sudo apt-get -y remove $i &> /dev/null
+					sudo apt-get -y remove "$i" &> /dev/null
 					echo -e "\e[00;32m [REMOVED]\e[00m"
 				else
 					echo -e "\e[00;33m [KEPT]\e[00m"
@@ -319,7 +336,7 @@ function uninstall {
 	echo -e "\e[00;32m [OK]\e[00m\nRemoval complete!\n"
 	exit 0
 }
-function download {
+function downloadScript {
 	echo -n " Downloading FTPauto..."
 	wget -q "https://github.com/Meliox/FTPauto/archive/FTPauto-v$release_version.tar.gz"
 	echo -e "\e[00;32m [OK]\e[00m"
@@ -327,32 +344,32 @@ function download {
 	tar -xzf "${scriptdir}/FTPauto-v${release_version}.tar.gz" --overwrite --strip-components 1
 	rm -f "${scriptdir}/FTPauto-v${release_version}.tar.gz"
 	echo -e "\e[00;32m [OK]\e[00m"
-	update
-	installContinue
+	sed "6c lastUpdate=$(date +'%s')" -i "$scriptdir/ftpauto.sh" # set update time
+	sed "7c message=\"\"" -i "$scriptdir/ftpauto.sh" # reset update message
+	echo -e "\nPlease execute installer again.\n";
+	exit 0;
 }
-function update {
+
+function updateScript {
 	getCurrentVersion
-	# get most recent stable version
+	# get most recent stable version from git
 	echo -n " Checking/updating FTPauto ..."
 	local release=$(curl --silent https://github.com/Meliox/FTPauto/releases | grep -Eo 'FTPauto-v(.*)+tar.gz' | sort -n | tail -1)
 	release_version=${release#$"FTPauto-v"}
 	release_version=${release_version%.tar.gz}
-	# comparasion
 	version_compare "$release_version" "$i_version"
-	if [[ "$i_version" == "0" ]] && [[ $argument != install ]]; then
+	# compare to local version
+	if [[ "$i_version" == "0" ]] && [[ $argument != installNew ]]; then
 		echo -e "\e[00;31m [ERROR]\e[00m\nNo installation found. Execute script with install as argument instead. Exiting.\n"
 		exit 0
-	elif [[ $argument == install ]]; then
+	elif [[ $argument == installNew ]]; then
 		echo -e "\e[00;32m [Found $release_version]\e[00m"
-		argument=continue
-		download
-		sed "6c lastUpdate=$(date +'%s')" -i "$scriptdir/ftpauto.sh" # set update time
-		sed "7c message=\"\"" -i "$scriptdir/ftpauto.sh" # reset update message
+		downloadScript
 	elif [[ "$new_version" == "true" ]]; then
 		echo -e "\e[00;33m [$release_version available]\e[00m"
 		read -p " Do you want to update your version(y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
-			download
+			downloadScript
 		else
 			echo -e "\e[00;33m [Local version kept]\e[00m"
 		fi
@@ -360,10 +377,15 @@ function update {
 		echo -e "\e[00;32m [Latest]\e[00m"
 		sed "6c lastUpdate=$(date +'%s')" -i "$scriptdir/ftpauto.sh" # set update time
 		sed "7c message=\"\"" -i "$scriptdir/ftpauto.sh" # reset update message
-		install_lftp
-		install_rar2fs update
-		echo ""; exit 0
 	fi
+}
+
+function update {
+	updateScript
+	install_rar2fs
+	install_lftp
+	echo -e "\n\e[00;32m[Update done]\e[00m\nEnjoy! Start using FTPauto by using ftpauto.sh --help\n"
+	exit 0
 }
 
 function startupmessage {
@@ -374,7 +396,7 @@ getCurrentVersion
 argument=$1
 case "$1" in
 	uninstall) startupmessage; uninstall;;
-	install) startupmessage; installStart;;
+	install) startupmessage; install;;
 	update)	startupmessage; update;;
 	*)
 		startupmessage; echo -e "\nUsage: $0 (install | uninstall | update)\nExecute uninstall first to clean up everything if you encounter any problems.\n";
