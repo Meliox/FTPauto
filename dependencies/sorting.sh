@@ -18,7 +18,7 @@ function sortFiles {
 	elif [[ $orig_name =~ (BDRip|DVDRip).+(XviD|x264) ]] && [[ ! $orig_name =~ (S[0-9][0-9]) ]] && [[ ! $orig_name =~ (S[0-9][0-9]E[0-9][0-9]) ]] && [[ ! $orig_name =~ (E[0-9][0-9]) ]] && [[ ! $orig_name =~ (S[0-9][0-9]) ]] && [[ ! $orig_name =~ (\.(episode|ep|e|Part|pt)\.(([0-9][0-9]?)|(I|II|III|IV|V|VI|VII|VIII|IIX|IX|X|XI|XII))\.) ]]  && [[ ! $orig_name =~ ([[:digit:]](x|of)[[:digit:]]) ]]; then
 		ftpcomplete=$ftpcomplete"XViD/"
 		echo "INFO: Sorted to ${ftpcomplete}"
-	elif [[ $orig_name =~ (HDDVD|BluRay|WEB-DL|WEB).+x264 ]] && [[ ! $orig_name =~ (S[0-9][0-9]) ]]; then
+	elif [[ $orig_name =~ (HDDVD|BluRay|WEB-DL|WEB).+(x264|x265) ]] && [[ ! $orig_name =~ (S[0-9][0-9]) ]]; then
 		ftpcomplete=$ftpcomplete"HD/"
 		echo "INFO: Sorted to ${ftpcomplete}"
 	elif [[ $orig_name =~ \.XXX\. ]]; then
