@@ -63,8 +63,11 @@ function sftp_login {
     sftpport="$sftpport"
 
     # Set timeout settings
-    echo "ConnectTimeout 10" >> "${sftplogin_file}"
-    echo "ServerAliveInterval 30" >> "${sftplogin_file}"
+    echo "set net:timeout 10" >> "${sftplogin_file}"
+    echo "set net:max-retries 3" >> "${sftplogin_file}"
+    echo "set net:reconnect-interval-base 10" >> "${sftplogin_file}"
+    echo "set net:reconnect-interval-multiplier 1" >> "${sftplogin_file}"
+    echo "set net:reconnect-interval-max 60" >> "${sftplogin_file}"
 
     echo "sftp:auto-confirm true" >> "${sftplogin_file}"
 
