@@ -116,7 +116,7 @@ function start_transfermain {
     if [[ $verbose -eq 1 ]]; then
         start_main "${download_argument[@]}"
     elif [[ $verbose -eq 2 ]]; then
-        start_main "${download_argument[@]}" >> "$ftpmaindebugfile"
+        start_main "${download_argument[@]}" >> "$maindebugfile"
     else
         # Run in background or run normally
         if [[ $background == "true" ]]; then

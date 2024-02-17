@@ -23,7 +23,7 @@ function setup {
 	proccess_bar_file="$scriptdir/run/$username.transfered.info"
 	server_size_file="$scriptdir/run/$username.serversize.info"
 	log_control="$scriptdir/run/$username.controllog"
-	servermaindebugfile="$scriptdir/run/$username.servermain.debug"
+	maindebugfile="$scriptdir/run/$username.main.debug"
 	lftpdebug="$scriptdir/run/$username.lftpdebug"
 	lftptransfersize="$scriptdir/run/$username.transfersize"
 	transfersize="$scriptdir/run/$username.transfersize"
