@@ -496,7 +496,7 @@ while :; do
 		--id=* ) id=${1#--id=}; shift;;
 		--clear ) option_manage clear; shift;;
 		# Options
-		--queue ) option[1]=queue; shift;;
+		--queue ) download_argument+=("--queue"); shift;;
 		--delay ) if (($# > 1 )); then delay="$2"; download_argument+=("--delay=$delay"); else invalid_arg "$@"; fi; shift 2;;
 		--delay=* ) delay=${1#--delay=}; download_argument+=("--delay=$delay"); shift;;
 		--sort ) if (($# > 1 )); then sortto="$2"; download_argument+=("--sortto=$sortto"); else invalid_arg "$@"; fi; shift 2;;

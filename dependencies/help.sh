@@ -63,15 +63,9 @@ IMPORTANT: Default is always used if --user isn't used!
 	  --retry           | Resets all failed downloads. Retry with --start.
 	  --forget          | Remove <ID> from queue
 	  --path=<PATH>     | <PATH> used to transfer now!
-	  --queue           | Sends <PATH> to queue WITHOUT starting script if autostart=false in config.
+	  --queue           | Sends <PATH> to queue
                                NOTE that --path <ITEM> is required for this to work.
-                               Might also be used to start transfer in background if autostart=true
-	  --source=<SOURCE> | Source is used to show how the download has been started. The
-                               following is possible:
-                               MANDL=manual download(if nothing is used)
-                               WEBDL=download from webpage
-                               FLXDL=autodownload from flexget
-                               other can be used as well...
+	  --source=<SOURCE> | Source is used to show how the download has been started, e.g. from YOURPROGRAM
 	  --up              | Move <ID> Up
 	  --sort            | Sorts transfer into passed directory. Usage --sort=somedir/somedir2/
                                This will overwrite automatic sorting.
