@@ -640,6 +640,14 @@ function main {
 			echo -e "INFO: Program has ended\n"
 			exit 1
 		fi
+	elif [[ "$send_option" == "default" ]]; then
+		continue
+	else
+		echo -e "\e[00;33mERROR: send_option=$send_option is not supported Exiting ...\e[00m"
+		cleanup session
+		cleanup end
+		echo -e "INFO: Program has ended\n"
+		exit 1
 	fi
 
 	# Try to sort files
