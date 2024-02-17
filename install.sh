@@ -243,6 +243,7 @@ function installDependencies {
 			exit 1
 		fi
 	done
+	echo -n " Checking files ..."
 	echo -e "\e[00;32m [OK]\e[00m"
 
 	# Install lftp
@@ -446,9 +447,9 @@ function updateScript {
 		fi
 	else
 		if [[ "$argument" == "installNew" ]]; then
-			echo -e " \e[00;32m[Local  v$i_version, Latest - v$release_version]\e[00m"
+			echo -e " \e[00;32m[Local - v$i_version, Latest - v$release_version]\e[00m"
 		else
-			echo -e " \e[00;32m [Local v$i_version, Latest - v$i_version]\e[00m"
+			echo -e " \e[00;32m [Local - v$i_version, Latest - v$i_version]\e[00m"
 		fi
 	fi
 }
