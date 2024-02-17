@@ -21,7 +21,7 @@ function ftp_login {
     pass="ftppass${number}"
     host="ftphost${number}"
     port="ftpport${number}"
-    loginfile="login_file${number}"
+    login_file="login_file${number}"
 
     # Set timeout settings
     echo "set net:timeout 10" >> "${!login_file}"
@@ -74,7 +74,7 @@ function sftp_login {
     pass="sftppass${number}"
     host="sftphost${number}"
     port="sftpport${number}"
-    loginfile="login_file${number}"
+    login_file="login_file${number}"
 
     # Set timeout settings
     echo "set net:timeout 10" >> "${!login_file}"
