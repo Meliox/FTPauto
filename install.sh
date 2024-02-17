@@ -234,7 +234,7 @@ function installDependencies {
 	echo -e "\e[00;32m [OK]\e[00m"
 
 	# Check for existence of main files
-	local main_files=("ftpauto.sh" "dependencies/ftp_online_test.sh" "dependencies/ftp_list.sh" "dependencies/ftp_size_management.sh" "dependencies/help.sh" "plugins/largefile.sh" "dependencies/setup.sh" "dependencies/sorting.sh")
+	local main_files=("ftpauto.sh" "dependencies/transfer_main.sh" "dependencies/setup.sh" "dependencies/server_alive_test.sh" "dependencies/server_login.sh" "dependencies/server_list.sh" "dependencies/server_size_management.sh" "dependencies/help.sh" "plugins/largefile.sh" "dependencies/setup.sh" "dependencies/sorting.sh")
 	for i in "${main_files[@]}"; do
 		if [[ ! -f "$scriptdir/$i" ]]; then
 			echo -e "\n\e[00;31m$i not found.\nScript will not work without... Try reinstalling it. Exiting...\e[00m\n"
