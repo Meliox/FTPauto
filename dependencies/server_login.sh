@@ -53,8 +53,6 @@ function ftp_login {
     fi
 }
 
-#!/bin/bash
-
 # Function to generate SFTP login details based on input (1 or 2)
 function sftp_login {
     local number sftpcustom sftpuser sftppass sftphost sftpport sftploginfile

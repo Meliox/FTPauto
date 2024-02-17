@@ -553,27 +553,32 @@ function lockfile {
 }
 
 function main {
-	#setting paths
+	# Set paths
 	filepath="$1"
 	transfer_path="$filepath"
 	orig_name=$(basename "$filepath")
-	# if filepath is a file, correct temppath
+
+	# Define temp directory based on file type
 	if [[ -f "$filepath" ]]; then
 		tempdir="$scriptdir/run/$username-temp/${orig_name%.*}-temp/"
 	elif [[ -d "$filepath" ]]; then
 		tempdir="$scriptdir/run/$username-temp/${orig_name}-temp/"
 	fi
+
+	# Record script start time and display relevant information
 	ScriptStartTime=$(date +%s)
 	echo "INFO: Process start-time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
 	echo "INFO: Preparing transfer: $filepath"
-	echo "INFO: Lunched from: $source"
+	echo "INFO: Launched from: $source"
 
-	#add to queue file, to get ID initialized
+	# Add to queue file to initialize ID
 	queue add
 	echo "INFO: Simultaneous transfers: $parallel"
-	#Checking transferesize
+
+	# Check transfer size
 	get_size "$filepath"
-	#Execute preexternal command
+
+	# Execute pre-external command if specified
 	if [[ -n "$exec_pre" ]]; then
 		if [[ $test_mode != "true" ]]; then
 			echo "INFO: Executing external command - START"
@@ -582,11 +587,15 @@ function main {
 		else
 			echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_pre\"\e[00m"
 		fi
-	echo "INFO: Executing external command - ENDED"
+		echo "INFO: Executing external command - ENDED"
 	fi
 
-	#Prepare login
-	loadDependency DFtpLogin && server_login 1
+	# Prepare login based on transfer type
+	if [[ "$transferetype" == "upftp" || "$transferetype" == "downftp" || "$transferetype" == "fxp" ]]; then
+		loadDependency DServerLogin && ftp_login 1
+	elif [[ "$transferetype" == "sftp" ]]; then
+		loadDependency DServerLogin && sftp_login 1
+	fi
 
 	#confirm server is online
 	if [[ $confirm_online == "true" ]]; then
@@ -610,39 +619,45 @@ function main {
 		fi
 	fi
 
-	## Sendoption
-	echo "INFO: Sendoption: $send_option"
-	#Is largest file too large
+	# Check send option
+	echo "INFO: Send option: $send_option"
 	if [[ "$send_option" == "split" ]]; then
-		if [[ -n $(builtin type -p rar) ]] || [[ -n $(builtin type -p cksfv) ]]; then
-			if [[ $transferetype == "upftp" ]]; then
+		# Check if rar or cksfv is available
+		if [[ -n $(command -v rar) || -n $(command -v cksfv) ]]; then
+			# Check transfer type
+			if [[ "$transferetype" == "upftp" ]]; then
 				loadDependency DLargeFile && largefile "$filepath" "exclude_array[@]"
-			elif [[ $transferetype == "downftp" ]]; then
+			elif [[ "$transferetype" == "downftp" ]]; then
 				echo -e "\e[00;33mERROR: send_option=split is not supported in mode=$transferetype. Exiting ...\e[00m"
-				cleanup session; cleanup end
+				cleanup session
+				cleanup end
 				echo -e "INFO: Program has ended\n"
 				exit 1
 			fi
 		else
 			echo -e "\e[00;33mERROR: send_option=split is not supported as rar or cksfv is missing. Exiting ...\e[00m"
-			cleanup session; cleanup end
+			cleanup session
+			cleanup end
 			echo -e "INFO: Program has ended\n"
 			exit 1
 		fi
-	# Try to only send videofile
 	elif [[ "$send_option" == "video" ]]; then
-		if [[ -n $(builtin type -p rar2fs) ]]; then
-			if [[ $transferetype == "upftp" ]]; then
+		# Check if rar2fs is available
+		if [[ -n $(command -v rar2fs) ]]; then
+			# Check transfer type
+			if [[ "$transferetype" == "upftp" ]]; then
 				loadDependency DVideoFile && videoFile
-			elif [[ $transferetype == "downftp" ]]; then
+			elif [[ "$transferetype" == "downftp" ]]; then
 				echo -e "\e[00;33mERROR: send_option=video is not supported in mode=$transferetype. Exiting ...\e[00m"
-				cleanup session; cleanup end
+				cleanup session
+				cleanup end
 				echo -e "INFO: Program has ended\n"
 				exit 1
 			fi
 		else
 			echo -e "\e[00;33mERROR: send_option=video is not supported as rarfs is missing. Exiting ...\e[00m"
-			cleanup session; cleanup end
+			cleanup session
+			cleanup end
 			echo -e "INFO: Program has ended\n"
 			exit 1
 		fi
@@ -672,48 +687,56 @@ function main {
 	# Clean up current session
 	cleanup session
 
-	#send push notification
+	# Send push notification if push user is specified
 	if [[ -n $push_user ]]; then
 		if [[ $test_mode ]]; then
+			# Display notification details in test mode
 			echo -e "\e[00;31mTESTMODE: Would send notification \""$orig_name" "Sendoption=$send_option Size=$size MB Time=$transferTime2 Average speed=$SpeedAverage MB/s Path=$ftpcomplete"\" to token=$push_token and user=$push_user \e[00m"
 		elif [[ $failed == true ]]; then
+			# Send notification if transfer failed
 			loadDependency DPushOver && Pushover "Failed: $orig_name" "Sendoption:        $send_option
-Size:                     $size MB
-Path:                    $ftpcomplete"
+	Size:                     $size MB
+	Path:                    $ftpcomplete"
 		else
-		loadDependency DPushOver && Pushover "$orig_name" "Sendoption:        $send_option
-Size:                     $size MB
-Time:                   $transferTime2
-Average speed: $SpeedAverage MB/s
-Path:                    $ftpcomplete"
+			# Send notification if transfer succeeded
+			loadDependency DPushOver && Pushover "$orig_name" "Sendoption:        $send_option
+	Size:                     $size MB
+	Time:                   $transferTime2
+	Average speed: $SpeedAverage MB/s
+	Path:                    $ftpcomplete"
 		fi
 	fi
 
-	#Execute external command
+	# Execute external command if specified and transfer did not fail
 	if [[ -n $exec_post ]] && [[ $failed != true ]]; then
 		if [[ $test_mode != "true" ]]; then
 			if [[ $allow_background == "true" ]]; then
-				echo "INFO: Executing external command(In background) - START"
+				# Execute command in background if allowed
+				echo "INFO: Executing external command (in background) - START"
 				echo "      $exec_post"
 				eval $exec_post &
 			else
+				# Execute command and display output
 				echo "INFO: Executing external command - START:"
 				echo "      $exec_post"
 				eval $exec_post | (while read; do echo "      $REPLY"; done)
 				echo "INFO: Executing external command - ENDED"
 			fi
 		else
+			# Display the command that would be executed in test mode
 			echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_post\"\e[00m"
 		fi
 	fi
 
-	# final
+	# Finalize transfer and display summary
 	ScriptEndTime=$(date +%s)
 	TotalTransferTime=$(( $ScriptEndTime - $ScriptStartTime ))
 	if [[ $failed == true ]]; then
-		echo -e "\e[00;37mINFO: \e[00;31mTransfere failed\e[00m"
+		# Display transfer failure message
+		echo -e "\e[00;37mINFO: \e[00;31mTransfer failed\e[00m"
 	else
-		echo -e "\e[00;37mINFO: \e[00;32mTransfere finished\e[00m"
+		# Display transfer success message
+		echo -e "\e[00;37mINFO: \e[00;32mTransfer finished\e[00m"
 	fi
 	echo "                       Name: $orig_name"
 	echo "                       Size: $size MB"
@@ -723,11 +746,12 @@ Path:                    $ftpcomplete"
 	echo "                   End time: $(date --date=@$ScriptEndTime '+%d/%m/%y-%a-%H:%M:%S')"
 	echo "                 Total time: $(printf '%02dh:%02dm:%02ds' "$(($TotalTransferTime/(60*60)))" "$((($TotalTransferTime/60)%60))" "$(($TotalTransferTime%60))")"
 
-	# Remove finished one
+	# Remove completed item from the queue
 	if [[ $failed != true ]]; then
 		queue remove
 	fi
-	# Run queue
+
+	# Move to the next item in the queue
 	queue next
 }
 
