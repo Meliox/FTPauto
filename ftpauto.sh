@@ -545,7 +545,7 @@ loadDependency DSetup
 setup
 
 # make sure user has a log file
-if [{} ! -e "$logfile" && "${option[0]}" != remove ]]; then
+if [ ! -e "$logfile" && "${option[0]}" != remove ]]; then
 	loadDependency DHelp; create_log_file
 fi
 
