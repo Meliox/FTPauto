@@ -391,43 +391,72 @@ function main {
             fi
             ;;
         "progress" ) # Write out download progress
-            confirm lock_file "Error, lockfile couldn't be found. Nothing is being transferred!" "1"
-            echo "INFO: Keeps updating every $sleeptime second. (Exit with \"x\")"
-            if [ -t 0 ]; then stty -echo -icanon time 0 min 0; fi
-            keypress=""
-            local count=0
-            while [[ "x$keypress" == "x" ]]; do
-                local title="$(sed -n 5p < "$logfile" | cut -d',' -f1 | cut -d' ' -f2)"
-                local percentage="$(sed -n 5p < "$logfile" | cut -d',' -f2 | cut -d' ' -f2)"
-                percentage="${percentage%\%}"
-                local TimeDiff="$(sed -n 5p < "$logfile" | cut -d',' -f3 | cut -d' ' -f3)"
-                local Speed="$(sed -n 5p < "$logfile" | cut -d',' -f4 | cut -d' ' -f2)"
-                local SpeedAverage="$(sed -n 5p < "$logfile" | cut -d',' -f6 | cut -d' ' -f2)"
-                local etatime="$(sed -n 5p < "$logfile" | cut -d',' -f5 | cut -d' ' -f3)"
-                if [[ -z "$(sed -n 5p < "$logfile" | grep Transferring)" ]]; then
-                    echo "INFO: Nothing is being transferred!"
-                    break
-                fi
-                if [[ $count -gt 0 ]]; then
-                    tput cuu 1;    tput el1
-                fi
-                local cols=$(($(tput cols) - 2))
-                local percentagebarlength=$(echo "scale=0; $percentage * $cols / 100" | bc)
-                local string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
-                local string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength - 1))"\})"
-                if [[ $percentagebarlength -eq 0 ]]; then
-                    printf "\r[$string2]      (no transfere information yet) ($(date '+%H:%M:%S'))"
-                else
-                    printf "\r[$string>$string2]      $percentage%% ETA ${etatime}@${speed}MB/s. ${TransferredNewMB}MB@${SpeedAverage}MB/s(avg). ($(date '+%H:%M:%S'))"
-                fi
-                let count++
-                sleep 1
-                read keypress
-            done
-            if [ -t 0 ]; then stty sane; fi
-            echo -e '\n'
-            message "Progress finished" "0"
-            ;;
+			# Confirm the existence of the lock file; if not found, display an error message
+			confirm_lock_file "Error: Lockfile not found. Nothing is being transferred!" "1"
+
+			# Display information about the update frequency
+			echo "INFO: Updates every $sleeptime second. (Exit with 'x')"
+
+			# Disable echo and canonical mode for user input
+			if [ -t 0 ]; then 
+				stty -echo -icanon time 0 min 0
+			fi
+
+			# Initialize keypress variable and count
+			keypress=""
+			local count=0
+
+			# Loop until 'x' key is pressed
+			while [[ "x$keypress" == "x" ]]; do
+				# Extract transfer progress information from the logfile
+				local title="$(sed -n 5p < "$logfile" | cut -d',' -f1 | cut -d' ' -f2)"
+				local percentage="$(sed -n 5p < "$logfile" | cut -d',' -f2 | cut -d' ' -f2)"
+				percentage="${percentage%\%}"
+				local TimeDiff="$(sed -n 5p < "$logfile" | cut -d',' -f3 | cut -d' ' -f3)"
+				local Speed="$(sed -n 5p < "$logfile" | cut -d',' -f4 | cut -d' ' -f2)"
+				local SpeedAverage="$(sed -n 5p < "$logfile" | cut -d',' -f6 | cut -d' ' -f2)"
+				local etatime="$(sed -n 5p < "$logfile" | cut -d',' -f5 | cut -d' ' -f3)"
+				
+				# Check if any transfer is in progress
+				if [[ -z "$(sed -n 5p < "$logfile" | grep Transferring)" ]]; then
+					echo "INFO: No ongoing transfer."
+					break
+				fi
+				
+				# Update progress bar
+				if [[ $count -gt 0 ]]; then
+					tput cuu 1
+					tput el1
+				fi
+				local cols=$(($(tput cols) - 2))
+				local percentagebarlength=$(echo "scale=0; $percentage * $cols / 100" | bc)
+				local string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"'}')"
+				local string2="$(eval printf "\ %.0s" '{1..'"$(($cols - $percentagebarlength - 1))"'}')"
+				if [[ $percentagebarlength -eq 0 ]]; then
+					printf "\r[$string2]      (no transfer information yet) ($(date '+%H:%M:%S'))"
+				else
+					printf "\r[$string>$string2]      $percentage%% ETA ${etatime}@${speed}MB/s. ${TransferredNewMB}MB@${SpeedAverage}MB/s(avg). ($(date '+%H:%M:%S'))"
+				fi
+				
+				# Increment count and wait for 1 second
+				let count++
+				sleep 1
+				
+				# Read user input (keypress)
+				read keypress
+			done
+
+			# Restore terminal settings if applicable
+			if [ -t 0 ]; then 
+				stty sane
+			fi
+
+			# Print newline character for clarity
+			echo -e '\n'
+
+			# Display completion message
+			message "Progress finished" "0"
+			;;
         "dir" ) # List content of server and download it
             loadDependency DServerList && remote_server_list
             message "Closing filebrowser" "0"
