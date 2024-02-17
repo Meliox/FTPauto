@@ -240,7 +240,7 @@ function transfer {
 				echo "mkdir -p \"${incomplete}\"" >> "$transfere_file"
 			fi
 			# fail if transfers fails
-			echo "set cmd:fail-exit true" >> "$cleantransfere_file"
+			echo "set cmd:fail-exit true" >> "$transfere_file"
 
 			# Determine transfer type (file or directory)
 			if [[ -f "$transfer_path" ]]; then
