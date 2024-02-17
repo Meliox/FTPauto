@@ -14,56 +14,75 @@ control_c() {
 trap control_c SIGINT
 
 function verbose {
-	#todo fix verbose in external scripts
+	# Function to control verbosity of script output
+	
+	# Check if 'quiet' flag is set
 	if [[ $quiet ]]; then
-		#silent
+		# If 'quiet' flag is set, redirect all output to /dev/null
 		exec > /dev/null 2>&1
+	# Check if 'verbose' flag is set to 1
 	elif [[ ! $quiet ]] && [[ $verbose -eq 1 ]]; then
+		# If 'verbose' flag is set to 1, enable shell tracing and display starting message
 		echo "STARTING PID=$BASHPID"
 		set -x
+	# Check if 'verbose' flag is set to 2
 	elif [[ ! $quiet ]] && [[ $verbose -eq 2 ]]; then
-		#verbose
+		# If 'verbose' flag is set to 2, redirect stderr to debug logfile, enable shell tracing, and display starting message
 		echo "INFO: Debugging. All input is redirected to logfile. Script is finished when console is idle again. Please wait!"
 		exec 2>> "$scriptdir/run/$username.ftpauto.debug"
 		echo "STARTING PID=$BASHPID"
 		set -x
+	# Check if 'quiet' flag is set and 'verbose' flag is not set to 0
 	elif [[ $quiet ]] && [[ $verbose -ne 0 ]]; then
+		# If both 'quiet' and 'verbose' flags are set, display an error message and exit
 		echo -e "\e[00;31mERROR: Verbose and silent can't be used at the same time\e[00m\n"
 		exit 0
 	fi
 }
+
 # load verbose
 verbose
 
 function updateChecker {
-if [[ $(date +'%s') -gt $(echo $lastUpdate + 14*24*60*60 | bc) ]]; then
-	echo -n "INFO: Checking for update ..."
-	local release=$(curl --silent https://github.com/Meliox/FTPauto/releases | egrep -o 'FTPauto-v(.*)+tar.gz' | sort -n | tail -1)
-	release_version=${release#$"FTPauto-v"}
-	release_version=${release_version%.tar.gz}
-	if [[ "$release_version" == "$s_version" ]]; then
-		echo -e " \e[00;32m [Latest]\e[00m"
-		sed "7c message=\"\"" -i "$script"
+	# Check if it's time to perform an update check
+	if [[ $(date +'%s') -gt $((lastUpdate + 14*24*60*60)) ]]; then
+		echo -n "INFO: Checking for update ..."
+		# Retrieve the latest release version from GitHub
+		local release=$(curl --silent https://github.com/Meliox/FTPauto/releases | grep -o 'FTPauto-v[0-9.]*tar.gz' | sort -V | tail -1)
+		release_version=${release#"FTPauto-v"}
+		release_version=${release_version%.tar.gz}
+		# Compare the latest release version with the installed version
+		if [[ "$release_version" == "$s_version" ]]; then
+			# If the versions match, notify that it's the latest version
+			echo -e " \e[00;32m [Latest]\e[00m"
+			# Clear any previous update messages
+			sed "7c message=\"\"" -i "$script"
+		else
+			# Split version numbers into arrays for comparison
+			local IFS=.
+			local n1=($release_version) n2=($s_version)
+			for i in "${!n1[@]}"; do
+				if [[ "${n1[i]}" -gt "${n2[i]}" ]]; then
+					# If a newer version is found, notify and update the message
+					echo -e "\e[00;33m [$release_version available. Consider updating]\e[00m"
+					sed "7c message=\"INFO: New version ($release_version) available. Consider updating (execute bash install.sh update)\"" -i "$script"
+					break
+				elif [[ "${n1[i]}" -lt "${n2[i]}" ]]; then
+					# If the installed version is newer, notify it's the latest version and clear the message
+					echo -e " \e[00;32m [Latest]\e[00m"
+					sed "7c message=\"\"" -i "$script"
+					break
+				fi
+			done
+		fi
+		# Update the last update timestamp
+		sed "6c lastUpdate=$(date +'%s')" -i "$script"
 	else
-		local IFS=.
-		local n1=($release_version) n2=($s_version)
-		for i in "${!n1[@]}"; do
-			if [[ "${n1[i]}" -gt "${n2[i]}" ]]; then
-				echo -e "\e[00;33m [$release_version available. Consider updating]\e[00m"
-				sed "7c message=\"INFO: New version ($release_version) available. Consider updating (execute bash install.sh update)\"" -i "$script"
-				break
-			elif [[ "${n1[i]}" -lt "${n2[i]}" ]]; then
-				echo -e " \e[00;32m [Latest]\e[00m"
-				sed "7c message=\"\"" -i "$script"
-			fi
-		done
+		# If it's not time for an update check, display any existing message
+		if [[ -n $message ]]; then
+			echo -e "\e[00;33m$message\e[00m"
+		fi
 	fi
-	sed "6c lastUpdate=$(date +'%s')" -i "$script"
-else
-	if [[ -n $message ]]; then
-		echo -e "\e[00;33m$message\e[00m"
-	fi
-fi
 }
 
 function loadDependency {
