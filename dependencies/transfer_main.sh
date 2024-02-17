@@ -164,13 +164,13 @@ function queue {
 	esac
 }
 
-function ftp_transfer_process {
+function transfer_process {
 	# used to start and stop the lftp transfer and progressbar
 	local pid_f_process
 	case "$1" in
 		"start" ) #start progressbar and transfer
 			TransferStartTime=$(date +%s)
-			ftp_processbar &
+			transfer_process_bar &
 			pid_f_process=$!
 			sed "3c $pid_f_process" -i "$lockfile"
 			echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $(date --date=@$TransferStartTime '+%d/%m/%y-%a-%H:%M:%S')\n\e[00m"
@@ -191,7 +191,7 @@ function ftp_transfer_process {
 	esac
 }
 
-function ftp_transfere {
+function transfer {
 	local lftp_exclude quittime waittime
 
 	# Prepare new transfer
@@ -306,25 +306,25 @@ function ftp_transfere {
 	# Start transferring
 	{
 		if [[ $test_mode != "true" ]]; then
-			ftp_transfer_process start
+			transfer_process start
 			while [[ $pid_transfer_status -ne 0 ]]; do
 				quittime=$(( ScriptStartTime + retry_download_max*60 ))
 				if [[ $(date +%s) -gt $quittime ]]; then
 					echo -e "\e[00;31mERROR: FTP transfer failed after max ($retry_download_max minutes)!\e[00m"
-					ftp_transfer_process "stop-process-bar"
+					transfer_process "stop-process-bar"
 					queue add failed
 					break
 				else
 					echo -e "\e[00;31mERROR: FTP transfer failed for some reason!\e[00m"
 					echo "INFO: Retrying until $(date --date=@$quittime '+%d/%m/%y-%a-%H:%M:%S')"
-					ftp_transfer_process "stop-process-bar"
+					transfer_process "stop-process-bar"
 					echo "INFO: Pausing session and trying again in 60s"
 					sed "3s#.*#***************************	FTP INFO: DOWNLOAD POSTPONED! Trying again in ${retry_download}mins#" -i "$logfile"
 					sleep 60
-					ftp_transfer_process start
+					transfer_process start
 				fi
 			done
-			ftp_transfer_process "stop-process-bar"
+			transfer_process "stop-process-bar"
 			echo -e "\n\e[00;37mINFO: \e[00;32mTransfer ended: $(date --date=@$TransferEndTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 		else
 			echo -e "\e[00;31mTESTMODE: LFTP-transfer NOT STARTED\e[00m"
@@ -334,7 +334,7 @@ function ftp_transfere {
 	}
 }
 
-function ftp_processbar { #Showing how download is proceeding
+function transfer_process_bar { #Showing how download is proceeding
 	local transfered_size ProgressTimeNew TransferredNew TransferredNewMB TotalTimeDiff TimeDiff percentage speed eta etatime SpeedOld sum SpeedAverage cols percentagebarlength string string2 TransferredOld ProgressTimeOld
 	if [[ $test_mode != "true" ]]; then
 		sleep 5 #wait for transfer to start
@@ -404,7 +404,7 @@ function ftp_processbar { #Showing how download is proceeding
 					speed=$(echo "scale=2; ( ($TransferredNew - $TransferredOld) / 1024 ) / ( $ProgressTimeNew - $ProgressTimeOld )" | bc) # MB/s
 					eta=$(echo "( ($directorysize / 1024 ) - $TransferredNew ) / ($speed * 1024 )" | bc)
 					etatime=$(printf '%02dh:%02dm:%02ds' "$(($eta/(60*60)))" "$((($eta/60)%60))" "$(($eta%60))")
-					# Calculate average speed. Needs to be calculated each time as transfer stops ftp_processbar
+					# Calculate average speed. Needs to be calculated each time as transfer stops transfer_process_bar
 					SpeedOld+=( "$speed" )
 					if [[ -n "${#SpeedOld[@]}" ]]; then
 						sum="0"
@@ -672,7 +672,7 @@ function main {
 	delay
 
 	# Transfer files
-	ftp_transfere
+	transfer
 
 	# Checking for remaining space
 	if [[ "$ftpsizemanagement" == "true" ]] && [[ $failed != true ]]; then
