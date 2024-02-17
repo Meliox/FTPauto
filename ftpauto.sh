@@ -6,8 +6,11 @@ scriptdir=$(dirname $script)
 lastUpdate=1511410224
 message=""
 
+#stty ^S ^P
+
 control_c() {
 	# run if user hits control-c
+	echo "Interrupt signal received: $last_key_sequence"
 	echo -ne '\n'
 	cleanup die
 	message "Session has been terminated." "0"
