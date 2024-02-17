@@ -366,7 +366,7 @@ case "${option[0]}" in
 		fi
 	;;
 	"online" ) # Perform server test
-		loadDependency DFtpLogin && ftp_login 1
+		loadDependency DFtpLogin && server_login 1
 		loadDependency DFtpOnlineTest && online_test
 		cleanup session
 		if [[ $is_online -eq 0 ]]; then
@@ -376,7 +376,7 @@ case "${option[0]}" in
 		fi
 	;;
 	"freespace" ) # check free space
-		loadDependency DFtpLogin && ftp_login 1
+		loadDependency DFtpLogin && server_login 1
 		loadDependency DFtpSizeManagement && ftp_sizemanagement info
 		cleanup session
 		if [[ $is_online -eq 1 ]]; then

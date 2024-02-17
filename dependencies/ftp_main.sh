@@ -193,176 +193,144 @@ function ftp_transfer_process {
 
 function ftp_transfere {
 	local lftp_exclude quittime waittime
-	#prepare new transfer
+
+	# Prepare new transfer
 	{
-	# Write regexp to config for directory transferes
-	if [[ "${#exclude_array[@]}" -gt 0 ]] && [[ -n "${exclude_array[@]}" ]] && ( [[ $transfer_type = directory ]] || [[ -d "$transfer_path" ]] ); then
-		for ((i=0;i<${#exclude_array[@]};i++)); do
-			if [[ $i -gt 0 ]]; then
-				lftp_exclude="$lftp_exclude|"
-			fi
-			lftp_exclude="$lftp_exclude^.*${exclude_array[i]}*"
-		done
-		lftp_exclude="$lftp_exclude$"
-		echo "set mirror:exclude-regex \"$lftp_exclude\"" >> "$ftptransfere_file"
-		echo "set mirror:no-empty-dirs true" >> "$ftptransfere_file"
-	fi
-	if [[ $transferetype == "downftp" ]]; then
-	# handle lftp transfere for downftp
-	{
-		cat "$ftplogin_file1" >> "$ftptransfere_file"
-		# create final directories if they don't exists
-		echo "!mkdir -p \"${ftpcomplete}\"" >> "$ftptransfere_file"
-		if [[ -n $ftpincomplete ]]; then
-			echo "!mkdir -p \"${ftpincomplete}\"" >> "$ftptransfere_file"
+		# Write regexp to config for directory transfers
+		if [[ "${#exclude_array[@]}" -gt 0 && -n "${exclude_array[@]}" && ($transfer_type = "directory" || -d "$transfer_path") ]]; then
+			for ((i=0; i<${#exclude_array[@]}; i++)); do
+				[[ $i -gt 0 ]] && lftp_exclude+="|"
+				lftp_exclude+="^.*${exclude_array[i]}*"
+			done
+			lftp_exclude+="\$"
+			echo "set mirror:exclude-regex \"$lftp_exclude\"" >> "$ftptransfere_file"
+			echo "set mirror:no-empty-dirs true" >> "$ftptransfere_file"
 		fi
-		# fail if transfers fails
-		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
-		# from get_size we know if its a file or a path!
-		if [[ $transfer_type = file ]]; then
-			if [[ -n $ftpincomplete ]]; then
-				echo "queue get -c -O \"${ftpincomplete}\" \"${transfer_path}\"" >> "$ftptransfere_file"
-			elif [[ -z $ftpincomplete ]]; then
-				echo "queue get -c -O \"${ftpcomplete}\" \"${transfer_path}\"" >> "$ftptransfere_file"
-			fi
-		elif [[ $transfer_type = directory ]]; then
-			if [[ -n $ftpincomplete ]]; then
-				echo "queue mirror --no-umask -p --parallel=$parallel -c \"${transfer_path}\" \"${ftpincomplete}\"" >> "$ftptransfere_file"
-			elif [[ -z $ftpincomplete ]]; then
-				echo "queue mirror --no-umask -p --parallel=$parallel -c \"${transfer_path}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
-			fi
-		fi
-		# wait for transferes to finish
-		echo "wait" >> "$ftptransfere_file"
-		# moving part, locally
-		if [[ -n $ftpincomplete ]]; then
+
+		if [[ $transferetype == "downftp" ]]; then
+			# Handle lftp transfer for downftp
+			{
+				cat "$ftplogin_file1" >> "$ftptransfere_file"
+				# Create final directories if they don't exist
+				echo "!mkdir -p \"${ftpcomplete}\"" >> "$ftptransfere_file"
+				[[ -n $ftpincomplete ]] && echo "!mkdir -p \"${ftpincomplete}\"" >> "$ftptransfere_file"
+				echo "set cmd:fail-exit true" >> "$ftptransfere_file"
+
+				# Determine transfer type (file or directory)
+				if [[ $transfer_type = file ]]; then
+					[[ -n $ftpincomplete ]] && echo "queue get -c -O \"${ftpincomplete}\" \"${transfer_path}\"" >> "$ftptransfere_file"
+					[[ -z $ftpincomplete ]] && echo "queue get -c -O \"${ftpcomplete}\" \"${transfer_path}\"" >> "$ftptransfere_file"
+				elif [[ $transfer_type = directory ]]; then
+					[[ -n $ftpincomplete ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c \"${transfer_path}\" \"${ftpincomplete}\"" >> "$ftptransfere_file"
+					[[ -z $ftpincomplete ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c \"${transfer_path}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
+				fi
+
+				echo "wait" >> "$ftptransfere_file"
+
+				# Move files locally if ftpincomplete directory is used
+				[[ -n $ftpincomplete ]] && echo "queue !mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
+				echo "wait" >> "$ftptransfere_file"
+			}
+		elif [[ $transferetype == "upftp" ]]; then
+			# Handle lftp transfer for upftp
+			{
+				cat "$ftplogin_file1" >> "$ftptransfere_file"
+				echo "mkdir -p \"${ftpcomplete}\"" >> "$ftptransfere_file"
+				[[ -n "${ftpincomplete}" ]] && echo "mkdir -p \"${ftpincomplete}\"" >> "$ftptransfere_file"
+				echo "set cmd:fail-exit true" >> "$ftptransfere_file"
+
+				# Determine transfer type (file or directory)
+				if [[ -f "$transfer_path" ]]; then
+					[[ -n "$ftpincomplete" ]] && echo "queue put -c -O \"$ftpincomplete\" \"${transfer_path}\"" >> "$ftptransfere_file"
+					[[ -z "$ftpincomplete" ]] && echo "queue put -c -O \"$ftpcomplete\" \"${transfer_path}\"" >> "$ftptransfere_file"
+				elif [[ -d "$transfer_path" ]]; then
+					[[ -n "$ftpincomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${ftpincomplete}\"" >> "$ftptransfere_file"
+					[[ -z "$ftpincomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
+				fi
+
+				echo "wait" >> "$ftptransfere_file"
+
+				# Move files remotely if ftpincomplete directory is used
+				[[ -n "$ftpincomplete" ]] && echo "queue mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
+				echo "wait" >> "$ftptransfere_file"
+			}
+		elif [[ $transferetype == "fxp" ]]; then
+			# Handle lftp transfer for fxp
+			server_login 2
+			cat "$ftplogin_file2" >> "$ftptransfere_file"
+			echo "mkdir -p \"$ftpcomplete\"" >> "$ftptransfere_file"
+			[[ -n $ftpincomplete ]] && echo "mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
+			echo "set cmd:fail-exit true" >> "$ftptransfere_file"
+
+			# Determine transfer type (file or directory)
 			if [[ $transfer_type = file ]]; then
-				echo "queue !mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
+				[[ -n "$ftpincomplete" ]] && echo "queue get -c ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"$transfer_path\" -o ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"$ftpincomplete\"" >> "$ftptransfere_file"
+				[[ -z "$ftpincomplete" ]] && echo "queue get -c ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"$transfer_path\" -o ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"$ftpcomplete\"" >> "$ftptransfere_file"
 			elif [[ $transfer_type = directory ]]; then
-				echo "queue !mv \"${ftpincomplete}${orig_name}/\" \"${ftpcomplete}/\"" >> "$ftptransfere_file"
+				[[ -n "$ftpincomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"${transfer_path}\" ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"${ftpincomplete}\"" >> "$ftptransfere_file"
+				[[ -z "$ftpincomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"${transfer_path}\" ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"${ftpcomplete}\"" >> "$ftptransfere_file"
 			fi
+
 			echo "wait" >> "$ftptransfere_file"
+
+			 # Move files remotely if ftpincomplete directory is used
+			[[ -n "$ftpincomplete" ]] && echo "queue mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
+			echo "wait" >> "$ftptransfere_file"
+		elif [[ $transferetype == "upsftp" ]]; then
+			# handle sftp transfer
+			{
+				echo "cd \"$ftpcomplete\"" >> "$ftptransfere_file"
+				if [[ -n "$ftpincomplete" ]]; then
+					echo "mkdir \"$ftpincomplete\"" >> "$ftptransfere_file"
+					echo "cd \"$ftpincomplete\"" >> "$ftptransfere_file"
+				fi
+				if [[ -f "$transfer_path" ]]; then
+					# single file
+					echo "put -O . \"$transfer_path\"" >> "$ftptransfere_file"
+				elif [[ -d "$transfer_path" ]]; then
+					# directory
+					echo "mirror --no-perms -R \"$transfer_path\" ." >> "$ftptransfere_file"
+				else
+					echo "echo 'Unsupported file or directory type.'" >> "$ftptransfere_file"
+				fi
+				echo "quit" >> "$ftptransfere_file"
+			}
+		else
+			echo -e "\e[00;31mERROR: FTP setting not recognized\e[00m\n"
+			cleanup die
 		fi
-		echo "wait" >> "$ftptransfere_file"
+
+		echo "quit" >> "$ftptransfere_file"
 	}
-	elif [[ $transferetype == "upftp" ]]; then
-	# handle lftp transfere for upftp
+
+	# Start transferring
 	{
-		cat "$ftplogin_file1" >> "$ftptransfere_file"
-		echo "mkdir -p \"${ftpcomplete}\"" >> "$ftptransfere_file"
-		# handle files for transfer
-		if [[ -n "${ftpincomplete}" ]]; then
-			echo "mkdir -p \"${ftpincomplete}\"" >> "$ftptransfere_file"
+		if [[ $test_mode != "true" ]]; then
+			ftp_transfer_process start
+			while [[ $pid_transfer_status -ne 0 ]]; do
+				quittime=$(( ScriptStartTime + retry_download_max*60 ))
+				if [[ $(date +%s) -gt $quittime ]]; then
+					echo -e "\e[00;31mERROR: FTP transfer failed after max ($retry_download_max minutes)!\e[00m"
+					ftp_transfer_process "stop-process-bar"
+					queue add failed
+					break
+				else
+					echo -e "\e[00;31mERROR: FTP transfer failed for some reason!\e[00m"
+					echo "INFO: Retrying until $(date --date=@$quittime '+%d/%m/%y-%a-%H:%M:%S')"
+					ftp_transfer_process "stop-process-bar"
+					echo "INFO: Pausing session and trying again in 60s"
+					sed "3s#.*#***************************	FTP INFO: DOWNLOAD POSTPONED! Trying again in ${retry_download}mins#" -i "$logfile"
+					sleep 60
+					ftp_transfer_process start
+				fi
+			done
+			ftp_transfer_process "stop-process-bar"
+			echo -e "\n\e[00;37mINFO: \e[00;32mTransfer ended: $(date --date=@$TransferEndTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
+		else
+			echo -e "\e[00;31mTESTMODE: LFTP-transfer NOT STARTED\e[00m"
+			echo "Would execute the following in lftp:"
+			cat "$ftptransfere_file" | (while read; do echo "      $REPLY"; done)
 		fi
-		# fail if transfers fails
-		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
-		if [[ -f "$transfer_path" ]]; then
-			# single file
-			if [[ -n "$ftpincomplete" ]]; then
-				echo "queue put -c -O \"$ftpincomplete\" \"${transfer_path}\" " >> "$ftptransfere_file"
-			elif [[ -z "$ftpincomplete" ]]; then
-				echo "queue put -c -O \"$ftpcomplete\" \"${transfer_path}\" " >> "$ftptransfere_file"
-			fi
-		elif [[ -d "$transfer_path" ]]; then
-			# directory
-			if [[ -n "$ftpincomplete" ]]; then
-				echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${ftpincomplete}\"" >> "$ftptransfere_file" #needs fixing
-			elif [[ -z "$ftpincomplete" ]]; then
-				echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${ftpcomplete}\"" >> "$ftptransfere_file" #needs fixing
-			fi
-		fi
-		# wait for transferes to finish
-		echo "wait" >> "$ftptransfere_file"
-		# moving part, remotely, if ftpincomplete directory is used
-		if [[ -n "$ftpincomplete" ]]; then
-			# correction for file and path
-			if [[ -f "$filepath" ]]; then
-				echo "queue mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
-			elif [[ -d "$filepath" ]]; then
-				echo "queue mv \"${ftpincomplete}${orig_name}/\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
-			fi
-			echo "wait" >> "$ftptransfere_file"
-		fi
-	}
-	elif [[ $transferetype == "fxp" ]]; then
-		# handle lftp transfere for fxp
-		ftp_login 2
-		cat "$ftplogin_file2" >> "$ftptransfere_file"
-		# first login and create final directories if they don't exists on ftphost2
-		echo "mkdir -p \"$ftpcomplete\"" >> "$ftptransfere_file"
-		if [[ -n $ftpincomplete ]]; then
-			echo "mkdir -p \"$ftpincomplete\"" >> "$ftptransfere_file"
-		fi
-		# fail if transfers fails
-		echo "set cmd:fail-exit true" >> "$ftptransfere_file"
-		# from get_size we know if its a file or a path!
-		if [[ $transfer_type = file ]]; then
-			# single file
-			if [[ -n "$ftpincomplete" ]]; then
-				echo "queue get -c ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"$transfer_path\" -o ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"$ftpincomplete\"" >> "$ftptransfere_file"
-			elif [[ -z "$ftpincomplete" ]]; then
-				echo "queue get -c ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"$transfer_path\" -o ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"$ftpcomplete\"" >> "$ftptransfere_file"
-			fi
-		elif [[ $transfer_type = directory ]]; then
-			# directory
-			if [[ -n "$ftpincomplete" ]]; then
-				echo "queue mirror --no-umask -p --parallel=$parallel -c -RL ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"${transfer_path}\" ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"${ftpincomplete}\"" >> "$ftptransfere_file" #needs fixing
-			elif [[ -z "$ftpincomplete" ]]; then
-				echo "queue mirror --no-umask -p --parallel=$parallel -c -RL ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"${transfer_path}\" ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"${ftpincomplete}\"" >> "$ftptransfere_file" #needs fixing
-			fi
-		fi
-		# wait for transferes to finish
-		echo "wait" >> "$ftptransfere_file"
-		# moving part, remotely, if ftpincomplete directory is used
-		if [[ -n "$ftpincomplete" ]]; then
-			# correction for file and path
-			if [[ $transfer_type = file ]]; then
-				echo "queue mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
-			elif [[ $transfer_type = directory ]]; then
-				echo "queue mv \"${ftpincomplete}${orig_name}/\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
-			fi
-			echo "wait" >> "$ftptransfere_file"
-		fi
-	else
-		echo -e "\e[00;31mERROR: FTP setting not recognized\e[00m\n"
-		cleanup die
-	fi
-	echo "quit" >> "$ftptransfere_file"
-	}
-	 #start transferring
-	{
-	if [[ $test_mode != "true" ]]; then
-		ftp_transfer_process start
-		#did lftp end properly
-		while [[ $pid_transfer_status -ne 0 ]]; do
-			quittime=$(( ScriptStartTime + retry_download_max*60 )) #minutes
-			if [[ $(date +%s) -gt $quittime ]]; then
-				echo -e "\e[00;31mERROR: FTP transfer failed after max ($retry_download_max minutes)!\e[00m"
-				# remove processbar processes
-				ftp_transfer_process "stop-process-bar"
-				# mark transfer as failed
-				queue add failed
-				break
-			else
-				echo -e "\e[00;31mERROR: FTP transfer failed for some reason!\e[00m"
-				echo "INFO: Retrying until $(date --date=@$quittime '+%d/%m/%y-%a-%H:%M:%S')"
-				# Kill processbar
-				ftp_transfer_process "stop-process-bar"
-				echo "INFO: Pausing session and trying again in 60s"
-				sed "3s#.*#***************************	FTP INFO: DOWNLOAD POSTPONED! Trying again in ${retry_download}mins#" -i "$logfile"
-				sleep 60
-				# restart transfer
-				ftp_transfer_process start
-			fi
-		done
-		#remove processbar processes
-		ftp_transfer_process "stop-process-bar"
-		echo -e "\n\e[00;37mINFO: \e[00;32mTransfer ended: $(date --date=@$TransferEndTime '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
-	else
-		echo -e "\e[00;31mTESTMODE: LFTP-transfer NOT STARTED\e[00m"
-		echo "Would execute the following in lftp:"
-		cat "$ftptransfere_file" | (while read; do echo "      $REPLY"; done)
-	fi
 	}
 }
 
@@ -618,7 +586,7 @@ function main {
 	fi
 
 	#Prepare login
-	loadDependency DFtpLogin && ftp_login 1
+	loadDependency DFtpLogin && server_login 1
 
 	#confirm server is online
 	if [[ $confirm_online == "true" ]]; then
