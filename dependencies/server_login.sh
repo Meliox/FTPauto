@@ -55,8 +55,6 @@ function ftp_login {
 
 # Function to generate SFTP login details
 function sftp_login {
-    local sftpcustom sftpuser sftppass sftphost sftpport sftploginfile
-
     # Set variables based on input
     sftpcustom="$sftpcustom"
     sftpuser="$sftpuser"
