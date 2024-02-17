@@ -91,12 +91,12 @@ function loadDependency {
     local LoadPath=""
     case "$1" in
         DConfig) LoadPath="$scriptdir/users/$username/config";;
-        DFtpList) LoadPath="$scriptdir/dependencies/ftp_list.sh";;
+        DServerList) LoadPath="$scriptdir/dependencies/server_list.sh";;
         DServerLogin) LoadPath="$scriptdir/dependencies/server_login.sh";;
-        DFtpMain) LoadPath="$scriptdir/dependencies/transfer_main.sh";;
-        DFtpOnlineTest) LoadPath="$scriptdir/dependencies/ftp_online_test.sh";;
+        DServerMain) LoadPath="$scriptdir/dependencies/transfer_main.sh";;
+        DServerAliveTest) LoadPath="$scriptdir/dependencies/server_alive_test.sh";;
         DLargeFile) LoadPath="$scriptdir/plugins/largefile.sh";;
-        DFtpSizeManagement) LoadPath="$scriptdir/dependencies/ftp_size_management.sh";;
+        DServerSizeManagement) LoadPath="$scriptdir/dependencies/server_size_management.sh";;
         DHelp) LoadPath="$scriptdir/dependencies/help.sh";;
         DPushOver) LoadPath="$scriptdir/plugins/pushover.sh";;
         DSetup) LoadPath="$scriptdir/dependencies/setup.sh";;
@@ -110,7 +110,7 @@ function loadDependency {
 # Function to start the transfer main script with appropriate debug level
 function start_transfermain {
     # Load the transfer main dependency
-    loadDependency DFtpMain
+    loadDependency DServerMain
     
     # Check the verbose level and start the main script accordingly
     if [[ $verbose -eq 1 ]]; then
@@ -160,13 +160,13 @@ function message {
 
 # Function to load user configuration
 function load_user {
-    if [[ -z "$username" ]] && [[ -f "$scriptdir/users/default/config" ]]; then
+    if [[ -z "$username" && -f "$scriptdir/users/default/config" ]]; then
         # If username is not provided and default configuration exists, use default user
         username="default"
         config_name="$scriptdir/users/default/config"
         loadDependency DConfig
         echo "INFO: User: $username"
-    elif [[ -n "$username" ]] && [[ -f "$scriptdir/users/$username/config" ]]; then
+    elif [[ -n "$username" && -f "$scriptdir/users/$username/config" ]]; then
         # If username is provided and corresponding configuration exists, use provided user
         username="$username"
         config_name="$scriptdir/users/$username/default"
@@ -185,7 +185,7 @@ function load_user {
         exit 1
     fi
     # Confirm that config is most recent version
-    if [[ $config_version -ne "7" ]] && [[ $option != "add" ]] && [[ $option != "edit" ]]; then
+    if [[ $config_version -ne "7" && $option != "add" && $option != "edit" ]]; then
         echo -e "\e[00;31mERROR: Please update it to version 6. See --help for more info!\e[00m\n"
         exit 1
     fi
@@ -376,7 +376,7 @@ function main {
             ;;
         "online" ) # Perform server test
             loadDependency DServerLogin && server_login 1
-            loadDependency DFtpOnlineTest && server_alive_test
+            loadDependency DServerAliveTest && server_alive_test
             cleanup session
             if [[ $is_online -eq 0 ]]; then
                 message "Server is OK" "0"
@@ -386,7 +386,7 @@ function main {
             ;;
         "freespace" ) # Check free space
             loadDependency DServerLogin && server_login 1
-            loadDependency DFtpSizeManagement && ftp_sizemanagement info
+            loadDependency DServerSizeManagement && ftp_sizemanagement info
             cleanup session
             if [[ $is_online -eq 1 ]]; then
                 message "$option: Could " "1"
@@ -432,9 +432,9 @@ function main {
             echo -e '\n'
             message "Progress finished" "0"
             ;;
-        "dir" ) # List content of ftpserver and download it
-            loadDependency DFtpList && ftp_list
-            message "Closing FTP filebrowser" "0"
+        "dir" ) # List content of server and download it
+            loadDependency DServerList && ftp_list
+            message "Closing filebrowser" "0"
             ;;
         * )
             message "No options selected." "1"

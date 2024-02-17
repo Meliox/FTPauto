@@ -11,8 +11,8 @@ function setup {
 	lockfile="$scriptdir/run/$username.lck"
 	logfile="$scriptdir/users/$username/log"
 	oldlogfile="$scriptdir/users/$username/log.old"
-	ftptransfere_file="$scriptdir/run/$username.ftptransfere"
-	ftptransfere_processbar="$scriptdir/run/$username.ftpprocessbar"
+	transfere_file="$scriptdir/run/$username.transfere"
+	transfere_processbar="$scriptdir/run/$username.processbar"
 	ftplogin_file1="$scriptdir/run/$username.ftplogin1"
 	ftplogin_file2="$scriptdir/run/$username.ftplogin2"
 	sftplogin_file="$scriptdir/run/$username.sftplogin"
@@ -171,7 +171,7 @@ function cleanup {
 			unset mount_in_use
 		fi
 		# Define array of files to remove
-		array=( "$ftplogin_file1" "$ftplogin_file2" "$ftptransfere_file" "$ftp_size_file" "$ftpfreespace_file" "$lftptransfersize" "$lftptransfersize2" "$transfersize" "$transfersize2" "$proccess_bar_file" "$ftpalive_file" "$ftpcheck_file" "$ftpcheck_testfile" "$ftptransfere_processbar" )
+		array=( "$ftplogin_file1" "$ftplogin_file2" "$transfere_file" "$ftp_size_file" "$ftpfreespace_file" "$lftptransfersize" "$lftptransfersize2" "$transfersize" "$transfersize2" "$proccess_bar_file" "$ftpalive_file" "$ftpcheck_file" "$ftpcheck_testfile" "$ftptransfere_processbar" )
 		# Call removeClean function to remove files
 		removeClean "${array[@]}"
 		# Remove tempdirs
