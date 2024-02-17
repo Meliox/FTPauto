@@ -232,7 +232,7 @@ function transfer {
 				# Move files locally if incomplete directory is used
 				[[ -n $incomplete ]] && echo "queue !mv \"${incomplete}${orig_name}\" \"${complete}\"" >> "$transfere_file"
 				echo "wait" >> "$transfere_file"
-		elif [[ $transferetype == "upftp" ]]; then
+		elif [[ $transferetype == "upftp" || $transferetype == "upsftp" ]]; then
 			# Handle lftp transfer for upftp
 			cat "$login_file1" >> "$transfere_file"
 			echo "mkdir -p \"${complete}\"" >> "$transfere_file"
@@ -273,29 +273,6 @@ function transfer {
 			echo "wait" >> "$transfere_file"
 
 			 # Move files remotely if incomplete directory is used
-			[[ -n "$incomplete" ]] && echo "queue mv \"${incomplete}${orig_name}\" \"${complete}\"" >> "$transfere_file"
-			echo "wait" >> "$transfere_file"
-		elif [[ $transferetype == "upsftp" ]]; then
-			# handle sftp transfer
-			cat "$login_file1" >> "$transfere_file"
-
-			# Create final directories if they don't exist
-			echo "!mkdir -p \"${complete}\"" >> "$transfere_file"
-
-			[[ -n "${incomplete}" ]] && echo "mkdir -p \"${incomplete}\"" >> "$transfere_file"
-
-			# Determine transfer type (file or directory)
-			if [[ -f "$transfer_path" ]]; then
-				[[ -n "$incomplete" ]] && echo "queue put -c -O \"$incomplete\" \"${transfer_path}\"" >> "$transfere_file"
-				[[ -z "$incomplete" ]] && echo "queue put -c -O \"$complete\" \"${transfer_path}\"" >> "$transfere_file"
-			elif [[ -d "$transfer_path" ]]; then
-				[[ -n "$incomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${incomplete}\"" >> "$transfere_file"
-				[[ -z "$incomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${complete}\"" >> "$transfere_file"
-			fi
-
-			echo "wait" >> "$transfere_file"
-
-			# Move files remotely if incomplete directory is used
 			[[ -n "$incomplete" ]] && echo "queue mv \"${incomplete}${orig_name}\" \"${complete}\"" >> "$transfere_file"
 			echo "wait" >> "$transfere_file"
 		else

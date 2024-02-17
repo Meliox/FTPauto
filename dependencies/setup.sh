@@ -13,9 +13,8 @@ function setup {
 	oldlogfile="$scriptdir/users/$username/log.old"
 	transfere_file="$scriptdir/run/$username.transfere"
 	transfere_processbar="$scriptdir/run/$username.processbar"
-	ftplogin_file1="$scriptdir/run/$username.ftplogin1"
-	ftplogin_file2="$scriptdir/run/$username.ftplogin2"
-	sftplogin_file="$scriptdir/run/$username.sftplogin"
+	login_file1="$scriptdir/run/$username.login1"
+	login_file2="$scriptdir/run/$username.login2"
 	server_freespace_file="$scriptdir/run/$username.serverfreespace"
 	server_alive_file="$scriptdir/run/$username.serveralive"
 	server_check_testfile="$scriptdir/run/$username.servertestfile"
@@ -43,7 +42,7 @@ function get_size {
 	if [[ "$transferetype" == downftp || "$transferetype" == fxp ]]; then
 		# Client-side transfer
 		loadDependency DFtpLogin && ftp_login 1
-		cat "$ftplogin_file1" > "$lftptransfersize" >> "$lftptransfersize"
+		cat "$login_file1" > "$lftptransfersize" >> "$lftptransfersize"
 		echo "du -bs \"$dir\" > ~/../..$transfersize" >> "$lftptransfersize"
 		echo "ls -lR \"$dir\" > ~/../..$transfersize2" >> "$lftptransfersize"
 		echo "exit" >> "$lftptransfersize"
@@ -171,7 +170,7 @@ function cleanup {
 			unset mount_in_use
 		fi
 		# Define array of files to remove
-		array=( "$ftplogin_file1" "$ftplogin_file2" "$transfere_file" "$ftp_size_file" "$ftpfreespace_file" "$lftptransfersize" "$lftptransfersize2" "$transfersize" "$transfersize2" "$proccess_bar_file" "$ftpalive_file" "$ftpcheck_file" "$ftpcheck_testfile" "$ftptransfere_processbar" )
+		array=( "$login_file1" "$ftplogin_file2" "$transfere_file" "$ftp_size_file" "$server_freespace_file" "$lftptransfersize" "$lftptransfersize2" "$transfersize" "$transfersize2" "$proccess_bar_file" "$ftpalive_file" "$ftpcheck_file" "$ftpcheck_testfile" "$ftptransfere_processbar" )
 		# Call removeClean function to remove files
 		removeClean "${array[@]}"
 		# Remove tempdirs
