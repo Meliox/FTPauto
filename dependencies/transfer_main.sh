@@ -347,7 +347,6 @@ function transfer {
 			cat "$ftptransfere_file" | (while read; do echo "      $REPLY"; done)
 		fi
 	}
-
 }
 
 # Function to show the progress of the transfer

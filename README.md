@@ -3,19 +3,19 @@
 FTPauto is a simple, but highly advanced and configurable FTP-client wrap-around written in #Bash for Unix. It is based on [lftp](http://lftp.yar.ru/) and  helps to automate simple transfers - yet FTPauto allows much more.
 
 # Features
-* Send files easily with lftp (To and from FTP, and between serveres - FXP)
+* Send files easily with lftp (To and from FTP(s), and between serveres - FXP, and SFTP)
 * Highly customizable command line
-* Monitor free space or server status on FTP-server
+* Monitor free space or server status on the remote server
 * Progressbar with estimated time of transferes
 * History (Transfer logs)
-* Queue system of transfers (failed transferes, queue)
+* Queue transfers (failed transferes, queue)
 * Packing/splitting directory/files into rar-files. Including sfv to verify files at end-server.
-* Multiple users (different configuration)
+* Multiple users
 * Delay transfer to start at a specific time
 * Support pre/post transfer using external scripts
 * Sorting (regex-based or manually)
-* Exclution of files (regex-based)
-* Seamless unpack of rar-files in stored in store-mode using rarmount
+* Regex-based exclution of files or folders
+* Seamless read-content from rar files using rar2fs fuse
 * Send push notification to phones etc. with [Pushover](https://pushover.net/)
 * Automatic transfers with the use of [FlexGet](http://flexget.com/)
 
@@ -53,7 +53,7 @@ You should have User and sudo or root access to use and install, respectively.
 Script is mainly written to Debian/Ubuntu and is guaranteed to work under these!
 
 ## Installation
-There are several way to install FTPauto. Briefly summarized: The installer does just about everything for you. This is also the most stable version. You can also get the most recent version from git by pulling it.
+There are several way to install FTPauto. Sudo is necesary to install some dependent tools
 
 ### The installer (recommended)
 To get FTPauto, download and execute the installer: [download](https://raw.github.com/Meliox/FTPauto/master/install.sh)
@@ -119,8 +119,8 @@ The most important setting is "transferetype".
 Depending on the solution you can FTPauto can do
 ```
 FTP	
-	SERVER --> client   : upftp
-	server <-- CLIENT   : downftp
+	SERVER --> client   : upftp(s) or upsftp
+	server <-- CLIENT   : downftp(s)
 FXP
 	SERVER <-> server   : fxp
 ```
@@ -198,7 +198,7 @@ Here's an overview as well
         --verbose          | Debugs to console
 ```
 ## Debugging
-If the script for some reason should fail, it is easy to debug. Debugging can either be permanently set if the error comes and goes. This setting can be in ftpauto.sh by  altering the line 3:
+If the script for some reason should fail, it is easy to debug. Debugging can either be permanently set if the error comes and goes. This setting can be in ftpauto.sh by altering the line 3:
 ```bash
 verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 ```

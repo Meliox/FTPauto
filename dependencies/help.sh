@@ -39,7 +39,7 @@ echo -e "
 \e[04;34mhttps://github.com/Meliox/FTPauto/\e[00m
 
 \033[1mDescription\033[0m
-  FTPauto is a bash command line tool to send files from a local server to\n  a remote easily. Numerous options may be specified such a checking free space for \n  transferring, multiple user support, delay of transfer and category support. It is\n  especially powerful in combination with Flexget
+  FTPauto is a bash command line tool to send files from a local server to\n  a remote easily (ftp, ftps, fxp or sftp). Numerous options may be specified such a checking free space for \n  transferring, multiple user support, delay of transfer and category support. It is\n  especially powerful in combination with Flexget
 
   For more information read the README or see homepage.
 
