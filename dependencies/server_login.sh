@@ -63,7 +63,6 @@ function sftp_login {
     sftppass="sftppass"
     sftphost="sftphost"
     sftpport="sftpport"
-    sftploginfile="sftplogin_file"
 
     # Set timeout settings
     echo "ConnectTimeout 10" >> "${!sftploginfile}"
