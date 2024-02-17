@@ -214,89 +214,89 @@ function transfer {
 			# Handle lftp transfer for downftp
 				cat "$ftplogin_file1" >> "$transfere_file"
 				# Create final directories if they don't exist
-				echo "!mkdir -p \"${ftpcomplete}\"" >> "$transfere_file"
-				[[ -n $ftpincomplete ]] && echo "!mkdir -p \"${ftpincomplete}\"" >> "$transfere_file"
+				echo "!mkdir -p \"${complete}\"" >> "$transfere_file"
+				[[ -n $incomplete ]] && echo "!mkdir -p \"${incomplete}\"" >> "$transfere_file"
 				echo "set cmd:fail-exit true" >> "$transfere_file"
 
 				# Determine transfer type (file or directory)
 				if [[ $transfer_type = file ]]; then
-					[[ -n $ftpincomplete ]] && echo "queue get -c -O \"${ftpincomplete}\" \"${transfer_path}\"" >> "$transfere_file"
-					[[ -z $ftpincomplete ]] && echo "queue get -c -O \"${ftpcomplete}\" \"${transfer_path}\"" >> "$transfere_file"
+					[[ -n $incomplete ]] && echo "queue get -c -O \"${incomplete}\" \"${transfer_path}\"" >> "$transfere_file"
+					[[ -z $incomplete ]] && echo "queue get -c -O \"${complete}\" \"${transfer_path}\"" >> "$transfere_file"
 				elif [[ $transfer_type = directory ]]; then
-					[[ -n $ftpincomplete ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c \"${transfer_path}\" \"${ftpincomplete}\"" >> "$transfere_file"
-					[[ -z $ftpincomplete ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c \"${transfer_path}\" \"${ftpcomplete}\"" >> "$transfere_file"
+					[[ -n $incomplete ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c \"${transfer_path}\" \"${incomplete}\"" >> "$transfere_file"
+					[[ -z $incomplete ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c \"${transfer_path}\" \"${complete}\"" >> "$transfere_file"
 				fi
 
 				echo "wait" >> "$transfere_file"
 
-				# Move files locally if ftpincomplete directory is used
-				[[ -n $ftpincomplete ]] && echo "queue !mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$transfere_file"
+				# Move files locally if incomplete directory is used
+				[[ -n $incomplete ]] && echo "queue !mv \"${incomplete}${orig_name}\" \"${complete}\"" >> "$transfere_file"
 				echo "wait" >> "$transfere_file"
 		elif [[ $transferetype == "upftp" ]]; then
 			# Handle lftp transfer for upftp
 			cat "$ftplogin_file1" >> "$transfere_file"
-			echo "mkdir -p \"${ftpcomplete}\"" >> "$transfere_file"
-			[[ -n "${ftpincomplete}" ]] && echo "mkdir -p \"${ftpincomplete}\"" >> "$transfere_file"
+			echo "mkdir -p \"${complete}\"" >> "$transfere_file"
+			[[ -n "${incomplete}" ]] && echo "mkdir -p \"${incomplete}\"" >> "$transfere_file"
 			echo "set cmd:fail-exit true" >> "$transfere_file"
 
 			# Determine transfer type (file or directory)
 			if [[ -f "$transfer_path" ]]; then
-				[[ -n "$ftpincomplete" ]] && echo "queue put -c -O \"$ftpincomplete\" \"${transfer_path}\"" >> "$transfere_file"
-				[[ -z "$ftpincomplete" ]] && echo "queue put -c -O \"$ftpcomplete\" \"${transfer_path}\"" >> "$transfere_file"
+				[[ -n "$incomplete" ]] && echo "queue put -c -O \"$incomplete\" \"${transfer_path}\"" >> "$transfere_file"
+				[[ -z "$incomplete" ]] && echo "queue put -c -O \"$complete\" \"${transfer_path}\"" >> "$transfere_file"
 			elif [[ -d "$transfer_path" ]]; then
-				[[ -n "$ftpincomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${ftpincomplete}\"" >> "$transfere_file"
-				[[ -z "$ftpincomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${ftpcomplete}\"" >> "$transfere_file"
+				[[ -n "$incomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${incomplete}\"" >> "$transfere_file"
+				[[ -z "$incomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${complete}\"" >> "$transfere_file"
 			fi
 
 			echo "wait" >> "$transfere_file"
 
-			# Move files remotely if ftpincomplete directory is used
-			[[ -n "$ftpincomplete" ]] && echo "queue mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$transfere_file"
+			# Move files remotely if incomplete directory is used
+			[[ -n "$incomplete" ]] && echo "queue mv \"${incomplete}${orig_name}\" \"${complete}\"" >> "$transfere_file"
 			echo "wait" >> "$transfere_file"
 		elif [[ $transferetype == "fxp" ]]; then
 			# Handle lftp transfer for fxp
 			server_login 2
 			cat "$ftplogin_file2" >> "$transfere_file"
-			echo "mkdir -p \"$ftpcomplete\"" >> "$transfere_file"
-			[[ -n $ftpincomplete ]] && echo "mkdir -p \"$ftpincomplete\"" >> "$transfere_file"
+			echo "mkdir -p \"$complete\"" >> "$transfere_file"
+			[[ -n $incomplete ]] && echo "mkdir -p \"$incomplete\"" >> "$transfere_file"
 			echo "set cmd:fail-exit true" >> "$transfere_file"
 
 			# Determine transfer type (file or directory)
 			if [[ $transfer_type = file ]]; then
-				[[ -n "$ftpincomplete" ]] && echo "queue get -c ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"$transfer_path\" -o ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"$ftpincomplete\"" >> "$transfere_file"
-				[[ -z "$ftpincomplete" ]] && echo "queue get -c ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"$transfer_path\" -o ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"$ftpcomplete\"" >> "$transfere_file"
+				[[ -n "$incomplete" ]] && echo "queue get -c ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"$transfer_path\" -o ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"$incomplete\"" >> "$transfere_file"
+				[[ -z "$incomplete" ]] && echo "queue get -c ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"$transfer_path\" -o ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"$complete\"" >> "$transfere_file"
 			elif [[ $transfer_type = directory ]]; then
-				[[ -n "$ftpincomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"${transfer_path}\" ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"${ftpincomplete}\"" >> "$transfere_file"
-				[[ -z "$ftpincomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"${transfer_path}\" ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"${ftpcomplete}\"" >> "$transfere_file"
+				[[ -n "$incomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"${transfer_path}\" ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"${incomplete}\"" >> "$transfere_file"
+				[[ -z "$incomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"${transfer_path}\" ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"${complete}\"" >> "$transfere_file"
 			fi
 
 			echo "wait" >> "$transfere_file"
 
-			 # Move files remotely if ftpincomplete directory is used
-			[[ -n "$ftpincomplete" ]] && echo "queue mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$transfere_file"
+			 # Move files remotely if incomplete directory is used
+			[[ -n "$incomplete" ]] && echo "queue mv \"${incomplete}${orig_name}\" \"${complete}\"" >> "$transfere_file"
 			echo "wait" >> "$transfere_file"
 		elif [[ $transferetype == "upsftp" ]]; then
 			# handle sftp transfer
 			cat "$sftplogin_file" >> "$transfere_file"
 
 			# Create final directories if they don't exist
-			echo "!mkdir -p \"${ftpcomplete}\"" >> "$transfere_file"
+			echo "!mkdir -p \"${complete}\"" >> "$transfere_file"
 
-			[[ -n "${ftpincomplete}" ]] && echo "mkdir -p \"${ftpincomplete}\"" >> "$transfere_file"
+			[[ -n "${incomplete}" ]] && echo "mkdir -p \"${incomplete}\"" >> "$transfere_file"
 
 			# Determine transfer type (file or directory)
 			if [[ -f "$transfer_path" ]]; then
-				[[ -n "$ftpincomplete" ]] && echo "queue put -c -O \"$ftpincomplete\" \"${transfer_path}\"" >> "$transfere_file"
-				[[ -z "$ftpincomplete" ]] && echo "queue put -c -O \"$ftpcomplete\" \"${transfer_path}\"" >> "$transfere_file"
+				[[ -n "$incomplete" ]] && echo "queue put -c -O \"$incomplete\" \"${transfer_path}\"" >> "$transfere_file"
+				[[ -z "$incomplete" ]] && echo "queue put -c -O \"$complete\" \"${transfer_path}\"" >> "$transfere_file"
 			elif [[ -d "$transfer_path" ]]; then
-				[[ -n "$ftpincomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${ftpincomplete}\"" >> "$transfere_file"
-				[[ -z "$ftpincomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${ftpcomplete}\"" >> "$transfere_file"
+				[[ -n "$incomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${incomplete}\"" >> "$transfere_file"
+				[[ -z "$incomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${complete}\"" >> "$transfere_file"
 			fi
 
 			echo "wait" >> "$transfere_file"
 
-			# Move files remotely if ftpincomplete directory is used
-			[[ -n "$ftpincomplete" ]] && echo "queue mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$transfere_file"
+			# Move files remotely if incomplete directory is used
+			[[ -n "$incomplete" ]] && echo "queue mv \"${incomplete}${orig_name}\" \"${complete}\"" >> "$transfere_file"
 			echo "wait" >> "$transfere_file"
 		else
 			echo -e "\e[00;31mERROR: Transfer setting not recognized\e[00m\n"
@@ -331,7 +331,7 @@ function transfer {
 					# Stop the transfer process, pause session, and retry after a delay
 					transfer_process "stop-process-bar"
 					echo "INFO: Pausing session and trying again in 60 seconds"
-					sed "3s#.*#***************************	FTP INFO: DOWNLOAD POSTPONED! Trying again in ${retry_download} minutes#" -i "$logfile"
+					sed "3s#.*#***************************	SERVER INFO: DOWNLOAD POSTPONED! Trying again in ${retry_download} minutes#" -i "$logfile"
 					sleep 60
 					transfer_process start
 				fi
@@ -355,21 +355,21 @@ function transfer_process_bar {
         sleep 5 # Wait for transfer to start
         
         if [[ $transferetype == "downftp" ]]; then
-            # Get the transferred size for download FTP
-            transfered_size="du -s \"$ftpincomplete$changed_name\" > \"$proccess_bar_file\""
+            # Get the transferred size for download
+            transfered_size="du -s \"$incomplete$changed_name\" > \"$proccess_bar_file\""
             if [[ $transfer_type = file ]]; then
-                echo "du -s \"$ftpincomplete${orig_name}\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
+                echo "du -s \"$incomplete${orig_name}\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
             elif [[ $transfer_type = directory ]]; then
-                echo "du -s \"$ftpincomplete$orig_name\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
+                echo "du -s \"$incomplete$orig_name\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
             fi
         elif [[ $transferetype == "upftp" || $transferetype == "fxp" ]]; then
             # Create a config file for lftp process bar
             cat "$ftplogin_file1" >> "$transfere_processbar"
             # Determine whether it's a file or directory
             if [[ -f "$filepath" ]]; then
-                echo "du -s \"$ftpincomplete${orig_name}\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
+                echo "du -s \"$incomplete${orig_name}\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
             elif [[ -d "$filepath" ]]; then
-                echo "du -s \"$ftpincomplete$orig_name\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
+                echo "du -s \"$incomplete$orig_name\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
             fi
             echo "quit" >> "$transfere_processbar"
         fi
@@ -604,22 +604,22 @@ function main {
 
 	#confirm server is online
 	if [[ $confirm_online == "true" ]]; then
-		loadDependency DFtpOnlineTest && online_test
+		loadDependency DServerAliveTest && online_test
 	fi
 
-	#Check if enough free space on ftp
-	if [[ "$ftpsizemanagement" == "true" ]]; then
+	#Check if enough free space on remote server
+	if [[ "$serversizemanagement" == "true" ]]; then
 		if [[ $transferetype == "upftp" ]]; then
-			loadDependency DFtpSizeManagement && ftp_sizemanagement check
+			loadDependency DServerSizeManagement && server_sizemanagement check
 		elif [[ $transferetype == "downftp" ]]; then
-			freesize=$(( $(df -P "$ftpincomplete" | tail -1 | awk '{ print $3}') / (1024*1024) ))
+			freesize=$(( $(df -P "$incomplete" | tail -1 | awk '{ print $3}') / (1024*1024) ))
 			freespaceneeded="$size"
 			while [[ "$freesize" -lt "$freespaceneeded" ]]; do
 				echo "INFO: Not enough free space"
 				echo "INFO: Trying again in 1 min"
 				sleep 60
 				# recalculate free space
-				freesize=$(( $(df -P "$ftpincomplete" | tail -1 | awk '{ print $3}') / (1024*1024) ))
+				freesize=$(( $(df -P "$incomplete" | tail -1 | awk '{ print $3}') / (1024*1024) ))
 			done
 		fi
 	fi
@@ -630,7 +630,7 @@ function main {
 		# Check if rar or cksfv is available
 		if [[ -n $(command -v rar) || -n $(command -v cksfv) ]]; then
 			# Check transfer type
-			if [[ "$transferetype" == "upftp" ]]; then
+			if [[ "$transferetype" == "upftp" || "$transferetype" == "upsftp" ]]; then
 				loadDependency DLargeFile && largefile "$filepath" "exclude_array[@]"
 			elif [[ "$transferetype" == "downftp" ]]; then
 				echo -e "\e[00;33mERROR: send_option=split is not supported in mode=$transferetype. Exiting ...\e[00m"
@@ -650,7 +650,7 @@ function main {
 		# Check if rar2fs is available
 		if [[ -n $(command -v rar2fs) ]]; then
 			# Check transfer type
-			if [[ "$transferetype" == "upftp" ]]; then
+			if [[ "$transferetype" == "upftp" || "$transferetype" == "upsftp" ]]; then
 				loadDependency DVideoFile && videoFile
 			elif [[ "$transferetype" == "downftp" ]]; then
 				echo -e "\e[00;33mERROR: send_option=video is not supported in mode=$transferetype. Exiting ...\e[00m"
@@ -680,8 +680,8 @@ function main {
 	transfer
 
 	# Checking for remaining space
-	if [[ "$ftpsizemanagement" == "true" ]] && [[ $failed != true ]]; then
-		ftp_sizemanagement info # already loaded previously
+	if [[ "$serversizemanagement" == "true" ]] && [[ $failed != true ]]; then
+		server_sizemanagement info # already loaded previously
 	fi
 
 	# Update logfile
@@ -696,19 +696,19 @@ function main {
 	if [[ -n $push_user ]]; then
 		if [[ $test_mode ]]; then
 			# Display notification details in test mode
-			echo -e "\e[00;31mTESTMODE: Would send notification \""$orig_name" "Sendoption=$send_option Size=$size MB Time=$transferTime2 Average speed=$SpeedAverage MB/s Path=$ftpcomplete"\" to token=$push_token and user=$push_user \e[00m"
+			echo -e "\e[00;31mTESTMODE: Would send notification \""$orig_name" "Sendoption=$send_option Size=$size MB Time=$transferTime2 Average speed=$SpeedAverage MB/s Path=$complete"\" to token=$push_token and user=$push_user \e[00m"
 		elif [[ $failed == true ]]; then
 			# Send notification if transfer failed
 			loadDependency DPushOver && Pushover "Failed: $orig_name" "Sendoption:        $send_option
 	Size:                     $size MB
-	Path:                    $ftpcomplete"
+	Path:                    $complete"
 		else
 			# Send notification if transfer succeeded
 			loadDependency DPushOver && Pushover "$orig_name" "Sendoption:        $send_option
 	Size:                     $size MB
 	Time:                   $transferTime2
 	Average speed: $SpeedAverage MB/s
-	Path:                    $ftpcomplete"
+	Path:                    $complete"
 		fi
 	fi
 

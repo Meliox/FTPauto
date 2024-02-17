@@ -433,7 +433,7 @@ function main {
             message "Progress finished" "0"
             ;;
         "dir" ) # List content of server and download it
-            loadDependency DServerList && ftp_list
+            loadDependency DServerList && remote_server_list
             message "Closing filebrowser" "0"
             ;;
         * )
