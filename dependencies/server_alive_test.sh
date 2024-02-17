@@ -50,7 +50,7 @@ function writeable_test {
     echo -n "INFO: Checking if set path is writeable..."
     echo "Testing server settings for download" > "$server_check_testfile"
     cat "$login_file1" >> "$server_check_file"
-    echo "put -O \"$ftpincomplete\" \"$server_check_file\"" >> "$server_check_file"
+    echo "put -O \"$incomplete\" \"$server_check_file\"" >> "$server_check_file"
     echo "rm \"$incomplete$(basename $server_check_file)\"" >> "$server_check_file"
     echo "quit" >> "$server_check_file"
     $lftp -f "$server_check_file" &> /dev/null
