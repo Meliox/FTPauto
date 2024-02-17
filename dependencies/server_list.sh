@@ -67,7 +67,7 @@ function remote_server_list {
 function get_content {
     # Remove old files first
     rm -f "$ftplist_file"
-    loadDependency DServerLogin && server_login 1  # Generate a new login file as download removes it
+    loadDependency DServerLogin && load_login 1  # Generate a new login file as download removes it
     cat "$ftplogin_file1" >> "$ftplist_file"
     echo "ls -aFl \"${dir}\" > ~/../..$ftp_content" >> "$ftplist_file"
     echo "quit" >> "$ftplist_file"

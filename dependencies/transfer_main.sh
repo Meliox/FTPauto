@@ -595,12 +595,7 @@ function main {
 		echo "INFO: Executing external command - ENDED"
 	fi
 
-	# Prepare login based on transfer type
-	if [[ "$transferetype" == "upftp" || "$transferetype" == "downftp" || "$transferetype" == "fxp" ]]; then
-		loadDependency DServerLogin && ftp_login 1
-	elif [[ "$transferetype" == "upsftp" ]]; then
-		loadDependency DServerLogin && sftp_login 1
-	fi
+	loadDependency DServerLogin && load_login 1
 
 	#confirm server is online
 	if [[ $confirm_online == "true" ]]; then

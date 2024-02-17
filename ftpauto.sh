@@ -375,7 +375,7 @@ function main {
             fi
             ;;
         "online" ) # Perform server test
-            loadDependency DServerLogin && server_login 1
+            loadDependency DServerLogin && load_login 1
             loadDependency DServerAliveTest && server_alive_test
             cleanup session
             if [[ $is_online -eq 0 ]]; then
@@ -385,8 +385,8 @@ function main {
             fi
             ;;
         "freespace" ) # Check free space
-            loadDependency DServerLogin && server_login 1
-            loadDependency DServerSizeManagement && ftp_sizemanagement info
+            loadDependency DServerLogin && load_login 1
+            loadDependency DServerSizeManagement && server_sizemanagement info
             cleanup session
             if [[ $is_online -eq 1 ]]; then
                 message "$option: Could " "1"

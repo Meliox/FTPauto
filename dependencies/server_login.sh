@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Prepare login based on transfer type
+function load_login {
+if [[ "$transferetype" == "upftp" || "$transferetype" == "downftp" || "$transferetype" == "fxp" ]]; then
+    ftp_login $1
+elif [[ "$transferetype" == "upsftp" ]]; then
+    sftp_login
+fi
+}
+
 # Function to generate FTP login details based on input (1 or 2)
 function ftp_login {
     local number OIFS IFS ftpcustom ftpssl ftpuser ftppass ftphost ftppass ftploginfile

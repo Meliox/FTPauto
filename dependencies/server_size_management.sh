@@ -1,5 +1,6 @@
 #!/bin/bash
-function sizemanagement { #checking if freespace is sufficient before filetransfer, show space used
+#checking if freespace is sufficient before filetransfer, show space used
+function server_sizemanagement { 
 	if [[ $test_mode != "true" ]]; then
 		local mode=$1
 		cat "$ftplogin_file1" >> "$server_freespace_file"

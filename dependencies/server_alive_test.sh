@@ -51,7 +51,7 @@ function writeable_test {
     echo "Testing server settings for download" > "$server_check_testfile"
     cat "$ftplogin_file1" >> "$server_check_file"
     echo "put -O \"$ftpincomplete\" \"$server_check_file\"" >> "$server_check_file"
-    echo "rm \"$ftpincomplete$(basename $server_check_file)\"" >> "$server_check_file"
+    echo "rm \"$incomplete$(basename $server_check_file)\"" >> "$server_check_file"
     echo "quit" >> "$server_check_file"
     $lftp -f "$server_check_file" &> /dev/null
 }
