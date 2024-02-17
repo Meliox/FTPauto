@@ -11,7 +11,7 @@ function load_login {
 
 # Function to generate FTP login details based on input (1 or 2)
 function ftp_login {
-    local number OIFS IFS ftpcustom ftpssl ftpuser ftppass ftphost ftppass loginfile
+    local number OIFS IFS custom ssl user pass host pass loginfile
     number="$1"
 
     # Set variables based on input
@@ -64,9 +64,9 @@ function ftp_login {
 
 # Function to generate SFTP login details
 function sftp_login {
-    local number OIFS IFS ftpcustom ftpssl ftpuser ftppass ftphost ftppass loginfile
+    local number OIFS IFS custom ssl user pass host pass loginfile
     number="$1"
-        
+
     # Set variables based on input
     custom="sftpcustom${number}"
     ssl="sftpssl${number}"
