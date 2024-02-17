@@ -376,7 +376,7 @@ function main {
             ;;
         "online" ) # Perform server test
             loadDependency DServerLogin && load_login 1
-            loadDependency DServerAliveTest && server_alive_test
+            loadDependency DServerAliveTest && online_test
             cleanup session
             if [[ $is_online -eq 0 ]]; then
                 message "Server is OK" "0"
