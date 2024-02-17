@@ -36,16 +36,16 @@ function ftp_login {
     fi
 
     # Write SSL settings to file
-    if [[ "${!ftpssl}" == true ]]; then
+    if [[ "${!ssl}" == true ]]; then
         echo "set ftp:ssl-force true" >> "${!login_file}"
         echo "set ssl:verify-certificate false" >> "${!login_file}"
     fi
 
     # Write custom configurations to file
-    if [[ -n "${!ftpcustom}" ]]; then
+    if [[ -n "${!custom}" ]]; then
         OIFS="$IFS"
         IFS=';'
-        for i in "${!ftpcustom[@]}"; do
+        for i in "${!custom[@]}"; do
             echo "$i" >> "${!login_file}"
         done
         IFS="$OIFS"
@@ -86,8 +86,8 @@ function sftp_login {
     echo "sftp:auto-confirm true" >> "${!login_file}"
 
     # Write custom configurations to file
-    if [[ -n "${!sftpcustom}" ]]; then
-        for option in "${!sftpcustom[@]}"; do
+    if [[ -n "${!custom}" ]]; then
+        for option in "${!custom[@]}"; do
             echo "$option" >> "${!login_file}"
         done
     fi
