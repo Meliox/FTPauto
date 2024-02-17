@@ -228,7 +228,7 @@ function main {
             message "User=$username edited." "0"
             ;;
         "remove" ) # Remove all userfiles generated files. Does not remove config
-            rm -rf "$scriptdir/run/$username"
+            rm -rf "$scriptdir/users/$username"
             message "Userfiles removed for $username." "0"
             ;;
         "purge" ) # Remove all userfiles log files and config from /run and /user/$username/
