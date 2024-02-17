@@ -202,18 +202,22 @@ function show_example {
 
 
 function create_log_file {
-	if [[ ! -e "$logfile" ]]; then
-		echo "INFO: First time usage. Logfile is created"
-		echo "***************************	FTPauto - $s_version" >> "$logfile"
-		echo "***************************	STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> "$logfile"
-		echo "***************************	SERVER INFO: ${serversizemanagement:true ? '0/${totalmb}MB (Free ${freemb}MB)' : '(not used yet)'}" >> "$logfile"
-		echo "***************************	LASTDL: nothing" >> "$logfile"
-		echo "***************************	" >> "$logfile"
-		echo "**********************************************************************************************************************************" >> "$logfile"
-		echo "" >> "$logfile"
-	else
-		echo "INFO: Logfile: $logfile"
-		# clean log file
-		echo "***************************	SERVER INFO:" >> "$logfile"
-	fi
+    # Check if the logfile exists, if not, create it
+    if [[ ! -e "$logfile" ]]; then
+        # First time usage, create the logfile
+        echo "INFO: First time usage. Logfile is created"
+        echo "*************************** FTPauto - $s_version" >> "$logfile"
+        echo "*************************** STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> "$logfile"
+        # Display server info based on configuration
+        echo "*************************** SERVER INFO: ${serversizemanagement:true ? '0/${totalmb}MB (Free ${freemb}MB)' : '(not used yet)'}" >> "$logfile"
+        echo "*************************** LAST TRANSFER: nothing" >> "$logfile"
+        echo "***************************" >> "$logfile"
+        echo "**********************************************************************************************************************************" >> "$logfile"
+        echo "" >> "$logfile"
+    else
+        # Logfile exists, indicate its location
+        echo "INFO: Logfile: $logfile"
+        # Clean the existing logfile
+        echo "*************************** SERVER INFO:" >> "$logfile"
+    fi
 }

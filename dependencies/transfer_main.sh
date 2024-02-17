@@ -485,7 +485,7 @@ function logrotate {
 		sed "1s#.*#*****  FTPauto ${s_version}#" -i "$logfile"
 		sed "2s#.*#*****  STATS: ${totaldl}MB in ${totalrls} transfers in ${totaldltime}#" -i "$logfile"
 		sed "3s#.*#*****  FTP INFO: N/A#" -i "$logfile"
-		sed "4s#.*#*****  LASTDL: $(date)|${orig_name}|${SpeedAverage}MB/s#" -i "$logfile"
+		sed "4s#.*#*****  LAST TRANSFER: $(date)|${orig_name}|${SpeedAverage}MB/s#" -i "$logfile"
 		sed "5s#.*#*****  #" -i "$logfile"
 	else
 		# If test mode, just print message
