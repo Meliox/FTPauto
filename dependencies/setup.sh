@@ -16,21 +16,21 @@ function setup {
 	ftplogin_file1="$scriptdir/run/$username.ftplogin1"
 	ftplogin_file2="$scriptdir/run/$username.ftplogin2"
 	sftplogin_file="$scriptdir/run/$username.sftplogin"
-	ftpfreespace_file="$scriptdir/run/$username.ftpfreespace"
-	ftpalive_file="$scriptdir/run/$username.ftpalive"
-	ftpcheck_testfile="$scriptdir/run/$username.testfile"
-	ftpcheck_file="$scriptdir/run/$username.ftpcheck"
+	server_freespace_file="$scriptdir/run/$username.serverfreespace"
+	server_alive_file="$scriptdir/run/$username.serveralive"
+	server_check_testfile="$scriptdir/run/$username.servertestfile"
+	server_check_file="$scriptdir/run/$username.servercheck"
 	proccess_bar_file="$scriptdir/run/$username.transfered.info"
-	ftp_size_file="$scriptdir/run/$username.ftpsize.info"
+	server_size_file="$scriptdir/run/$username.serversize.info"
 	log_control="$scriptdir/run/$username.controllog"
-	ftpmaindebugfile="$scriptdir/run/$username.ftpmain.debug"
+	servermaindebugfile="$scriptdir/run/$username.servermain.debug"
 	lftpdebug="$scriptdir/run/$username.lftpdebug"
-	lftptransfersize="$scriptdir/run/$username.ftptransfersize"
+	lftptransfersize="$scriptdir/run/$username.transfersize"
 	transfersize="$scriptdir/run/$username.transfersize"
 	transfersize2="$scriptdir/run/$username.transfersize2"
 	lftptransfersize2="$scriptdir/run/$username.lftptransfersize2"
-	ftplist_file="$scriptdir/run/$username.lftplist"
-	ftp_content="$scriptdir/run/$username.ftpcontent"
+	server_list_file="$scriptdir/run/$username.lftplist"
+	server_content="$scriptdir/run/$username.servercontent"
 }
 
 # Function to get the size of a file or directory
@@ -111,7 +111,7 @@ function get_size {
 		fi
 
 		cleanup session
-	elif [[ "$transferetype" == upftp ]]; then
+	elif [[ "$transferetype" == upftp || "$transferetype" == upsftp ]]; then
 		# Look up directory or file size locally
 		directorysize=$(du -bsL "$dir" | awk '{print $1}')
 		size=$(echo "scale=2; $directorysize / (1024 * 1024)" | bc)

@@ -64,6 +64,11 @@ mkdir FTPauto && cd FTPauto
 wget https://raw.github.com/Meliox/FTPauto/master/install.sh
 bash install.sh install
 ```
+and update
+```bash
+bash install.sh update
+```
+
 
 Follow the instructions to set up a user and then you're ready to use FTPauto! If you skipped user setup or need help go to [configuration](https://github.com/Meliox/FTPauto#configuration) to set up a user.
 
@@ -77,21 +82,11 @@ Run
 bash install.sh install
 ```
 
-### Manual install
-If you prefer to do everything manually, read the install.sh script.
-
-### Upgrading
-If you want to upgrade to newest version, simply run
-```bash
-bash install.sh update
-```
-
-The same almost goes for git
+and update
 ```bash
 git pull
 bash install.sh update
 ```
-NOTE: Running lastest version, doesn't mean it's 100% stable. 
 
 # Configuration
 First thing that need to be done is to create a user and edit the users settings. The setting that is to be edited is shown in [settings](https://github.com/Meliox/FTPauto#settings).
