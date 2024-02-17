@@ -66,7 +66,7 @@ function sftp_login {
     echo "ConnectTimeout 10" >> "${sftplogin_file}"
     echo "ServerAliveInterval 30" >> "${sftplogin_file}"
 
-    echo "sftp:connect-program ssh -a -x -oStrictHostKeyChecking=no" >> "${sftplogin_file}"
+    echo "sftp:auto-confirm true" >> "${sftplogin_file}"
 
     # Write custom configurations to file
     if [[ -n "${sftpcustom}" ]]; then
@@ -74,27 +74,14 @@ function sftp_login {
             echo "$option" >> "${sftplogin_file}"
         done
     fi
-
-    # Check if the custom SSH port is provided
-    if [[ -n "${sftpport}" ]]; then
-        echo "Port ${sftpport}" >> "${sftplogin_file}"
-    fi
-
     
     # Check if username and password are provided
-    if [[ -n "${sftpuser}" ]] && [[ -n "${sftppass}" ]]; then
-        echo "User ${sftpuser}" >> "${sftplogin_file}"
-        echo "Password ${sftppass}" >> "${sftplogin_file}"
+    if [[ "$transferetype" =~ "upsftp" ]]; then
+        echo "open -u ${sftpuser},${sftppass} sftp://${sftphost} -p ${sftpport}" >> "${!ftploginfile}"
     else
-        echo "ERROR: Username or password not provided. Check your configuration." >&2
-        exit 1
-    fi
-
-    # Specify the host to connect to
-    if [[ -n "${sftphost}" ]]; then
-        echo "HostName ${sftphost}" >> "${sftplogin_file}"
-    else
-        echo "ERROR: Host not provided. Check your configuration." >&2
+        echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Check your config (--user=$user --edit)!\e[00m\n"
+        cleanup session
+        cleanup end
         exit 1
     fi
 }
