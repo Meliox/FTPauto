@@ -82,7 +82,7 @@ function sftp_login {
 
     
     # Check if username and password are provided
-    if [[ -n "${sftpuser}" ]] && [[ -n "${!sftppass}" ]]; then
+    if [[ -n "${sftpuser}" ]] && [[ -n "${sftppass}" ]]; then
         echo "User ${sftpuser}" >> "${sftplogin_file}"
         echo "Password ${sftppass}" >> "${sftplogin_file}"
     else
