@@ -196,6 +196,8 @@ function transfer {
 
 	# Prepare new transfer
 	{
+		loadDependency DServerLogin && load_login 1
+
 		# Write regexp to config for directory transfers
 		if [[ "${#exclude_array[@]}" -gt 0 && -n "${exclude_array[@]}" && ($transfer_type = "directory" || -d "$transfer_path") ]]; then
 			for ((i=0; i<${#exclude_array[@]}; i++)); do
@@ -238,7 +240,7 @@ function transfer {
 				echo "mkdir -p \"${incomplete}\"" >> "$transfere_file"
 			fi
 			# fail if transfers fails
-			echo "set cmd:fail-exit true" >> "$transfere_file"
+			echo "set cmd:fail-exit true" >> "$cleantransfere_file"
 
 			# Determine transfer type (file or directory)
 			if [[ -f "$transfer_path" ]]; then
@@ -325,6 +327,7 @@ function transfer {
 			cat "$transfere_file" | (while read; do echo "      $REPLY"; done)
 		fi
 	}
+	cleanup session
 }
 
 # Function to show the progress of the transfer
@@ -571,9 +574,7 @@ function main {
 			echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_pre\"\e[00m"
 		fi
 		echo "INFO: Executing external command - ENDED"
-	fi
-
-	loadDependency DServerLogin && load_login 1
+	fi	
 
 	#confirm server is online
 	if [[ $confirm_online == "true" ]]; then
@@ -653,8 +654,10 @@ function main {
 	transfer
 
 	# Checking for remaining space
-	if [[ "$serversizemanagement" == "true" ]] && [[ $failed != true ]]; then
-		server_sizemanagement info # already loaded previously
+	if [[ "$serversizemanagement" == "true" && $failed != true ]]; then
+		if [[ $transferetype == "upftp" ]]; then
+			loadDependency DServerSizeManagement && server_sizemanagement info
+		fi
 	fi
 
 	# Update logfile

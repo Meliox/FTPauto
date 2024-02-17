@@ -2,6 +2,7 @@
 
 # Function to confirm that the server is alive and writable
 function online_test {
+    loadDependency DServerLogin && load_login 1
     online
     if [[ $? -eq 0 ]]; then
         writeable # Check if server is writable
@@ -40,6 +41,7 @@ function online_test {
             is_online="1"
         fi
     fi
+    cleanup session
 }
 
 # Function to check if the server is writable

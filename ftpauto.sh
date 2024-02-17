@@ -375,9 +375,7 @@ function main {
             fi
             ;;
         "online" ) # Perform server test
-            loadDependency DServerLogin && load_login 1
             loadDependency DServerAliveTest && online_test
-            cleanup session
             if [[ $is_online -eq 0 ]]; then
                 message "Server is OK" "0"
             else
@@ -385,9 +383,7 @@ function main {
             fi
             ;;
         "freespace" ) # Check free space
-            loadDependency DServerLogin && load_login 1
             loadDependency DServerSizeManagement && server_sizemanagement info
-            cleanup session
             if [[ $is_online -eq 1 ]]; then
                 message "$option: Could " "1"
             else

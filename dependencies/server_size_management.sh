@@ -1,6 +1,7 @@
 #!/bin/bash
 #checking if freespace is sufficient before filetransfer, show space used
-function server_sizemanagement { 
+function server_sizemanagement {
+	loadDependency DServerLogin && load_login 1
 	if [[ $test_mode != "true" ]]; then
 		local mode=$1
 		cat "$login_file1" >> "$server_freespace_file"
@@ -9,7 +10,7 @@ function server_sizemanagement {
 		echo "du -s $complete >> ~/../..$server_size_file" >> "$server_freespace_file"
 		echo "quit" >> "$server_freespace_file"
 		echo "INFO: Looking up used space, this may take a while......"
-		$lftp -f "$server_freespace_file" &> /dev/null		
+		$lftp -f "$server_freespace_file" &> /dev/null
 		if [[ $? -eq 0 ]]; then
 			# server online, continue to find size
 			server_getsize $mode
@@ -29,12 +30,12 @@ function server_sizemanagement {
 						# server online, continue to find size
 						server_getsize $mode
 						is_online="0"
-						break					
+						break
 					fi
 				done
 			elif [[ $mode == "check" ]]; then
 				quittime=$(( $scriptstart + $retry_download_max*60*60 )) #hours
-				echo "INFO: Keep trying until $(date --date=@$quittime)"			
+				echo "INFO: Keep trying until $(date --date=@$quittime)"
 				while [[ $(date +%s) -lt $quittime ]]; do
 					echo -e "\e[00;31mERROR: Looking up free space failed for some reason!\e[00m"
 					echo -e "\e[00;31mTransfer terminated: $(date '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
@@ -48,9 +49,9 @@ function server_sizemanagement {
 						# server online, continue to find size
 						server_getsize $mode
 						is_online="0"
-						break					
+						break
 					fi
-				done			
+				done
 			fi
 		fi
 		if [[ $is_online -ne 0 ]]; then
@@ -62,6 +63,7 @@ function server_sizemanagement {
 		echo -e "\e[00;31mTESTMODE: LFTP-sizemanagement NOT STARTED\e[00m"
 		echo "Would look up free space at server host rootdir"
 	fi
+	cleanup session
 }
 
 function server_getsize {
