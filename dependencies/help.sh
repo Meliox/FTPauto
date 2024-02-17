@@ -113,7 +113,7 @@ function show_example {
 	echo
 	echo "#### FTP server Setup ####"
 	echo "# If you just want the server to send <ITEM> to your ftp, edit the options below"
-	echo "transferetype=\"(upftp|downftp|fxp)\" # Determine how to transfer file: Either send or receive from ftp or fxp them to another server"	
+	echo "transferetype=\"(upftp|downftp|fxp|upsftp)\" # Determine how to transfer file: Either send or receive from ftp or fxp them to another server"	
 	echo
 	echo "# These directories are where you want to download/send the item. REMEMBER TRAILING SLASH"
 	echo "ftpincomplete=\"~/somedirectory/incomplete/\" # incomplete directory. Leave empty if no incomplete directory should be used"

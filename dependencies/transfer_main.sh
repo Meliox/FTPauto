@@ -296,7 +296,7 @@ function transfer {
 				echo "quit" >> "$ftptransfere_file"
 			}
 		else
-			echo -e "\e[00;31mERROR: FTP setting not recognized\e[00m\n"
+			echo -e "\e[00;31mERROR: Transfer setting not recognized\e[00m\n"
 			cleanup die
 		fi
 
@@ -310,12 +310,12 @@ function transfer {
 			while [[ $pid_transfer_status -ne 0 ]]; do
 				quittime=$(( ScriptStartTime + retry_download_max*60 ))
 				if [[ $(date +%s) -gt $quittime ]]; then
-					echo -e "\e[00;31mERROR: FTP transfer failed after max ($retry_download_max minutes)!\e[00m"
+					echo -e "\e[00;31mERROR: Transfer failed after max ($retry_download_max minutes)!\e[00m"
 					transfer_process "stop-process-bar"
 					queue add failed
 					break
 				else
-					echo -e "\e[00;31mERROR: FTP transfer failed for some reason!\e[00m"
+					echo -e "\e[00;31mERROR: Transfer failed for some reason!\e[00m"
 					echo "INFO: Retrying until $(date --date=@$quittime '+%d/%m/%y-%a-%H:%M:%S')"
 					transfer_process "stop-process-bar"
 					echo "INFO: Pausing session and trying again in 60s"
@@ -593,7 +593,7 @@ function main {
 	# Prepare login based on transfer type
 	if [[ "$transferetype" == "upftp" || "$transferetype" == "downftp" || "$transferetype" == "fxp" ]]; then
 		loadDependency DServerLogin && ftp_login 1
-	elif [[ "$transferetype" == "sftp" ]]; then
+	elif [[ "$transferetype" == "upsftp" ]]; then
 		loadDependency DServerLogin && sftp_login 1
 	fi
 
