@@ -64,6 +64,9 @@ function ftp_login {
 
 # Function to generate SFTP login details
 function sftp_login {
+    local number OIFS IFS ftpcustom ftpssl ftpuser ftppass ftphost ftppass loginfile
+    number="$1"
+        
     # Set variables based on input
     custom="sftpcustom${number}"
     ssl="sftpssl${number}"
