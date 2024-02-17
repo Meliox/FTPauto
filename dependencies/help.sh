@@ -210,7 +210,7 @@ function create_log_file {
         echo "*************************** FTPauto - $s_version" >> "$logfile"
         echo "*************************** STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> "$logfile"
         # Display server info based on configuration
-        echo "*************************** SERVER INFO: ${serversizemanagement:true ? '0/${totalmb}MB (Free ${freemb}MB)' : '(not used yet)'}" >> "$logfile"
+        echo "*************************** SERVER INFO: (not used yet)" >> "$logfile"
         echo "*************************** LAST TRANSFER: nothing" >> "$logfile"
         echo "***************************" >> "$logfile"
         echo "**********************************************************************************************************************************" >> "$logfile"
