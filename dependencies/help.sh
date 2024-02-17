@@ -130,7 +130,6 @@ function show_example {
 	echo "sftppass=\"pass\" # SFTP password"
 	echo "sftphost=\"ip\" # SFTP host address"
 	echo "sftpport=\"port\" # SFTP port"
-	echo "sftpssl=\"false\" # Set to true to use SSL/TLS for SFTP, otherwise set it to false"
 	echo "sftpcustom=\"\" # Enter additional settings separated by ';'"
 	echo
 	echo "#### Log settings ###"
