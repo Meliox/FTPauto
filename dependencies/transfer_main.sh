@@ -343,7 +343,7 @@ function transfer_process_bar {
             elif [[ $transfer_type = directory ]]; then
                 echo "du -s \"$incomplete$orig_name\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
             fi
-        elif [[ $transferetype == "upftp" || $transferetype == "fxp" ]]; then
+        elif [[ $transferetype == "upftp" || $transferetype == "fxp" || $transferetype == "upsftp" ]]; then
             # Create a config file for lftp process bar
             cat "$login_file1" >> "$transfere_processbar"
             # Determine whether it's a file or directory
@@ -353,6 +353,8 @@ function transfer_process_bar {
                 echo "du -s \"$incomplete$orig_name\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
             fi
             echo "quit" >> "$transfere_processbar"
+		else
+			echo "Progressbar not supported"
         fi
         
         # Run the process bar loop
