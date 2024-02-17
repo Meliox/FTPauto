@@ -54,7 +54,7 @@ function queue {
 		"add" )
 			if [[ $queue_running == true ]]; then
 				# Task has been started from queue, no need to add it.
-				true
+				:
 			else
 				# Figure out ID.
 				id_old=$id
@@ -66,7 +66,7 @@ function queue {
 					id="1"
 				fi
 				get_size "$filepath" &> /dev/null
-				if [[ -e "$queue_file" && -n $(cat "$queue_file" | grep "$filepath") && -z $option ]]; then
+				if [[ -e "$queue_file" && -n $(cat "$queue_file" | grep "$filepath") ]]; then
 					# Passing an item which is already in the queue, do nothing.
 					echo -e "INFO: Item already in queue. Doing nothing...\n"
 					exit 0
