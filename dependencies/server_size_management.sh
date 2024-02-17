@@ -22,7 +22,7 @@ function server_sizemanagement {
 					echo -e "\e[00;31mTransfer terminated: $(date '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 					waittime=$(($retry_download*60))
 					echo "INFO: Pausing session and trying again $retry_download"mins" later"
-					sed "3s#.*#***************************	SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i $logfile
+					sed "3s#.*#*************************** SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i $logfile
 					sleep $waittime
 					let retry_count++
 					$lftp -f "$server_freespace_file" &> /dev/null
@@ -41,7 +41,7 @@ function server_sizemanagement {
 					echo -e "\e[00;31mTransfer terminated: $(date '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
 					waittime=$(($retry_download*60))
 					echo "INFO: Pausing session and trying again $retry_download"mins" later"
-					sed "3s#.*#***************************	SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i $logfile
+					sed "3s#.*#*************************** SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i $logfile
 					sleep $waittime
 					let retry_count++
 					$lftp -f "$server_freespace_file" &> /dev/null
@@ -56,7 +56,7 @@ function server_sizemanagement {
 		fi
 		if [[ $is_online -ne 0 ]]; then
 			# ok we failed
-			sed "3s#.*#***************************	SERVER INFO: SERVER OFFLINE#" -i $logfile
+			sed "3s#.*#*************************** SERVER INFO: SERVER OFFLINE#" -i $logfile
 			is_online="1"
 		fi
 	else
@@ -77,13 +77,13 @@ function server_getsize {
 	freemb=$(( $totalmb - $usedmb ))
 	case "$1" in
 	"info" )
-		sed "3s#.*#***************************	SERVER INFO: "$usedmb"\/"$totalmb"MB (Free "$freemb"MB)#" -i $logfile
+		sed "3s#.*#*************************** SERVER INFO: "$usedmb"\/"$totalmb"MB (Free "$freemb"MB)#" -i $logfile
 		echo "INFO: Free space: "$freemb"MB ("$usedmb"/"$totalmb"MB used)"
 		;;
 	"check" )
-		sed "3s#.*#***************************	SERVER INFO: "$usedmb"\/"$totalmb"MB (Free "$freemb"MB)#" -i $logfile
+		sed "3s#.*#*************************** SERVER INFO: "$usedmb"\/"$totalmb"MB (Free "$freemb"MB)#" -i $logfile
 		if [[ "$( echo "$freemb < $critical" | bc)" -eq "1" ]] || [[ "$( echo "$size > $freemb" | bc)" -eq "1" ]]; then
-			sed "3s#.*#***************************	SERVER INFO: "$usedmb"\/"$totalmb"MB - FREE SPACE IS CRITICAL! DOWNLOAD POSTPONED!#" -i $logfile
+			sed "3s#.*#*************************** SERVER INFO: "$usedmb"\/"$totalmb"MB - FREE SPACE IS CRITICAL! DOWNLOAD POSTPONED!#" -i $logfile
 			freespaceneeded=$(echo $size - $freemb | bc)
 			sed "5s#.*#***************************	PENDING: "$orig_name" needs "$freespaceneeded"MB additional free space#" -i $logfile
 			echo "INFO: SERVER: "$usedmb"/"$totalmb"MB Used"
