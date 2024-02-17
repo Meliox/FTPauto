@@ -177,7 +177,7 @@ function cleanup {
 		if [[ -d "$scriptdir/run/$username-temp" ]]; then
 			rm -r "$scriptdir/run/$username-temp"
 		fi
-		echo -e "INFO: Cleanup done"
+		echo -e "INFO: Session cleanup done"
 	;;
 	"end" ) # Use to end script
 		removeClean "$lockfile"
