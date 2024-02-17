@@ -4,7 +4,7 @@ function write_config {
 	local config
 
 	# Prepare config file
-	echo -n "Preparing config ..."
+	echo "Preparing config ..."
 
 	# Set default username if not provided
 	if [[ -z "$username" ]]; then
