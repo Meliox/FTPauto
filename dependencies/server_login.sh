@@ -74,24 +74,24 @@ function sftp_login {
     loginfile="login_file${number}"
 
     # Set timeout settings
-    echo "set net:timeout 10" >> "${login_file}"
-    echo "set net:max-retries 3" >> "${login_file}"
-    echo "set net:reconnect-interval-base 10" >> "${login_file}"
-    echo "set net:reconnect-interval-multiplier 1" >> "${login_file}"
-    echo "set net:reconnect-interval-max 60" >> "${login_file}"
+    echo "set net:timeout 10" >> "${!login_file}"
+    echo "set net:max-retries 3" >> "${!login_file}"
+    echo "set net:reconnect-interval-base 10" >> "${!login_file}"
+    echo "set net:reconnect-interval-multiplier 1" >> "${!login_file}"
+    echo "set net:reconnect-interval-max 60" >> "${!login_file}"
 
-    echo "sftp:auto-confirm true" >> "${login_file}"
+    echo "sftp:auto-confirm true" >> "${!login_file}"
 
     # Write custom configurations to file
     if [[ -n "${sftpcustom}" ]]; then
         for option in "${sftpcustom[@]}"; do
-            echo "$option" >> "${login_file}"
+            echo "$option" >> "${!login_file}"
         done
     fi
     
     # Check if username and password are provided
     if [[ "$transferetype" =~ "upsftp" ]]; then
-        echo "open -u ${user},${pass} sftp://${host} -p ${port}" >> "${login_file}"
+        echo "open -u ${user},${pass} sftp://${host} -p ${port}" >> "${!login_file}"
     else
         echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Check your config (--user=$user --edit)!\e[00m\n"
         cleanup session
