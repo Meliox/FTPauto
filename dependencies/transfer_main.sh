@@ -236,7 +236,7 @@ function transfer {
 			{
 				cat "$ftplogin_file1" >> "$ftptransfere_file"
 				echo "mkdir -p \"${ftpcomplete}\"" >> "$ftptransfere_file"
-				[[ -n "${ftpincomplete}" ]] && echo "mkdir -p \"${ftpincomplete}\"" >> "$ftptransfere_file"
+				if [[ -n "${ftpincomplete}" ]] && echo "mkdir -p \"${ftpincomplete}\"" >> "$ftptransfere_file"
 				echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 
 				# Determine transfer type (file or directory)
@@ -251,7 +251,7 @@ function transfer {
 				echo "wait" >> "$ftptransfere_file"
 
 				# Move files remotely if ftpincomplete directory is used
-				[[ -n "$ftpincomplete" ]] && echo "queue mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
+				if [[ -n "$ftpincomplete" ]] && echo "queue mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
 				echo "wait" >> "$ftptransfere_file"
 			}
 		elif [[ $transferetype == "fxp" ]]; then
@@ -279,21 +279,28 @@ function transfer {
 		elif [[ $transferetype == "upsftp" ]]; then
 			# handle sftp transfer
 			{
-				echo "cd \"$ftpcomplete\"" >> "$ftptransfere_file"
-				if [[ -n "$ftpincomplete" ]]; then
-					echo "mkdir \"$ftpincomplete\"" >> "$ftptransfere_file"
-					echo "cd \"$ftpincomplete\"" >> "$ftptransfere_file"
-				fi
+				cat "$sftplogin_file" >> "$ftptransfere_file"
+
+				# Create final directories if they don't exist
+				echo "!mkdir -p \"${ftpcomplete}\"" >> "$ftptransfere_file"
+
+				if [[ -n "${ftpincomplete}" ]] && echo "mkdir -p \"${ftpincomplete}\"" >> "$ftptransfere_file"
+				echo "set cmd:fail-exit true" >> "$ftptransfere_file"
+
+				# Determine transfer type (file or directory)
 				if [[ -f "$transfer_path" ]]; then
-					# single file
-					echo "put -O . \"$transfer_path\"" >> "$ftptransfere_file"
+					[[ -n "$ftpincomplete" ]] && echo "queue put -c -O \"$ftpincomplete\" \"${transfer_path}\"" >> "$ftptransfere_file"
+					[[ -z "$ftpincomplete" ]] && echo "queue put -c -O \"$ftpcomplete\" \"${transfer_path}\"" >> "$ftptransfere_file"
 				elif [[ -d "$transfer_path" ]]; then
-					# directory
-					echo "mirror --no-perms -R \"$transfer_path\" ." >> "$ftptransfere_file"
-				else
-					echo "echo 'Unsupported file or directory type.'" >> "$ftptransfere_file"
+					[[ -n "$ftpincomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${ftpincomplete}\"" >> "$ftptransfere_file"
+					[[ -z "$ftpincomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL \"${transfer_path}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
 				fi
-				echo "quit" >> "$ftptransfere_file"
+
+				echo "wait" >> "$ftptransfere_file"
+
+				# Move files remotely if ftpincomplete directory is used
+				if [[ -n "$ftpincomplete" ]] && echo "queue mv \"${ftpincomplete}${orig_name}\" \"${ftpcomplete}\"" >> "$ftptransfere_file"
+				echo "wait" >> "$ftptransfere_file"
 			}
 		else
 			echo -e "\e[00;31mERROR: Transfer setting not recognized\e[00m\n"
