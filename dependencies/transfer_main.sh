@@ -641,6 +641,7 @@ function main {
 			exit 1
 		fi
 	elif [[ "$send_option" == "default" ]]; then
+		;
 	else
 		echo -e "\e[00;33mERROR: send_option=$send_option is not supported Exiting ...\e[00m"
 		cleanup session
