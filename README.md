@@ -1,16 +1,16 @@
 # FTPauto
 
-FTPauto is a simple, but highly advanced and configurable FTP-client wrap-around written in #Bash for Unix. It is based on [lftp](http://lftp.yar.ru/) and  helps to automate simple transfers - yet FTPauto allows much more.
+FTPauto is a simple, but highly advanced and configurable FTP-client wrap-around written in #Bash for Unix. It is based on [lftp](https://github.com/lavv17/lftp) and  helps to manage transfers.
 
 # Features
 * Send files easily with lftp (To and from FTP(s), and between serveres - FXP, and SFTP)
-* Highly customizable command line
-* Monitor free space or server status on the remote server
+* Highly customizable command line optopns
+* Monitor free space or server status on the remote server (pre/post check)
 * Progressbar with estimated time of transferes
-* History (Transfer logs)
-* Queue transfers (failed transferes, queue)
+* History (Transfer logs, total transfered etc.)
+* Queue manager for failed, queued transfere
 * Packing/splitting directory/files into rar-files. Including sfv to verify files at end-server.
-* Multiple users
+* Multiple user support
 * Delay transfer to start at a specific time
 * Support pre/post transfer using external scripts
 * Sorting (regex-based or manually)
