@@ -26,20 +26,22 @@ trap control_c SIGINT
 
 # Function to compare versions
 function version_compare {
-	if [[ "$1" == "$2" ]]; then
-		new_version="false"
-	else
-		local IFS=.
-		local n1=($1) n2=($2)
-		for i in "${!n1[@]}"; do
-			if [[ ${n1[i]} -gt ${n2[i]} ]]; then
-				new_version="true"
-				break
-			elif [[ ${n1[i]} -lt ${n2[i]} ]]; then
-				new_version="false"
-			fi
-		done
-	fi
+    if [[ "$1" == "$2" ]]; then
+        new_version="false"
+    else
+        local IFS=.
+        local n1=($1) n2=($2)
+        local len=${#n1[@]}
+        for ((i=0; i<$len; i++)); do
+            if [[ ${n1[i]:-0} -gt ${n2[i]:-0} ]]; then
+                new_version="true"
+                break
+            elif [[ ${n1[i]:-0} -lt ${n2[i]:-0} ]]; then
+                new_version="false"
+                break
+            fi
+        done
+    fi
 }
 
 # Function to install/update lftp
@@ -423,7 +425,7 @@ function updateScript {
 	echo -n " Checking/updating FTPauto ..."
 	local release_version=$(curl -s https://api.github.com/repos/Meliox/ftpauto/tags | grep -oP '"name": "\KFTPauto-v\d+\.\d+\.\d+' | sort -V | tail -n 1 | cut -d'v' -f2)
 	version_compare "$release_version" "$i_version"
-	echo "INFO: Local version: $i_version"
+	echo -n "INFO: Local version: $i_version"
 	if [[ "$i_version" == "0" ]] && [[ $argument != installNew ]]; then
 		echo -e "\e[00;31m [ERROR]\e[00m\nNo installation found. Execute script with install as argument instead. Exiting.\n"
 		exit 0
