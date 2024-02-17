@@ -212,7 +212,7 @@ function transfer {
 
 		if [[ $transferetype == "downftp" ]]; then
 			# Handle lftp transfer for downftp
-				cat "$ftplogin_file1" >> "$transfere_file"
+				cat "$login_file1" >> "$transfere_file"
 				# Create final directories if they don't exist
 				echo "!mkdir -p \"${complete}\"" >> "$transfere_file"
 				[[ -n $incomplete ]] && echo "!mkdir -p \"${incomplete}\"" >> "$transfere_file"
@@ -234,7 +234,7 @@ function transfer {
 				echo "wait" >> "$transfere_file"
 		elif [[ $transferetype == "upftp" ]]; then
 			# Handle lftp transfer for upftp
-			cat "$ftplogin_file1" >> "$transfere_file"
+			cat "$login_file1" >> "$transfere_file"
 			echo "mkdir -p \"${complete}\"" >> "$transfere_file"
 			[[ -n "${incomplete}" ]] && echo "mkdir -p \"${incomplete}\"" >> "$transfere_file"
 			echo "set cmd:fail-exit true" >> "$transfere_file"
@@ -256,7 +256,7 @@ function transfer {
 		elif [[ $transferetype == "fxp" ]]; then
 			# Handle lftp transfer for fxp
 			server_login 2
-			cat "$ftplogin_file2" >> "$transfere_file"
+			cat "$login_file2" >> "$transfere_file"
 			echo "mkdir -p \"$complete\"" >> "$transfere_file"
 			[[ -n $incomplete ]] && echo "mkdir -p \"$incomplete\"" >> "$transfere_file"
 			echo "set cmd:fail-exit true" >> "$transfere_file"
@@ -277,7 +277,7 @@ function transfer {
 			echo "wait" >> "$transfere_file"
 		elif [[ $transferetype == "upsftp" ]]; then
 			# handle sftp transfer
-			cat "$sftplogin_file" >> "$transfere_file"
+			cat "$login_file1" >> "$transfere_file"
 
 			# Create final directories if they don't exist
 			echo "!mkdir -p \"${complete}\"" >> "$transfere_file"
@@ -364,7 +364,7 @@ function transfer_process_bar {
             fi
         elif [[ $transferetype == "upftp" || $transferetype == "fxp" ]]; then
             # Create a config file for lftp process bar
-            cat "$ftplogin_file1" >> "$transfere_processbar"
+            cat "$login_file1" >> "$transfere_processbar"
             # Determine whether it's a file or directory
             if [[ -f "$filepath" ]]; then
                 echo "du -s \"$incomplete${orig_name}\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"

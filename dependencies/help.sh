@@ -139,11 +139,11 @@ function show_example {
 	echo
 	echo "#### SFTP server Setup ####"
 	echo "# For SFTP server, you need to specify the following parameters"
-	echo "sftpuser=\"user\" # SFTP username"
-	echo "sftppass=\"pass\" # SFTP password"
-	echo "sftphost=\"ip\" # SFTP host address"
-	echo "sftpport=\"port\" # SFTP port"
-	echo "sftpcustom=\"\" # Enter additional settings separated by ';'"
+	echo "sftpuser1=\"user\" # SFTP username"
+	echo "sftppass1=\"pass\" # SFTP password"
+	echo "sftphost1=\"ip\" # SFTP host address"
+	echo "sftpport1=\"port\" # SFTP port"
+	echo "sftpcustom1=\"\" # Enter additional settings separated by ';'"
 	echo
 	echo "#### Log settings ###"
 	echo
@@ -175,9 +175,9 @@ function show_example {
 	echo "exclude_array=( ) # Ignore certain files with name matching, format is ( \"word1\" \"word2\" )"
 	echo
 	echo "## Extra settings"
-	echo "# To enable FTP space info, ftpsizemanagement has to be set to true"
-	echo "ftpsizemanagement=\"false\" # will confirm enough free space in dir according to settings"
-	echo "totalmb=\"14950\" # total ftp space in mb"
+	echo "# To enable Server space info, serversizemanagement has to be set to true"
+	echo "serversizemanagement=\"false\" # will confirm enough free space in dir according to settings"
+	echo "totalmb=\"14950\" # total server space in mb"
 	echo "critical=\"100\" # minimum space before aborting transfer in mb"
 	echo
 	echo "## Processbar settings"
@@ -206,7 +206,7 @@ function create_log_file {
 		echo "INFO: First time usage. Logfile is created"
 		echo "***************************	FTPauto - $s_version" >> "$logfile"
 		echo "***************************	STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> "$logfile"
-		echo "***************************	FTP INFO: ${ftpsizemanagement:true ? '0/${totalmb}MB (Free ${freemb}MB)' : '(not used yet)'}" >> "$logfile"
+		echo "***************************	SERVER INFO: ${ftpsizemanagement:true ? '0/${totalmb}MB (Free ${freemb}MB)' : '(not used yet)'}" >> "$logfile"
 		echo "***************************	LASTDL: nothing" >> "$logfile"
 		echo "***************************	" >> "$logfile"
 		echo "**********************************************************************************************************************************" >> "$logfile"
@@ -214,6 +214,6 @@ function create_log_file {
 	else
 		echo "INFO: Logfile: $logfile"
 		# clean log file
-		echo "***************************	FTP INFO:" >> "$logfile"
+		echo "***************************	SERVER INFO:" >> "$logfile"
 	fi
 }
