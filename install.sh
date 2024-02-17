@@ -423,6 +423,7 @@ function updateScript {
 	echo -n " Checking/updating FTPauto ..."
 	local release_version=$(curl -s https://api.github.com/repos/Meliox/ftpauto/tags | grep -oP '"name": "\KFTPauto-v\d+\.\d+\.\d+' | sort -V | tail -n 1 | cut -d'v' -f2)
 	version_compare "$release_version" "$i_version"
+	echo "INFO: Local version: $i_version"
 	if [[ "$i_version" == "0" ]] && [[ $argument != installNew ]]; then
 		echo -e "\e[00;31m [ERROR]\e[00m\nNo installation found. Execute script with install as argument instead. Exiting.\n"
 		exit 0
