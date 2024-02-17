@@ -355,13 +355,14 @@ function transfer_process_bar {
             echo "quit" >> "$transfere_processbar"
 		else
 			echo "Progressbar not supported"
+			return
         fi
         
         # Run the process bar loop
         while :; do
             if [[ $transferetype == "downftp" ]]; then
                 eval $transfered_size
-            elif [[ $transferetype == "upftp" || $transferetype == "fxp" ]]; then
+            elif [[ $transferetype == "upftp" || $transferetype == "fxp" || $transferetype == "upsftp" ]]; then
                 $lftp -f "$transfere_processbar" &> /dev/null &
                 pid_process=$!
                 sed "4c $pid_process" -i "$lockfile"
@@ -412,7 +413,7 @@ function transfer_process_bar {
                 fi
                 
                 # Update file and output the current line
-                sed "5s#.*#***************************	Transferring: ${orig_name}, $percentage\%, in $TimeDiff, $speed MB/s(current), ETA: $etatime, ${SpeedAverage} MB/s (avg)   #" -i "$logfile"
+                sed "5s#.*#*************************** Transferring: ${orig_name}, $percentage\%, in $TimeDiff, $speed MB/s(current), ETA: $etatime, ${SpeedAverage} MB/s (avg)   #" -i "$logfile"
                 cols=$(($(tput cols) - 2))
                 percentagebarlength=$(echo "scale=0; $percentage * $cols / 100" | bc)
                 string="$(eval printf "=%.0s" '{1..'"$percentagebarlength"\})"
