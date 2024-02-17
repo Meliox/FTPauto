@@ -91,7 +91,7 @@ function loadDependency {
 	case "$1" in
 		DConfig) LoadPath="$scriptdir/users/$username/config";;
 		DFtpList) LoadPath="$scriptdir/dependencies/ftp_list.sh";;
-		DFtpLogin) LoadPath="$scriptdir/dependencies/ftp_login.sh";;
+		DFtpLogin) LoadPath="$scriptdir/dependencies/server_login.sh";;
 		DFtpMain) LoadPath="$scriptdir/dependencies/ftp_main.sh";;
 		DFtpOnlineTest) LoadPath="$scriptdir/dependencies/ftp_online_test.sh";;
 		DLargeFile) LoadPath="$scriptdir/plugins/largefile.sh";;
