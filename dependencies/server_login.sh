@@ -63,28 +63,28 @@ function sftp_login {
     sftpport="$sftpport"
 
     # Set timeout settings
-    echo "ConnectTimeout 10" >> "${!sftploginfile}"
-    echo "ServerAliveInterval 30" >> "${!sftploginfile}"
+    echo "ConnectTimeout 10" >> "${!sftplogin_file}"
+    echo "ServerAliveInterval 30" >> "${!sftplogin_file}"
 
-    echo "sftp:connect-program ssh -a -x -oStrictHostKeyChecking=no" >> "${!sftploginfile}"
+    echo "sftp:connect-program ssh -a -x -oStrictHostKeyChecking=no" >> "${!sftplogin_file}"
 
     # Write custom configurations to file
     if [[ -n "${!sftpcustom}" ]]; then
         for option in "${!sftpcustom[@]}"; do
-            echo "$option" >> "${!sftploginfile}"
+            echo "$option" >> "${!sftplogin_file}"
         done
     fi
 
     # Check if the custom SSH port is provided
     if [[ -n "${!sftpport}" ]]; then
-        echo "Port ${!sftpport}" >> "${!sftploginfile}"
+        echo "Port ${!sftpport}" >> "${!sftplogin_file}"
     fi
 
     
     # Check if username and password are provided
     if [[ -n "${!sftpuser}" ]] && [[ -n "${!sftppass}" ]]; then
-        echo "User ${!sftpuser}" >> "${!sftploginfile}"
-        echo "Password ${!sftppass}" >> "${!sftploginfile}"
+        echo "User ${!sftpuser}" >> "${!sftplogin_file}"
+        echo "Password ${!sftppass}" >> "${!sftplogin_file}"
     else
         echo "ERROR: Username or password not provided. Check your configuration." >&2
         exit 1
@@ -92,7 +92,7 @@ function sftp_login {
 
     # Specify the host to connect to
     if [[ -n "${!sftphost}" ]]; then
-        echo "HostName ${!sftphost}" >> "${!sftploginfile}"
+        echo "HostName ${!sftphost}" >> "${!sftplogin_file}"
     else
         echo "ERROR: Host not provided. Check your configuration." >&2
         exit 1
