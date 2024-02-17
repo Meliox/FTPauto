@@ -532,35 +532,40 @@ function loadConfig {
 }
 
 function lockfile {
-	# upon start (from queue or --path) no option is available, hence create lockfile
-	if [[ -f "$lockfile" ]] && [[ $force != "true" ]]; then
-		# The file exists, find PID, transfere, confirm it still is running
-		mypid_script=$(sed -n 1p "$lockfile")
-		mypid=$(sed -n 2p "$lockfile")
-		alreadyinprogres=$(sed -n 3p "$lockfile")
-		kill -0 $mypid_script &> /dev/null
-		if [[ $? -eq 1 ]]; then
-			#Process is not running, continue
-			echo "INFO: Old lockfile found, but process is not running"
-			rm -f "$lockfile"
-		else
-			echo "INFO: Already running"
-			echo "      The script pid: $mypid_script"
-			echo "      The transfere pid: $alreadyinprogres"
-			echo "      Transfer: $(sed -n 5p < "$logfile" | cut -d',' -f1 | cut -d' ' -f2)"
-			echo "      Lockfile: $lockfile"
-			echo "      See --help on how to stop it"
-			queue add end
-		fi
-	fi
-	# allocate pids
-	echo >> "$lockfile" # bash pid
-	echo >> "$lockfile" # lftp transfer pid
-	echo >> "$lockfile" # bash progress pid
-	echo >> "$lockfile" # lftp process pid
-	echo >> "$lockfile" # speedaverage
-	sed "1c $BASHPID" -i "$lockfile"
-	echo "INFO: Process id: $BASHPID"
+    # Check if lockfile exists and process is still running
+    if [[ -f "$lockfile" ]] && [[ $force != "true" ]]; then
+        # Lockfile exists, check if process is still running
+        mypid_script=$(sed -n 1p "$lockfile")
+        mypid=$(sed -n 2p "$lockfile")
+        alreadyinprogress=$(sed -n 3p "$lockfile")
+
+        # Check if the script process is still running
+        kill -0 $mypid_script &> /dev/null
+        if [[ $? -eq 1 ]]; then
+            # Process is not running, continue
+            echo "INFO: Old lockfile found, but process is not running"
+            rm -f "$lockfile"
+        else
+            # Process is still running, display information and exit
+            echo "INFO: Another instance of the script is already running:"
+            echo "      Script PID: $mypid_script"
+            echo "      Transfer PID: $alreadyinprogress"
+            echo "      Transfer: $(sed -n 5p < "$logfile" | cut -d',' -f1 | cut -d' ' -f2)"
+            echo "      Lockfile: $lockfile"
+            echo "      Use --help to learn how to stop it"
+            queue add end
+            return
+        fi
+    fi
+
+    # Allocate PIDs and update lockfile
+    echo "$BASHPID" >> "$lockfile" # Bash PID
+    echo >> "$lockfile" # LFTP transfer PID (to be allocated later)
+    echo >> "$lockfile" # Bash progress PID (to be allocated later)
+    echo >> "$lockfile" # LFTP process PID (to be allocated later)
+    echo >> "$lockfile" # Speed average (to be calculated later)
+
+    echo "INFO: Process ID: $BASHPID"
 }
 
 function main {
