@@ -232,13 +232,13 @@ function transfer {
 		elif [[ $transferetype == "upftp" || $transferetype == "upsftp" ]]; then
 			# Handle lftp transfer for upftp
 			cat "$login_file1" >> "$transfere_file"
-			echo "mkdir -p \"${complete}\"" >> "$ftptransfere_file"
+			echo "mkdir -p \"${complete}\"" >> "$transfere_file"
 			# handle files for transfer
 			if [[ -n "${incomplete}" ]]; then
-				echo "mkdir -p \"${incomplete}\"" >> "$ftptransfere_file"
+				echo "mkdir -p \"${incomplete}\"" >> "$transfere_file"
 			fi
 			# fail if transfers fails
-			echo "set cmd:fail-exit true" >> "$ftptransfere_file"
+			echo "set cmd:fail-exit true" >> "$transfere_file"
 
 			# Determine transfer type (file or directory)
 			if [[ -f "$transfer_path" ]]; then
