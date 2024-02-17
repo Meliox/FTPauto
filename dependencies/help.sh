@@ -206,7 +206,7 @@ function create_log_file {
 		echo "INFO: First time usage. Logfile is created"
 		echo "***************************	FTPauto - $s_version" >> "$logfile"
 		echo "***************************	STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> "$logfile"
-		echo "***************************	SERVER INFO: ${ftpsizemanagement:true ? '0/${totalmb}MB (Free ${freemb}MB)' : '(not used yet)'}" >> "$logfile"
+		echo "***************************	SERVER INFO: ${serversizemanagement:true ? '0/${totalmb}MB (Free ${freemb}MB)' : '(not used yet)'}" >> "$logfile"
 		echo "***************************	LASTDL: nothing" >> "$logfile"
 		echo "***************************	" >> "$logfile"
 		echo "**********************************************************************************************************************************" >> "$logfile"
