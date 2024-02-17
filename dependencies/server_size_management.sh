@@ -3,7 +3,7 @@
 function server_sizemanagement { 
 	if [[ $test_mode != "true" ]]; then
 		local mode=$1
-		cat "$ftplogin_file1" >> "$server_freespace_file"
+		cat "$login_file1" >> "$server_freespace_file"
 		echo "du -s $incomplete > ~/../../$server_size_file" >> "$server_freespace_file"
 		echo "wait" >> "$server_freespace_file"
 		echo "du -s $complete > ~/../../$server_size_file" >> "$server_freespace_file"
