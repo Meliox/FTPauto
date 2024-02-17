@@ -15,6 +15,7 @@ function setup {
 	ftptransfere_processbar="$scriptdir/run/$username.ftpprocessbar"
 	ftplogin_file1="$scriptdir/run/$username.ftplogin1"
 	ftplogin_file2="$scriptdir/run/$username.ftplogin2"
+	sftplogin_file1="$scriptdir/run/$username.sftplogin"
 	ftpfreespace_file="$scriptdir/run/$username.ftpfreespace"
 	ftpalive_file="$scriptdir/run/$username.ftpalive"
 	ftpcheck_testfile="$scriptdir/run/$username.testfile"
