@@ -92,7 +92,7 @@ function server_getsize {
 			echo "INFO: Stopping session and trying again $retry_download"mins" later"
 			echo -e "INFO: Exiting current session\n"
 			waittime=$(($retry_download*60))
-			sed "3s#.*#***************************	SERVER INFO: "$usedmb"\/"$totalmb"MB - FREE SPACE IS CRITICAL! DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i $logfile
+			sed "3s#.*#*************************** SERVER INFO: "$usedmb"\/"$totalmb"MB - FREE SPACE IS CRITICAL! DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i $logfile
 			sleep $waittime
 			queue run #running new session
 		fi
