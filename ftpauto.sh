@@ -185,7 +185,7 @@ function load_user {
         exit 1
     fi
     # Confirm that config is most recent version
-    if [[ $config_version -ne "6" ]] && [[ $option != "add" ]] && [[ $option != "edit" ]]; then
+    if [[ $config_version -ne "7" ]] && [[ $option != "add" ]] && [[ $option != "edit" ]]; then
         echo -e "\e[00;31mERROR: Please update it to version 6. See --help for more info!\e[00m\n"
         exit 1
     fi
