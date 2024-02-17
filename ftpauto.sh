@@ -6,25 +6,12 @@ scriptdir=$(dirname $script)
 lastUpdate=1511410224
 message=""
 
-#stty ^S ^P
-
-interrupt_handler() {
+control_c() {
 	# run if user hits control-c
-	echo "Interrupt signal received: $last_key_sequence"
 	echo -ne '\n'
 	cleanup die
-	message "Session has been terminated." "0"
 }
-
-# Function to store the last key sequence before interruption
-store_last_key_sequence() {
-    last_key_sequence=$(stty -g)
-}
-
-# Trap the interrupt signal (Ctrl+C) and call the interrupt handler function
-trap 'interrupt_handler' INT
-
-trap 'store_last_key_sequence' DEBUG
+trap control_c SIGINT
 
 function verbose {
 	# Function to control verbosity of script output
