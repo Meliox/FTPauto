@@ -139,7 +139,7 @@ function confirm {
         lock_file )
             # Check if the lock file exists and display message if it doesn't
             if [[ ! -f "$lockfile" ]]; then
-                message "$2" "3"
+                message "$2" "$3"
             fi
             ;;
     esac
@@ -392,7 +392,7 @@ function main {
             ;;
         "progress" ) # Write out download progress
 			# Confirm the existence of the lock file; if not found, display an error message
-			confirm_lock_file "Error: Lockfile not found. Nothing is being transferred!" "1"
+			confirm lock_file "Error: Lockfile not found. Nothing is being transferred!" "1"
 
 			# Display information about the update frequency
 			echo "INFO: Updates every $sleeptime second. (Exit with 'x')"
