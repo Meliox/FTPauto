@@ -482,44 +482,60 @@ function ftp_processbar { #Showing how download is proceeding
 	fi
 }
 
+# Function to rotate and manage logs
 function logrotate {
+	# Check if test mode is not enabled
 	if [[ $test_mode != "true" ]]; then
-			transferTime=$(( $TransferEndTime - $TransferStartTime ))
-			transferTime2=$(printf '%02dh:%02dm:%02ds' "$(($transferTime/(60*60)))" "$((($transferTime/60)%60))" "$(($transferTime%60))")
-			SpeedAverage=$(sed -n 5p "$lockfile")
-			#Adds new info to 7th line
-			sed "7i $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')|${source}|${orig_name}|${size}MB|${transferTime2}|${SpeedAverage}MB/s" -i "$logfile"
-			lognumber=$((7 + $lognumber ))
-			#Add text to old file
-			if [[ $logrotate == "true" ]]; then
-				if [[ -n $(sed -n $lognumber,'$p' "$logfile") ]]; then
-					sed -n $lognumber,'$p' "$logfile" >> "$oldlogfile"
-				fi
-			fi
-			#Remove text from old file
-			if [ "$lognumber" -ne 0 ]; then
-				sed $lognumber,'$d' -i "$logfile"
-			fi
-			totaldl=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f4)
-			totaldl=${totaldl%MB}
-			if [[ -z "$totaldl" ]]; then
-				totaldl="0"
-			fi
-			totaldl=$(echo "$totaldl + $size" | bc)
-			totalrls=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f6)
-			totalrls=$(echo "$totalrls + 1" | bc)
-			totaldltime=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f10)
-			totaldltime_seconds=$(awk 'BEGIN{split("'$totaldltime'",a,":"); print a[1]*(60*60*24)+a[2]*(60*60)+a[3]*60+a[4];}')
-			totaldltime=$(echo "$totaldltime_seconds + $transferTime" | bc)
-			totaldltime=$(printf '%02dd:%02dh:%02dm:%02ds' "$(($totaldltime/(60*60*24)))" "$(($totaldltime/(60*60)%24))" "$((($totaldltime/60)%60))" "$(($totaldltime%60))")
+		# Calculate transfer time
+		transferTime=$(( $TransferEndTime - $TransferStartTime ))
+		transferTime2=$(printf '%02dh:%02dm:%02ds' "$(($transferTime/(60*60)))" "$((($transferTime/60)%60))" "$(($transferTime%60))")
 
-			sed "1s#.*#*****  FTPauto ${s_version}#" -i "$logfile"
-			sed "2s#.*#*****  STATS: ${totaldl}MB in ${totalrls} transfers in ${totaldltime}#" -i "$logfile"
-			sed "3s#.*#*****  FTP INFO: N/A#" -i "$logfile"
-			sed "4s#.*#*****  LASTDL: $(date)|${orig_name}|${SpeedAverage}MB/s#" -i "$logfile"
-			sed "5s#.*#*****  #" -i "$logfile"
-		else
-			echo -e "\e[00;31mTESTMODE: LOGGING NOT STARTED\e[00m"
+		# Get average speed from lockfile
+		SpeedAverage=$(sed -n 5p "$lockfile")
+
+		# Add new info to 7th line of logfile
+		sed "7i $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')|${source}|${orig_name}|${size}MB|${transferTime2}|${SpeedAverage}MB/s" -i "$logfile"
+		lognumber=$((7 + $lognumber ))
+
+		# Add text to oldlogfile if log rotation is enabled
+		if [[ $logrotate == "true" ]]; then
+			if [[ -n $(sed -n $lognumber,'$p' "$logfile") ]]; then
+				sed -n $lognumber,'$p' "$logfile" >> "$oldlogfile"
+			fi
+		fi
+
+		# Remove text from old file
+		if [ "$lognumber" -ne 0 ]; then
+			sed $lognumber,'$d' -i "$logfile"
+		fi
+
+		# Calculate total downloaded size
+		totaldl=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f4)
+		totaldl=${totaldl%MB}
+		if [[ -z "$totaldl" ]]; then
+			totaldl="0"
+		fi
+		totaldl=$(echo "$totaldl + $size" | bc)
+
+		# Increment total number of transfers
+		totalrls=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f6)
+		totalrls=$(echo "$totalrls + 1" | bc)
+
+		# Calculate total download time
+		totaldltime=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f10)
+		totaldltime_seconds=$(awk 'BEGIN{split("'$totaldltime'",a,":"); print a[1]*(60*60*24)+a[2]*(60*60)+a[3]*60+a[4];}')
+		totaldltime=$(echo "$totaldltime_seconds + $transferTime" | bc)
+		totaldltime=$(printf '%02dd:%02dh:%02dm:%02ds' "$(($totaldltime/(60*60*24)))" "$(($totaldltime/(60*60)%24))" "$((($totaldltime/60)%60))" "$(($totaldltime%60))")
+
+		# Update logfile header and stats
+		sed "1s#.*#*****  FTPauto ${s_version}#" -i "$logfile"
+		sed "2s#.*#*****  STATS: ${totaldl}MB in ${totalrls} transfers in ${totaldltime}#" -i "$logfile"
+		sed "3s#.*#*****  FTP INFO: N/A#" -i "$logfile"
+		sed "4s#.*#*****  LASTDL: $(date)|${orig_name}|${SpeedAverage}MB/s#" -i "$logfile"
+		sed "5s#.*#*****  #" -i "$logfile"
+	else
+		# If test mode, just print message
+		echo -e "\e[00;31mTESTMODE: LOGGING NOT STARTED\e[00m"
 	fi
 }
 
