@@ -79,7 +79,6 @@ function server_getsize {
 	"info" )
 		sed "3s#.*#***************************	SERVER INFO: "$usedmb"\/"$totalmb"MB (Free "$freemb"MB)#" -i $logfile
 		echo "INFO: Free space: "$freemb"MB ("$usedmb"/"$totalmb"MB used)"
-		cleanup session;
 		;;
 	"check" )
 		sed "3s#.*#***************************	SERVER INFO: "$usedmb"\/"$totalmb"MB (Free "$freemb"MB)#" -i $logfile
@@ -91,7 +90,6 @@ function server_getsize {
 			echo -e "\e[00;31mERROR: SERVER: Free space: "$freemb"MB\e[00m"
 			echo -e "\e[00;31mERROR: "$orig_name" needs "$freespaceneeded"MB additional free space\e[00m"
 			echo "INFO: Stopping session and trying again $retry_download"mins" later"
-			cleanup session
 			echo -e "INFO: Exiting current session\n"
 			waittime=$(($retry_download*60))
 			sed "3s#.*#***************************	SERVER INFO: "$usedmb"\/"$totalmb"MB - FREE SPACE IS CRITICAL! DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i $logfile
