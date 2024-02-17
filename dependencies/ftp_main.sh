@@ -47,116 +47,116 @@ function countdown {
 }
 
 function queue {
-	# queuesystem. If something already is running for the user, add it to queue.
+	# Queue system: If something is already running for the user, add it to the queue.
 	local option i old_id
 	option=$2
 	case "$1" in
 		"add" )
-		if [[ $queue_running == true ]]; then
-			# task has been started from queue, no need to add it
-			true
-		else
-			# figure out ID
-			id_old=$id
-			if [[ -e "$queue_file" ]]; then
-				#get last id
-				id=$(( $(tail -1 "$queue_file" | cut -d'|' -f1) + 1 ))
+			if [[ $queue_running == true ]]; then
+				# Task has been started from queue, no need to add it.
+				true
 			else
-				#assume this is the first one
-				id="1"
-			fi
-			get_size "$filepath" &> /dev/null
-			if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep "$filepath") ]] && [[ -z $option ]]; then
-				# passing an item which is already in queue, do nothing
-				echo -e "INFO: Item already in queue. Doing nothing...\n"
-				exit 0
-			elif [[ "$option" == failed ]]; then
-				# passing a failed item, remove it, and add it with the status failed
-				failed="true"
-				# remove ID from queue
-				sed "/^"$id_old"/d" -i "$queue_file"
-				echo "$id|$source|$filepath|$sortto|${size}MB|true|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-				echo -e "\e[00;33mINFO: Failing item: $(basename "$filepath")\e[00m"
-			elif [[ "$option" == end ]]; then
-				# passed item should only be queued, then exit
-				source="${source}Q"
-				echo "$id|$source|$filepath|$sortto|${size}MB|false|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-				echo -e "INFO: Queueing: $(basename "$filepath"), id=$id\n"
-				exit 0
-			else
-				# passed item should be queued, e.g. when something already is being transferred
-				echo "INFO: Queueid: $id"
-				echo "$id|$source|$filepath|$sortto|${size}MB|false|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-			fi
-		fi
-		;;
-		"remove" )
-		#remove item according to id
-		sed "/^"$id"/d" -i "$queue_file"
-		# if queue is true then continue to run else stop
-		if [[ $continue_queue == true ]]; then
-			queue next
-		else
-			cleanup end
-		fi
-		;;
-		"next" )
-		# Process next item in queue from top
-		if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
-			i="1"
-			failed="true"
-			# look for non failed items
-			while [[ $failed == true ]]; do
-				# load next item from top
-				id=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $1}' "$queue_file")
-				# check if ID has failed
-				failed=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $6}' "$queue_file")
-				let i++
-			done
-			if [[ $failed == false ]]; then
-				# found a non failed item, which will be downloaded
-				i=$(grep -n "^${id}|" "$queue_file" | grep -Eo '^[^:]+')
-				source=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $2}' "$queue_file")
-				filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $3}' "$queue_file")
-				sort=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $4}' "$queue_file")
-				# execute main script again
-				queue_running="true"
-				if [[ -f "$lockfile" ]]; then
-					# ensure that lockfile isn't created running queue
-					lockfileRunning="true"
+				# Figure out ID.
+				id_old=$id
+				if [[ -e "$queue_file" ]]; then
+					# Get last ID.
+					id=$(( $(tail -1 "$queue_file" | cut -d'|' -f1) + 1 ))
+				else
+					# Assume this is the first one.
+					id="1"
 				fi
-				echo "---------------------- Running queue ----------------------"
-				echo "Transfering id=$id, $(basename "$filepath")"
-				start_main --path="$filepath" --user="$username" --sortto="$sort"
-			else
-				# all items in the queue are marked as failed, e.g. nothing to transfer
-				echo "---------------------- Failed queue -----------------------"
-				while read line; do
-					id=$(echo $line | cut -d'|' -f1)
-					source=$(echo $line | cut -d'|' -f2)
-					path=$(echo $line | cut -d'|' -f3)
-					sort=$(echo $line | cut -d'|' -f4)
-					size=$(echo $line | cut -d'|' -f5)
-					time=$(echo $line | cut -d'|' -f7)
-					echo "ID|PATH|SORT TO|SIZE(MB)|TIME"
-					echo "$id|$source|$path|$sort|$size|$time"
-				done < "$queue_file"
-				echo -e "\nINFO: Queue does not contain non failed items. Program will end\n"
-				cleanup end
-				exit 1
+				get_size "$filepath" &> /dev/null
+				if [[ -e "$queue_file" ]] && [[ -n $(cat "$queue_file" | grep "$filepath") ]] && [[ -z $option ]]; then
+					# Passing an item which is already in the queue, do nothing.
+					echo -e "INFO: Item already in queue. Doing nothing...\n"
+					exit 0
+				elif [[ "$option" == failed ]]; then
+					# Passing a failed item, remove it, and add it with the status failed.
+					failed="true"
+					# Remove ID from queue.
+					sed "/^"$id_old"/d" -i "$queue_file"
+					echo "$id|$source|$filepath|$sortto|${size}MB|true|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+					echo -e "\e[00;33mINFO: Failing item: $(basename "$filepath")\e[00m"
+				elif [[ "$option" == end ]]; then
+					# Passed item should only be queued, then exit.
+					source="${source}Q"
+					echo "$id|$source|$filepath|$sortto|${size}MB|false|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+					echo -e "INFO: Queueing: $(basename "$filepath"), id=$id\n"
+					exit 0
+				else
+					# Passed item should be queued, e.g. when something already is being transferred.
+					echo "INFO: Queueid: $id"
+					echo "$id|$source|$filepath|$sortto|${size}MB|false|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+				fi
 			fi
-		else
-			# no queuefile found, e.g. nothing to transfer
-			echo "----------------------- Empty queue -----------------------"
-			if [[ -f "$queue_file" ]]; then rm "$queue_file"; fi
-			echo -e "INFO: Queue is empty. Program will end\n"
-			cleanup end
-			exit 0
-		fi
-		;;
+			;;
+		"remove" )
+			# Remove item according to ID.
+			sed "/^"$id"/d" -i "$queue_file"
+			# If queue is true then continue to run else stop.
+			if [[ $continue_queue == true ]]; then
+				queue next
+			else
+				cleanup end
+			fi
+			;;
+		"next" )
+			# Process next item in queue from top.
+			if [[ -f "$queue_file" ]] && [[ -n $(cat "$queue_file") ]]; then
+				i="1"
+				failed="true"
+				# Look for non-failed items.
+				while [[ $failed == true ]]; do
+					# Load next item from top.
+					id=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $1}' "$queue_file")
+					# Check if ID has failed.
+					failed=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $6}' "$queue_file")
+					let i++
+				done
+				if [[ $failed == false ]]; then
+					# Found a non-failed item, which will be downloaded.
+					i=$(grep -n "^${id}|" "$queue_file" | grep -Eo '^[^:]+')
+					source=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $2}' "$queue_file")
+					filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $3}' "$queue_file")
+					sort=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $4}' "$queue_file")
+					# Execute main script again.
+					queue_running="true"
+					if [[ -f "$lockfile" ]]; then
+						# Ensure that lockfile isn't created running queue.
+						lockfileRunning="true"
+					fi
+					echo "---------------------- Running queue ----------------------"
+					echo "Transfering id=$id, $(basename "$filepath")"
+					start_main --path="$filepath" --user="$username" --sortto="$sort"
+				else
+					# All items in the queue are marked as failed, e.g. nothing to transfer.
+					echo "---------------------- Failed queue -----------------------"
+					while read line; do
+						id=$(echo $line | cut -d'|' -f1)
+						source=$(echo $line | cut -d'|' -f2)
+						path=$(echo $line | cut -d'|' -f3)
+						sort=$(echo $line | cut -d'|' -f4)
+						size=$(echo $line | cut -d'|' -f5)
+						time=$(echo $line | cut -d'|' -f7)
+						echo "ID|PATH|SORT TO|SIZE(MB)|TIME"
+						echo "$id|$source|$path|$sort|$size|$time"
+					done < "$queue_file"
+					echo -e "\nINFO: Queue does not contain non-failed items. Program will end\n"
+					cleanup end
+					exit 1
+				fi
+			else
+				# No queuefile found, e.g. nothing to transfer.
+				echo "----------------------- Empty queue -----------------------"
+				if [[ -f "$queue_file" ]]; then rm "$queue_file"; fi
+				echo -e "INFO: Queue is empty. Program will end\n"
+				cleanup end
+				exit 0
+			fi
+			;;
                 "fail" )
-                # failed item, remove it, and add it with the status failed
-                # remove ID from queue
+                # Failed item, remove it, and add it with the status failed.
+                # Remove ID from queue.
                 sed "/^"$id"/d" -i "$queue_file"
                 echo "$id|$source|$filepath|$sortto|${size}MB|true|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
                 echo -e "\e[00;33mINFO: Failing item: $(basename "$filepath")\e[00m"
