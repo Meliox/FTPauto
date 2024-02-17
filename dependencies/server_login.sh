@@ -83,7 +83,7 @@ function sftp_login {
     echo "set net:reconnect-interval-multiplier 1" >> "${!login_file}"
     echo "set net:reconnect-interval-max 60" >> "${!login_file}"
 
-    echo "sftp:auto-confirm true" >> "${!login_file}"
+    echo "set sftp:auto-confirm true" >> "${!login_file}"
 
     # Write custom configurations to file
     if [[ -n "${!custom}" ]]; then
