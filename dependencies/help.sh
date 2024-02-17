@@ -1,20 +1,33 @@
 #!/bin/bash
+# Function to write configuration file based on the show_example function
 function write_config {
 	local config
-	# write show_example to config
+
+	# Prepare config file
 	echo -n "Preparing config ..."
+
+	# Set default username if not provided
 	if [[ -z "$username" ]]; then
-		user=default
+		username=default
 	fi
+
+	# Define config file path
 	config="$scriptdir/users/$username/config"
+
+	# Create directory if not exists
 	mkdir -p "$scriptdir/users/$username"
+
+	# Check if config file exists
 	if [[ -f "$config" ]]; then
-		read -p " Config already exits($config), do you want to overwrite(y/n)? "
+		# Prompt to overwrite if config file already exists
+		read -p " Config already exists ($config), do you want to overwrite (y/n)? "
 		if [[ "$REPLY" == "y" ]]; then
+			# Write config using show_example function
 			show_example > "$config"
 			echo "Config written to \"$config\""
 		fi
 	else
+		# Write config using show_example function
 		show_example > "$config"
 		echo "Config written to \"$config\""
 	fi
@@ -23,7 +36,7 @@ function write_config {
 function show_help {
 echo -e "
 \033[1mHomepage\033[0m
-\e[04;34mhttps://bitbucket.org/teamsilent/ftpautodownload/\e[00m
+\e[04;34mhttps://github.com/Meliox/FTPauto/\e[00m
 
 \033[1mDescription\033[0m
   FTPauto is a bash command line tool to send files from a local server to\n  a remote easily. Numerous options may be specified such a checking free space for \n  transferring, multiple user support, delay of transfer and category support. It is\n  especially powerful in combination with Flexget
@@ -93,7 +106,7 @@ function show_example {
 	# Shows an example for configuration
 	echo
 	echo "# This the the configuration file for FTPauto"
-	echo "config_version=\"6\""
+	echo "config_version=\"7\""
 	echo "# Place the file in $scriptdir/run/'$username'/config and load with --user='$username'"
 	echo
 	echo "# HOWTO: Edit the info between the quotes \"TEST\", here the word TEST"
