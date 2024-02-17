@@ -394,7 +394,7 @@ function main {
 			# Confirm the existence of the lock file; if not found, display an error message
 			confirm lock_file "Error: Lockfile not found. Nothing is being transferred!" "1"
 
-			echo "INFO: Transferring: $(sed -n 5p < "$logfile" | cut -d',' -f1 | cut -d' ' -f2)"
+			echo "INFO: Transferring: $(sed -n 5p < "$logfile" | cut -d',' -f1 | cut -d' ' -f3)"
 
 			# Display information about the update frequency
 			echo "INFO: Updates every $sleeptime second. (Exit with 'x')"
