@@ -5,11 +5,11 @@ function remote_server_list {
     echo "INFO: Looking up content on remote server..."
     # Set default directory to root if not specified
     [[ -z $dir ]] && dir="/"
-    
+
     while true; do
         # Get content of current directory
         get_content "$dir"
-        
+
         # Prompt user for input
         read -p "Enter number to expand directory or download by also adding a \"d\", e.g., 1d ? (x to exit) "
 
@@ -69,7 +69,7 @@ function get_content {
     rm -f "$server_list_file"
     loadDependency DServerLogin && load_login 1  # Generate a new login file as download removes it
     cat "$login_file1" >> "$server_list_file"
-    echo "ls -aFl \"${dir}\" > ~/../..$ftp_content" >> "$server_list_file"
+    echo "ls -aFl \"${dir}\" > ~/../..$server_content" >> "$server_list_file"
     echo "quit" >> "$server_list_file"
     $lftp -f "$server_list_file" &> /dev/null
 
@@ -79,7 +79,7 @@ function get_content {
         echo "Current path: $dir"
         old_dir="$dir"
         array_list=( )
-        readarray array_list < "$ftp_content"
+        readarray array_list < "$server_content"
         array_list=( "X X X X 4096 Feb XX XX ." "X X X X 4096 Feb XX XX .." "${array_list[@]}" )
         i=0
         # Iterate over array and display content
@@ -96,5 +96,5 @@ function get_content {
     fi
 
     # Cleanup
-    rm -f "$server_list_file" "$ftp_content" "$login_file1"
+    cleanup session
 }
