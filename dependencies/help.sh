@@ -204,6 +204,7 @@ function show_example {
 function create_log_file {
     # Check if the logfile exists, if not, create it
     if [[ ! -e "$logfile" ]]; then
+		serversizemanagement="false"
         # First time usage, create the logfile
         echo "INFO: First time usage. Logfile is created"
         echo "*************************** FTPauto - $s_version" >> "$logfile"
