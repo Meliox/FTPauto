@@ -228,15 +228,13 @@ function main {
             message "User=$username edited." "0"
             ;;
         "remove" ) # Remove all userfiles generated files. Does not remove config
-			confirm lock_file "Can't remove $username while session is running." "1"
 			rm -rf "$scriptdir/run/$username*"
 			rm "$scriptdir/users/$username/log"
             message "Userfiles removed for $username." "0"
             ;;
         "purge" ) # Remove all userfiles log files and config from /run and /user/$username/
-            confirm lock_file "Can't remove $username while session is running." "1"
             rm -rf "$scriptdir/users/$username"
-            rm -rf "$scriptdir/run/$username"
+            rm -rf "$scriptdir/run/$username*"
             message "User=$username removed." "0"
             ;;
         "pause" ) # Stop transfer
