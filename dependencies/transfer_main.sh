@@ -196,9 +196,6 @@ function transfer {
 
 	# Prepare new transfer
 	{
-		# Fail transfer is any command fails
-		echo "set cmd:fail-exit true" >> "$transfere_file"
-
 		# Write regexp to config for directory transfers
 		if [[ "${#exclude_array[@]}" -gt 0 && -n "${exclude_array[@]}" && ($transfer_type = "directory" || -d "$transfer_path") ]]; then
 			for ((i=0; i<${#exclude_array[@]}; i++)); do
@@ -235,9 +232,13 @@ function transfer {
 		elif [[ $transferetype == "upftp" || $transferetype == "upsftp" ]]; then
 			# Handle lftp transfer for upftp
 			cat "$login_file1" >> "$transfere_file"
-			echo "mkdir -p \"${complete}\"" >> "$transfere_file"
-			[[ -n "${incomplete}" ]] && echo "mkdir -p \"${incomplete}\"" >> "$transfere_file"
-			echo "set cmd:fail-exit true" >> "$transfere_file"
+			echo "mkdir -p \"${complete}\"" >> "$ftptransfere_file"
+			# handle files for transfer
+			if [[ -n "${incomplete}" ]]; then
+				echo "mkdir -p \"${incomplete}\"" >> "$ftptransfere_file"
+			fi
+			# fail if transfers fails
+			echo "set cmd:fail-exit true" >> "$ftptransfere_file"
 
 			# Determine transfer type (file or directory)
 			if [[ -f "$transfer_path" ]]; then
