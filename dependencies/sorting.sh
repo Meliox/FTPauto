@@ -1,5 +1,5 @@
 #!/bin/bash
-# Version 0.3
+# Version 0.4
 
 # Function to sort files based on their names
 function sortFiles {
