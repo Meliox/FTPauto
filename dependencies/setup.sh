@@ -7,29 +7,30 @@ function setup {
 	lftp=$(which lftp)
 	rar2fs=$(which rar2fs)
 	# paths for internal files
-	queue_file="$scriptdir/run/$username.queue"
-	lockfile="$scriptdir/run/$username.lck"
-	logfile="$scriptdir/users/$username/log"
-	oldlogfile="$scriptdir/users/$username/log.old"
-	transfere_file="$scriptdir/run/$username.transfere"
-	transfere_processbar="$scriptdir/run/$username.processbar"
 	login_file1="$scriptdir/run/$username.login1"
 	login_file2="$scriptdir/run/$username.login2"
-	server_freespace_file="$scriptdir/run/$username.serverfreespace"
-	server_alive_file="$scriptdir/run/$username.serveralive"
-	server_check_testfile="$scriptdir/run/$username.servertestfile"
-	server_check_file="$scriptdir/run/$username.servercheck"
-	proccess_bar_file="$scriptdir/run/$username.transfered.info"
-	server_size_file="$scriptdir/run/$username.serversize.info"
-	log_control="$scriptdir/run/$username.controllog"
-	maindebugfile="$scriptdir/run/$username.main.debug"
 	lftpdebug="$scriptdir/run/$username.lftpdebug"
 	lftptransfersize="$scriptdir/run/$username.transfersize"
+	lftptransfersize2="$scriptdir/run/$username.lftptransfersize2"
+	lockfile="$scriptdir/run/$username.lck"
+	log_control="$scriptdir/run/$username.controllog"
+	logfile="$scriptdir/users/$username/log"
+	maindebugfile="$scriptdir/run/$username.main.debug"
+	oldlogfile="$scriptdir/users/$username/log.old"
+	proccess_bar_file="$scriptdir/run/$username.transfered.info"
+	queue_file="$scriptdir/run/$username.queue"
+	server_alive_file="$scriptdir/run/$username.serveralive"
+	server_check_file="$scriptdir/run/$username.servercheck"
+	server_check_testfile="$scriptdir/run/$username.servertestfile"
+	server_content="$scriptdir/run/$username.servercontent"
+	server_freespace_file="$scriptdir/run/$username.serverfreespace"
+	server_list_file="$scriptdir/run/$username.lftplist"
+	server_size_file="$scriptdir/run/$username.serversize.info"
+	transfere_file="$scriptdir/run/$username.transfere"
+	transfere_processbar="$scriptdir/run/$username.processbar"
 	transfersize="$scriptdir/run/$username.transfersize"
 	transfersize2="$scriptdir/run/$username.transfersize2"
-	lftptransfersize2="$scriptdir/run/$username.lftptransfersize2"
-	server_list_file="$scriptdir/run/$username.lftplist"
-	server_content="$scriptdir/run/$username.servercontent"
+
 }
 
 # Function to get the size of a file or directory
@@ -170,7 +171,7 @@ function cleanup {
 			unset mount_in_use
 		fi
 		# Define array of files to remove
-		array=( "$login_file1" "$ftplogin_file2" "$transfere_file" "$ftp_size_file" "$server_freespace_file" "$lftptransfersize" "$lftptransfersize2" "$transfersize" "$transfersize2" "$proccess_bar_file" "$ftpalive_file" "$ftpcheck_file" "$ftpcheck_testfile" "$ftptransfere_processbar" )
+		array=( "$login_file1" "$login_file2" "$lftpdebug" "$lftptransfersize" "$lftptransfersize2" "$lockfile" "$log_control" "$logfile" "$maindebugfile" "$oldlogfile" "$proccess_bar_file" "$queue_file" "$server_alive_file" "$server_check_file" "$server_check_testfile" "$server_content" "$server_freespace_file" "$server_list_file" "$server_size_file" "$transfere_file" "$transfere_processbar" "$transfersize" "$transfersize2" )
 		# Call removeClean function to remove files
 		removeClean "${array[@]}"
 		# Remove tempdirs
