@@ -30,7 +30,6 @@ function setup {
 	transfere_processbar="$scriptdir/run/$username.processbar"
 	transfersize="$scriptdir/run/$username.transfersize"
 	transfersize2="$scriptdir/run/$username.transfersize2"
-
 }
 
 # Function to get the size of a file or directory
