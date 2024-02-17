@@ -66,12 +66,12 @@ function remote_server_list {
 # Function to retrieve content from a remote server and display it
 function get_content {
     # Remove old files first
-    rm -f "$ftplist_file"
+    rm -f "$server_list_file"
     loadDependency DServerLogin && load_login 1  # Generate a new login file as download removes it
-    cat "$ftplogin_file1" >> "$ftplist_file"
-    echo "ls -aFl \"${dir}\" > ~/../..$ftp_content" >> "$ftplist_file"
-    echo "quit" >> "$ftplist_file"
-    $lftp -f "$ftplist_file" &> /dev/null
+    cat "$login_file1" >> "$server_list_file"
+    echo "ls -aFl \"${dir}\" > ~/../..$ftp_content" >> "$server_list_file"
+    echo "quit" >> "$server_list_file"
+    $lftp -f "$server_list_file" &> /dev/null
 
     # Check if listing was successful
     if [[ $? -eq 0 ]]; then
@@ -96,5 +96,5 @@ function get_content {
     fi
 
     # Cleanup
-    rm -f "$ftplist_file" "$ftp_content" "$ftplogin_file1"
+    rm -f "$server_list_file" "$ftp_content" "$login_file1"
 }
