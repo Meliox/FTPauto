@@ -743,70 +743,68 @@ Path:                    $ftpcomplete"
 }
 
 function start_main {
-	#Look for which options has been used
-	while :; do
-		case "$1" in
-		--path=* ) filepath="${1#--path=}"; shift;;
-		--user=* ) user="${1#--user=}"; shift;;
-		--exec_post=* ) exec_post="${1#--exec_post=}"; shift;;
-		--exec_pre=* ) exec_pre="${1#--exec_pre=}"; shift;;
-		--delay=* ) delay="${1#--delay=}"; shift;;
-		--force | -f ) force=true; shift;;
-		--queue ) queue=true; shift;;
-		--source=* ) source="${1#--source=}"; shift;;
-		--sortto=* ) sortto="${1#--sortto=}"; shift;;
-		--test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;
-		* ) break ;;
-		--) shift; break;;
-		esac
-	done
+    # Parse command-line options
+    while [[ "$1" ]]; do
+        case "$1" in
+            --path=* ) filepath="${1#--path=}"; shift;;
+            --user=* ) user="${1#--user=}"; shift;;
+            --exec_post=* ) exec_post="${1#--exec_post=}"; shift;;
+            --exec_pre=* ) exec_pre="${1#--exec_pre=}"; shift;;
+            --delay=* ) delay="${1#--delay=}"; shift;;
+            --force | -f ) force=true; shift;;
+            --queue ) queue=true; shift;;
+            --source=* ) source="${1#--source=}"; shift;;
+            --sortto=* ) sortto="${1#--sortto=}"; shift;;
+            --test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;
+            * ) break ;;
+        esac
+    done
 
-	# main program starts here
+    # Main program starts here
 
-	# confirm filepath
-	if [[ -z "$filepath" ]]; then
-		# if --path is not used, try and run queue
-		queue next
-	elif [[ -z "$(find "$filepath" -type d 2>/dev/null)" ]] && [[ -z "$(find "$filepath" -type f -print | head -n 1 2>/dev/null)" ]] || [[ -z "$(find "$filepath" -type f -print | head -n 1 2>/dev/null)" ]]; then
-		# path with files or file not found
-		if [[ "$transferetype" == "downftp" ]] || [[ "$transferetype" == fxp ]]; then
-			# server <-- client, assume path is OK - we will know for sure when size is found
-			true
-		elif [[ "$transferetype" == "upftp" ]]; then
-			# server --> client
-			echo -e "\e[00;31mERROR: Option --path is required with existing path (with file(s)), or file does not exists:\n $filepath\n This cannot be transfered!\e[00m\n"
-			queue fail
-			queue next
-		else
-			echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Have a look on your config (--user=$user --edit)!\e[00m\n"
-			exit 1
-		fi
-	fi
-	# Save transfer to queue and exit
-	if [[ $queue == true ]]; then
-		queue add end
-	fi
+    # Confirm filepath
+    if [[ -z "$filepath" ]]; then
+        # If --path is not used, try to run from the queue
+        queue next
+    elif [[ -z "$(find "$filepath" -type d 2>/dev/null)" ]] && [[ -z "$(find "$filepath" -type f -print | head -n 1 2>/dev/null)" ]] || [[ -z "$(find "$filepath" -type f -print | head -n 1 2>/dev/null)" ]]; then
+        # Path with files or file not found
+        if [[ "$transferetype" == "downftp" || "$transferetype" == "fxp" ]]; then
+            # Server <-- Client: Assume path is OK, we will know for sure when size is found
+            true
+        elif [[ "$transferetype" == "upftp" ]]; then
+            # Server --> Client: Display error if path not found
+            echo -e "\e[00;31mERROR: Option --path is required with an existing path (with file(s)), or file does not exist:\n $filepath\n This cannot be transferred!\e[00m\n"
+            queue fail
+            queue next
+        else
+            echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Check your configuration (--user=$user --edit)!\e[00m\n"
+            exit 1
+        fi
+    fi
 
-	# Create lockfile
-	if [[ "$lockfileRunning" == "true" ]]; then
-		echo "INFO: Updating lockfile"
-	else
-		lockfile
-	fi
+    # Save transfer to queue and exit
+    if [[ $queue == true ]]; then
+        queue add end
+    fi
 
-	echo "INFO: Transfer-option: $transferetype"
+    # Create lockfile if not already running
+    if [[ "$lockfileRunning" != "true" ]]; then
+        lockfile
+    else
+        echo "INFO: Updating lockfile"
+    fi
 
-	#Load dependencies
-	loadDependency DSetup
+    echo "INFO: Transfer-option: $transferetype"
 
-	# Load user config
-	loadConfig
+    # Load dependencies
+    loadDependency DSetup
 
-	# OK nothing running and --path is real, lets continue
-	# fix spaces: "/This\ is\ a\ path"
-	# Note: The use of normal backslashes is NOT supported
-	filepath="$(echo "$filepath" | sed 's/\\./ /g')"
+    # Load user config
+    loadConfig
 
-	#start program
-	main "$filepath"
+    # Fix spaces in filepath
+    filepath="$(echo "$filepath" | sed 's/\\./ /g')"
+
+    # Start main program
+    main "$filepath"
 }
