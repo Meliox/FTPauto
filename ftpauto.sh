@@ -10,8 +10,33 @@ control_c() {
 	# run if user hits control-c
 	echo -ne '\n'
 	cleanup die
+	message "Session has been terminated." "0"
 }
 trap control_c SIGINT
+
+control_p() {
+	# Run if user hits Ctrl+P
+	echo -ne '\n'
+	safelock="false"
+	confirm lock_file "Error, lockfile couldn't be found. Nothing could be done!" "1"
+	cleanup stop
+	cleanup session
+	cleanup end
+	message "Session has been paused." "0"
+}
+trap control_p SIGTSTP
+
+control_s() {
+	# Run if user hits Ctrl+S
+	echo -ne '\n'
+	safelock="false"
+	confirm lock_file "Error, lockfile couldn't be found. Nothing could be done!" "1"
+	cleanup stop
+	cleanup session
+	cleanup end
+	message "Session has been stopped." "0"
+}
+trap control_s SIGTSTP
 
 function verbose {
 	# Function to control verbosity of script output
