@@ -8,38 +8,23 @@ message=""
 
 #stty ^S ^P
 
-control_c() {
+interrupt_handler() {
 	# run if user hits control-c
 	echo "Interrupt signal received: $last_key_sequence"
 	echo -ne '\n'
 	cleanup die
 	message "Session has been terminated." "0"
 }
-trap control_c SIGINT
 
-control_p() {
-	# Run if user hits Ctrl+P
-	echo -ne '\n'
-	safelock="false"
-	confirm lock_file "Error, lockfile couldn't be found. Nothing could be done!" "1"
-	cleanup stop
-	cleanup session
-	cleanup end
-	message "Session has been paused." "0"
+# Function to store the last key sequence before interruption
+store_last_key_sequence() {
+    last_key_sequence=$(stty -g)
 }
-trap control_p SIGTSTP
 
-control_s() {
-	# Run if user hits Ctrl+S
-	echo -ne '\n'
-	safelock="false"
-	confirm lock_file "Error, lockfile couldn't be found. Nothing could be done!" "1"
-	cleanup stop
-	cleanup session
-	cleanup end
-	message "Session has been stopped." "0"
-}
-trap control_s SIGTSTP
+# Trap the interrupt signal (Ctrl+C) and call the interrupt handler function
+trap 'interrupt_handler' INT
+
+trap 'store_last_key_sequence' DEBUG
 
 function verbose {
 	# Function to control verbosity of script output
