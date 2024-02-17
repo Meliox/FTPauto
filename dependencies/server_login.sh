@@ -55,14 +55,14 @@ function ftp_login {
 
 # Function to generate SFTP login details
 function sftp_login {
-    local number sftpcustom sftpuser sftppass sftphost sftpport sftploginfile
+    local sftpcustom sftpuser sftppass sftphost sftpport sftploginfile
 
     # Set variables based on input
-    sftpcustom="sftpcustom"
-    sftpuser="sftpuser"
-    sftppass="sftppass"
-    sftphost="sftphost"
-    sftpport="sftpport"
+    sftpcustom="$sftpcustom"
+    sftpuser="$sftpuser"
+    sftppass="$sftppass"
+    sftphost="$sftphost"
+    sftpport="$sftpport"
 
     # Set timeout settings
     echo "ConnectTimeout 10" >> "${!sftploginfile}"
