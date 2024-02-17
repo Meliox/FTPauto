@@ -77,7 +77,7 @@ function sftp_login {
     
     # Check if username and password are provided
     if [[ "$transferetype" =~ "upsftp" ]]; then
-        echo "open -u ${sftpuser},${sftppass} sftp://${sftphost} -p ${sftpport}" >> "${!ftploginfile}"
+        echo "open -u ${sftpuser},${sftppass} sftp://${sftphost} -p ${sftpport}" >> "${ftploginfile}"
     else
         echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Check your config (--user=$user --edit)!\e[00m\n"
         cleanup session
