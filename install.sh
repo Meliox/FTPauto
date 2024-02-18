@@ -87,6 +87,7 @@ function lftp_update {
         cd "$scriptdir/dependencies" || exit
         local lftpversion=$(curl -s https://github.com/lavv17/lftp/tags | grep -oP '(?<=tags/v)\d+\.\d+\.\d+' | sort -V | tail -n 1)
         wget "https://github.com/lavv17/lftp/archive/refs/tags/v$lftpversion.tar.gz" &> /dev/null
+		mv "$scriptdir/dependencies/v$lftpversion.tar.gz" "$scriptdir/dependencies/lftp-$lftpversion.tar.gz"
         tar -xzvf "lftp-$lftpversion.tar.gz" &> /dev/null
         rm "$scriptdir/dependencies/lftp-$lftpversion.tar.gz"
         cd "lftp-$lftpversion" && ./configure --with-openssl --silent &> /dev/null && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
