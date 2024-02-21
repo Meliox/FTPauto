@@ -64,7 +64,7 @@ function ftp_login {
 
 # Function to generate SFTP login details
 function sftp_login {
-    local number OIFS IFS custom ssl user pass host pass loginfile
+    local number OIFS IFS custom ssl user pass host pass loginfile sftpkeyfile
     number="$1"
 
     # Set variables based on input
@@ -75,6 +75,7 @@ function sftp_login {
     host="sftphost${number}"
     port="sftpport${number}"
     login_file="login_file${number}"
+    sftpkeyfile="sftpkey${number}"
 
     # Set timeout settings
     echo "set net:timeout 10" >> "${!login_file}"
@@ -85,13 +86,17 @@ function sftp_login {
 
     echo "set sftp:auto-confirm true" >> "${!login_file}"
 
+    if [[ -n "${!sftpkeyfile}" ]]; then
+        echo "set ssl:key-file ${!sftpkeyfile}" >> "${!login_file}"
+    fi
+    
     # Write custom configurations to file
     if [[ -n "${!custom}" ]]; then
         for option in "${!custom[@]}"; do
             echo "$option" >> "${!login_file}"
         done
     fi
-    
+
     # Check if username and password are provided
     if [[ "$transferetype" =~ "upsftp" ]]; then
         echo "open -u ${!user},${!pass} sftp://${!host} -p ${!port}" >> "${!login_file}"

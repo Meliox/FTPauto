@@ -100,7 +100,7 @@ function show_example {
 	# Shows an example for configuration
 	echo
 	echo "# This the the configuration file for FTPauto"
-	echo "config_version=\"7\""
+	echo "config_version=\"8\""
 	echo "# Place the file in $scriptdir/run/'$username'/config and load with --user='$username'"
 	echo
 	echo "# HOWTO: Edit the info between the quotes \"TEST\", here the word TEST"
@@ -137,6 +137,7 @@ function show_example {
 	echo "sftppass1=\"pass\" # SFTP password"
 	echo "sftphost1=\"ip\" # SFTP host address"
 	echo "sftpport1=\"port\" # SFTP port"
+	echo "sftpkey1=\"\" # SFTP keyfile. Leave emoty if not used"
 	echo "sftpcustom1=\"\" # Enter additional settings separated by ';'"
 	echo
 	echo "#### Log settings ###"
