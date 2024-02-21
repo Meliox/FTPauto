@@ -776,7 +776,7 @@ function start_main {
         if [[ "$transferetype" == "downftp" || "$transferetype" == "fxp" ]]; then
             # Server <-- Client: Assume path is OK, we will know for sure when size is found
             true
-        elif [[ "$transferetype" == "upftp" ]]; then
+        elif [[ "$transferetype" == "upftp" ||  "$transferetype" == "upsftp"]]; then
             # Server --> Client: Display error if path not found
             echo -e "\e[00;31mERROR: Option --path is required with an existing path (with file(s)), or file does not exist:\n $filepath\n This cannot be transferred!\e[00m\n"
             queue fail
