@@ -43,8 +43,9 @@ function ftp_login {
 
     # Write custom configurations to file
     if [[ -n "${!custom}" ]]; then
-        for option in "${!custom[@]}"; do
-            echo "$option" >> "${!login_file}"
+        IFS=';' read -ra custom_arr <<< "$sftpcustom1"  # Split the string by ';' into an array
+        for option in "${custom_arr[@]}"; do
+            echo "$option" >> "${!login_file}"  # Append each option to the login file
         done
     fi
 
@@ -89,8 +90,9 @@ function sftp_login {
     
     # Write custom configurations to file
     if [[ -n "${!custom}" ]]; then
-        for option in "${!custom[@]}"; do
-            echo "$option" >> "${!login_file}"
+        IFS=';' read -ra custom_arr <<< "$sftpcustom1"  # Split the string by ';' into an array
+        for option in "${custom_arr[@]}"; do
+            echo "$option" >> "${!login_file}"  # Append each option to the login file
         done
     fi
 
