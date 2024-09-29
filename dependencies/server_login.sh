@@ -42,12 +42,7 @@ function ftp_login {
     fi
 
     # Write custom configurations to file
-    if [[ -n "${!custom}" ]]; then
-        IFS=';' read -ra custom_arr <<< "$sftpcustom1"  # Split the string by ';' into an array
-        for option in "${custom_arr[@]}"; do
-            echo "$option" >> "${!login_file}"  # Append each option to the login file
-        done
-    fi
+    write_custom_configurations "${!custom}" "${!login_file}"
 
     # Allow only normal transfer types
     if [[ "$transferetype" =~ "upftp" ]] || [[ "$transferetype" =~ "downftp" ]] || [[ "$transferetype" =~ "fxp" ]]; then
@@ -89,12 +84,7 @@ function sftp_login {
     fi
     
     # Write custom configurations to file
-    if [[ -n "${!custom}" ]]; then
-        IFS=';' read -ra custom_arr <<< "$sftpcustom1"  # Split the string by ';' into an array
-        for option in "${custom_arr[@]}"; do
-            echo "$option" >> "${!login_file}"  # Append each option to the login file
-        done
-    fi
+    write_custom_configurations "${!custom}" "${!login_file}"
 
     # Check if username and password are provided
     if [[ "$transferetype" =~ "upsftp" ]]; then
@@ -104,5 +94,19 @@ function sftp_login {
         cleanup session
         cleanup end
         exit 1
+    fi
+}
+
+function write_custom_configurations {
+    local custom_variable_name login_file_variable_name
+    custom_variable_name="$1"
+    login_file_variable_name="$2"
+
+    # Write custom configurations to file
+    if [[ -n "${custom_variable_name}" ]]; then
+        IFS=';' read -ra custom_arr <<< "${custom_variable_name}"  # Split the string by ';' into an array
+        for option in "${custom_arr[@]}"; do
+            echo "$option" >> "${login_file_variable_name}"  # Append each option to the login file
+        done
     fi
 }
