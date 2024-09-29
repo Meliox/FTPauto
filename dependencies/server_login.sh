@@ -43,12 +43,9 @@ function ftp_login {
 
     # Write custom configurations to file
     if [[ -n "${!custom}" ]]; then
-        OIFS="$IFS"
-        IFS=';'
-        for i in "${!custom[@]}"; do
-            echo "$i" >> "${!login_file}"
+        for option in "${!custom[@]}"; do
+            echo "$option" >> "${!login_file}"
         done
-        IFS="$OIFS"
     fi
 
     # Allow only normal transfer types
