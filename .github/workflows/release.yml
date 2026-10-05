@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: release
@@ -75,15 +76,54 @@ jobs:
           } > CHANGELOG.new
           mv CHANGELOG.new CHANGELOG.md
 
-      - name: Commit and tag
+      # master is protected (changes must go through a pull request), so the release
+      # commit is merged via a PR and the tag is created on the resulting merge commit.
+      - name: Open and merge release PR
         if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          tag="${{ steps.version.outputs.new_tag }}"
+          branch="release/${tag}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
           git add ftpauto.sh CHANGELOG.md
-          git commit -m "Release ${{ steps.version.outputs.new_tag }}"
-          git tag -a "${{ steps.version.outputs.new_tag }}" -m "Release ${{ steps.version.outputs.new_tag }}"
-          git push origin HEAD "${{ steps.version.outputs.new_tag }}"
+          git commit -m "Release ${tag}"
+          git push origin "$branch"
+
+          pr_url=$(gh pr create --base master --head "$branch" \
+            --title "Release ${tag}" --body-file release_notes.md)
+          echo "Created $pr_url"
+
+          if ! gh pr merge "$pr_url" --squash --delete-branch; then
+            echo "Direct merge not possible, enabling auto-merge"
+            gh pr merge "$pr_url" --squash --delete-branch --auto
+          fi
+
+          # Wait for the PR to be merged (immediate, or after required checks/reviews)
+          for _ in $(seq 1 60); do
+            state=$(gh pr view "$pr_url" --json state --jq .state)
+            [[ "$state" == "MERGED" ]] && break
+            if [[ "$state" == "CLOSED" ]]; then
+              echo "Release PR was closed without merging" >&2
+              exit 1
+            fi
+            sleep 30
+          done
+          if [[ "$state" != "MERGED" ]]; then
+            echo "Timed out waiting for $pr_url to merge" >&2
+            exit 1
+          fi
+          echo "merge_sha=$(gh pr view "$pr_url" --json mergeCommit --jq .mergeCommit.oid)" >> "$GITHUB_ENV"
+
+      - name: Tag release
+        if: ${{ !inputs.dry_run }}
+        run: |
+          tag="${{ steps.version.outputs.new_tag }}"
+          git fetch origin master
+          git tag -a "$tag" -m "Release ${tag}" "$merge_sha"
+          git push origin "$tag"
 
       - name: Build source archive
         if: ${{ !inputs.dry_run }}
