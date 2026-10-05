@@ -175,13 +175,11 @@ function transfer_process {
 			sed "3c $pid_f_process" -i "$lockfile"
 			TransferStartTimeInSeconds=$((TransferStartTime / 1000000000))
 			echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $(date --date=@$TransferStartTimeInSeconds '+%d/%m/%y-%a-%H:%M:%S')\n\e[00m"
-			echo "[$(date '+%d/%m/%y-%a-%H:%M:%S')] lftp transfer attempt started: $orig_name" >> "$lftp_transfer_log"
-			$lftp -f "$transfere_file" &>> "$lftp_transfer_log" &
+			$lftp -f "$transfere_file" &> /dev/null &
 			pid_transfer=$!
 			sed "2c $pid_transfer" -i "$lockfile"
 			wait $pid_transfer 2>/dev/null
 			pid_transfer_status=$?
-			echo "[$(date '+%d/%m/%y-%a-%H:%M:%S')] lftp transfer attempt ended with exit status $pid_transfer_status" >> "$lftp_transfer_log"
 			TransferEndTime=$(date +%s%N)
 		;;
 		"stop-process-bar" )
@@ -205,7 +203,7 @@ function destination_exists {
 
 	[[ $transferetype == "fxp" ]] && login="$login_file2" || login="$login_file1"
 	result=$({ cat "$login"; echo "set cmd:fail-exit true"; echo "cls -1 -d \"$path\""; echo "quit"; } > "$transfere_file.check"
-		$lftp -f "$transfere_file.check" 2>> "$lftp_transfer_log")
+		$lftp -f "$transfere_file.check" 2> /dev/null)
 	rm -f "$transfere_file.check"
 	[[ -n "$result" ]]
 }
@@ -220,7 +218,6 @@ function transfer_already_moved {
 
 	for i in 1 2 3; do
 		if destination_exists "${complete}${orig_name}" && ! destination_exists "${incomplete}${orig_name}"; then
-			echo "[$(date '+%d/%m/%y-%a-%H:%M:%S')] Found ${complete}${orig_name} in complete and not in incomplete" >> "$lftp_transfer_log"
 			return 0
 		fi
 		# Give a delayed move time to show up
@@ -231,11 +228,6 @@ function transfer_already_moved {
 
 function transfer {
 	local lftp_exclude quittime waittime complete_preexisting=false
-
-	# Rotate transfer log if it grows too large
-	if [[ -f "$lftp_transfer_log" && $(stat -c %s "$lftp_transfer_log") -gt 5242880 ]]; then
-		mv -f "$lftp_transfer_log" "$lftp_transfer_log.old"
-	fi
 
 	# Prepare new transfer
 	{
@@ -332,7 +324,6 @@ function transfer {
 			# Remember if the item already exists in complete, as then a finished move cannot be detected reliably
 			if [[ -n "$incomplete" ]] && destination_exists "${complete}${orig_name}"; then
 				complete_preexisting="true"
-				echo "[$(date '+%d/%m/%y-%a-%H:%M:%S')] ${complete}${orig_name} already exists before transfer" >> "$lftp_transfer_log"
 			fi
 
 			# Start the transfer process
