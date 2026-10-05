@@ -175,11 +175,13 @@ function transfer_process {
 			sed "3c $pid_f_process" -i "$lockfile"
 			TransferStartTimeInSeconds=$((TransferStartTime / 1000000000))
 			echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $(date --date=@$TransferStartTimeInSeconds '+%d/%m/%y-%a-%H:%M:%S')\n\e[00m"
-			$lftp -f "$transfere_file" &> /dev/null &
+			echo "[$(date '+%d/%m/%y-%a-%H:%M:%S')] lftp transfer attempt started: $orig_name" >> "$lftp_transfer_log"
+			$lftp -f "$transfere_file" &>> "$lftp_transfer_log" &
 			pid_transfer=$!
 			sed "2c $pid_transfer" -i "$lockfile"
 			wait $pid_transfer 2>/dev/null
 			pid_transfer_status=$?
+			echo "[$(date '+%d/%m/%y-%a-%H:%M:%S')] lftp transfer attempt ended with exit status $pid_transfer_status" >> "$lftp_transfer_log"
 			TransferEndTime=$(date +%s%N)
 		;;
 		"stop-process-bar" )
@@ -192,8 +194,48 @@ function transfer_process {
 	esac
 }
 
+# Returns 0 if the given path exists on the destination (local for downftp, remote otherwise)
+function destination_exists {
+	local path="$1" login result
+
+	if [[ $transferetype == "downftp" ]]; then
+		[[ -e "$path" ]]
+		return
+	fi
+
+	[[ $transferetype == "fxp" ]] && login="$login_file2" || login="$login_file1"
+	result=$({ cat "$login"; echo "set cmd:fail-exit true"; echo "cls -1 -d \"$path\""; echo "quit"; } > "$transfere_file.check"
+		$lftp -f "$transfere_file.check" 2>> "$lftp_transfer_log")
+	rm -f "$transfere_file.check"
+	[[ -n "$result" ]]
+}
+
+# A failed lftp run can still have moved the item from incomplete to complete (e.g. connection lost
+# while the move was acknowledged). Retrying would then transfer again and fail on the move.
+# Returns 0 if the item is already in complete and no longer in incomplete.
+function transfer_already_moved {
+	local i
+
+	[[ -z "$incomplete" || "$complete_preexisting" == "true" ]] && return 1
+
+	for i in 1 2 3; do
+		if destination_exists "${complete}${orig_name}" && ! destination_exists "${incomplete}${orig_name}"; then
+			echo "[$(date '+%d/%m/%y-%a-%H:%M:%S')] Found ${complete}${orig_name} in complete and not in incomplete" >> "$lftp_transfer_log"
+			return 0
+		fi
+		# Give a delayed move time to show up
+		[[ $i -lt 3 ]] && sleep 10
+	done
+	return 1
+}
+
 function transfer {
-	local lftp_exclude quittime waittime
+	local lftp_exclude quittime waittime complete_preexisting=false
+
+	# Rotate transfer log if it grows too large
+	if [[ -f "$lftp_transfer_log" && $(stat -c %s "$lftp_transfer_log") -gt 5242880 ]]; then
+		mv -f "$lftp_transfer_log" "$lftp_transfer_log.old"
+	fi
 
 	# Prepare new transfer
 	{
@@ -230,8 +272,7 @@ function transfer {
 				echo "wait" >> "$transfere_file"
 
 				# Move files locally if incomplete directory is used
-				[[ -n $incomplete ]] && echo "queue !mv \"${incomplete}${orig_name}\" \"${complete}\"" >> "$transfere_file"
-				echo "wait" >> "$transfere_file"
+				[[ -n $incomplete ]] && echo "shell \"mv \\\"${incomplete}${orig_name}\\\" \\\"${complete}\\\" || { test -e \\\"${complete}${orig_name}\\\" && ! test -e \\\"${incomplete}${orig_name}\\\"; }\"" >> "$transfere_file"
 		elif [[ $transferetype == "upftp" || $transferetype == "upsftp" ]]; then
 			# Handle lftp transfer for upftp
 			cat "$login_file1" >> "$transfere_file"
@@ -255,8 +296,7 @@ function transfer {
 			echo "wait" >> "$transfere_file"
 
 			# Move files remotely if incomplete directory is used
-			[[ -n "$incomplete" ]] && echo "queue mv \"${incomplete}${orig_name}\" \"${complete}\"" >> "$transfere_file"
-			echo "wait" >> "$transfere_file"
+			[[ -n "$incomplete" ]] && echo "mv \"${incomplete}${orig_name}\" \"${complete}\" || (cls -d \"${complete}${orig_name}\" && (cls -d \"${incomplete}${orig_name}\" && exit 1 || echo \"INFO: Item already moved to complete\"))" >> "$transfere_file"
 		elif [[ $transferetype == "fxp" ]]; then
 			# Handle lftp transfer for fxp
 			server_login 2
@@ -277,8 +317,7 @@ function transfer {
 			echo "wait" >> "$transfere_file"
 
 			 # Move files remotely if incomplete directory is used
-			[[ -n "$incomplete" ]] && echo "queue mv \"${incomplete}${orig_name}\" \"${complete}\"" >> "$transfere_file"
-			echo "wait" >> "$transfere_file"
+			[[ -n "$incomplete" ]] && echo "mv \"${incomplete}${orig_name}\" \"${complete}\" || (cls -d \"${complete}${orig_name}\" && (cls -d \"${incomplete}${orig_name}\" && exit 1 || echo \"INFO: Item already moved to complete\"))" >> "$transfere_file"
 		else
 			echo -e "\e[00;31mERROR: Transfer setting not recognized\e[00m\n"
 			cleanup die
@@ -290,11 +329,24 @@ function transfer {
 	# Start transferring
 	{
 		if [[ $test_mode != "true" ]]; then
+			# Remember if the item already exists in complete, as then a finished move cannot be detected reliably
+			if [[ -n "$incomplete" ]] && destination_exists "${complete}${orig_name}"; then
+				complete_preexisting="true"
+				echo "[$(date '+%d/%m/%y-%a-%H:%M:%S')] ${complete}${orig_name} already exists before transfer" >> "$lftp_transfer_log"
+			fi
+
 			# Start the transfer process
 			transfer_process start
 			
 			# Loop until transfer completes or timeout is reached
 			while [[ $pid_transfer_status -ne 0 ]]; do
+				# lftp may have failed after the move to complete already happened
+				if transfer_already_moved; then
+					echo -e "\e[00;33mINFO: lftp reported failure, but the item is already moved to complete. Treating transfer as successful\e[00m"
+					pid_transfer_status=0
+					break
+				fi
+
 				quittime=$(( ScriptStartTime + retry_download_max*60 ))
 				
 				# Check if it's time to quit
