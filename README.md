@@ -26,10 +26,10 @@ If you find this tool helpful, a small donation is appreciated, [![Donate](https
 - - -
 # Index
 * [Requirements](#requirements)
-* [Installation (Recommended)](#installation-recommended)
- * [Get svn](#get-svn)
- * [Manual install](#manual-install)
- * [Upgrading](#upgrading)
+* [Installation](#installation)
+ * [Quick install](#quick-install)
+ * [Updating](#updating)
+ * [Install from git](#install-from-git)
 * [Configuration](#configuration)
  * [Adding user](#adding-user)
  * [The config](#the-config)
@@ -53,40 +53,41 @@ You should have User and sudo or root access to use and install, respectively.
 Script is mainly written to Debian/Ubuntu and is guaranteed to work under these!
 
 ## Installation
-There are several way to install FTPauto. Sudo is necesary to install some dependent tools
+Sudo is needed to install the dependent tools (lftp, rar, rar2fs, ...).
 
-### The installer (recommended)
-To get FTPauto, download and execute the installer: [download](https://raw.github.com/Meliox/FTPauto/master/install.sh)
-The installer will set up the environment and will help to install the necessary programs. During the installation you will also be able to set up a user!
+### Quick install
+Copy and paste this into a terminal. It downloads the installer, which fetches the latest FTPauto release and installs the dependencies:
 
 ```bash
-mkdir FTPauto && cd FTPauto
-wget https://raw.github.com/Meliox/FTPauto/master/install.sh
-bash install.sh install
+mkdir -p ~/FTPauto && cd ~/FTPauto && curl -fsSLO https://raw.githubusercontent.com/Meliox/FTPauto/master/install.sh && bash install.sh install
 ```
-and update
+
+The first run downloads FTPauto and asks you to run the installer again. Run it once more to install the dependencies and set up a user:
+
 ```bash
-bash install.sh update
-```
-
-
-Follow the instructions to set up a user and then you're ready to use FTPauto! If you skipped user setup or need help go to [configuration](https://github.com/Meliox/FTPauto#configuration) to set up a user.
-
-### Get svn
-Alternatively, you can get it from Github (This version may contain unfinished features and be unstable).
-```bash
-git clone ssh://git@github.com/Meliox/FTPauto.git
-```
-Run
-```bash 
 bash install.sh install
 ```
 
-and update
+Follow the instructions to set up a user and then you're ready to use FTPauto! If you skipped user setup or need help go to [configuration](#configuration).
+
+### Updating
+Run the installer again. It checks for a newer release and asks before updating:
+
 ```bash
-git pull
-bash install.sh update
+cd ~/FTPauto && bash install.sh install
 ```
+
+### Install from git
+The latest development version (may contain unfinished features and be unstable) can be used instead of a release:
+
+```bash
+git clone https://github.com/Meliox/FTPauto.git ~/FTPauto && cd ~/FTPauto
+bash install.sh install
+```
+
+Update with `git pull` and run the installer again.
+
+To remove FTPauto and its dependencies, run `bash install.sh uninstall`.
 
 # Configuration
 First thing that need to be done is to create a user and edit the users settings. The setting that is to be edited is shown in [settings](https://github.com/Meliox/FTPauto#settings).
