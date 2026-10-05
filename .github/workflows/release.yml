@@ -9,12 +9,12 @@ on:
         options: [patch, minor, major]
         default: patch
       dry_run:
-        description: Only print the version and changelog, do not commit, tag or release
+        description: Only print the version and changelog, do not open a release PR
         type: boolean
         default: false
-
-permissions:
-  contents: write
+  pull_request:
+    types: [closed]
+    branches: [master]
 
 concurrency:
   group: release
@@ -24,8 +24,12 @@ env:
   TAG_PREFIX: FTPauto-v
 
 jobs:
-  release:
+  prepare:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
         with:
@@ -75,25 +79,72 @@ jobs:
           } > CHANGELOG.new
           mv CHANGELOG.new CHANGELOG.md
 
-      - name: Commit and tag
+      - name: Open release PR
         if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          tag="${{ steps.version.outputs.new_tag }}"
+          branch="release/${tag}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
           git add ftpauto.sh CHANGELOG.md
-          git commit -m "Release ${{ steps.version.outputs.new_tag }}"
-          git tag -a "${{ steps.version.outputs.new_tag }}" -m "Release ${{ steps.version.outputs.new_tag }}"
-          git push origin HEAD "${{ steps.version.outputs.new_tag }}"
+          git commit -m "Release ${tag}"
+          git push origin "$branch"
+          # The PR body is the release notes; the publish job reuses it for the GitHub release
+          gh pr create --base master --head "$branch" \
+            --title "Release ${tag}" --body-file release_notes.md
+
+  publish:
+    # Only for merged release PRs from branches of this repository
+    if: >-
+      ${{ github.event_name == 'pull_request'
+      && github.event.pull_request.merged == true
+      && github.event.pull_request.head.repo.full_name == github.repository
+      && startsWith(github.event.pull_request.head.ref, 'release/FTPauto-v') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Determine tag
+        id: version
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          tag="${HEAD_REF#release/}"
+          version="${tag#"$TAG_PREFIX"}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Unexpected release branch: $HEAD_REF" >&2
+            exit 1
+          fi
+          # Guard against a release PR that did not actually bump the version
+          grep -q "^s_version=\"${version}\"" <(sed -n 2p ftpauto.sh)
+          printf '%s\n' "$PR_BODY" > release_notes.md
+          echo "new_tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "new_version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Tag release
+        run: |
+          tag="${{ steps.version.outputs.new_tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$tag" -m "Release ${tag}"
+          git push origin "$tag"
 
       - name: Build source archive
-        if: ${{ !inputs.dry_run }}
         run: |
           tag="${{ steps.version.outputs.new_tag }}"
           # Single top-level directory so install.sh can extract with --strip-components 1
           git archive --format=tar.gz --prefix="${tag}/" -o "${tag}.tar.gz" "$tag"
 
       - name: Create GitHub release
-        if: ${{ !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
