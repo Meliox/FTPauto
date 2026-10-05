@@ -370,7 +370,7 @@ function transfer {
 					# Stop the transfer process, pause session, and retry after a delay
 					transfer_process "stop-process-bar"
 					echo "INFO: Pausing session and trying again in 60 seconds"
-					sed "3s#.*#***************************	SERVER INFO: DOWNLOAD POSTPONED! Trying again in ${retry_download} minutes#" -i "$logfile"
+					sed "3s#.*#*************************** SERVER INFO: DOWNLOAD POSTPONED! Trying again in 60 seconds#" -i "$logfile"
 					sleep 60
 					transfer_process start
 				fi
