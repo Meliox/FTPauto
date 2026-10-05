@@ -408,7 +408,13 @@ function uninstall {
 # Function to handle downloading the script
 function downloadScript {
 	echo -n " Downloading FTPauto..."
-	wget -q "https://github.com/Meliox/FTPauto/archive/FTPauto-v$release_version.tar.gz"
+	# Prefer the release asset, fall back to the tag archive for releases without one
+	wget -q "https://github.com/Meliox/FTPauto/releases/download/FTPauto-v$release_version/FTPauto-v$release_version.tar.gz" || \
+		wget -q "https://github.com/Meliox/FTPauto/archive/FTPauto-v$release_version.tar.gz"
+	if [[ ! -f "${scriptdir}/FTPauto-v${release_version}.tar.gz" ]]; then
+		echo -e "\e[00;31m [ERROR]\e[00m\nDownload failed. Exiting.\n"
+		exit 1
+	fi
 	echo -e "\e[00;32m [OK]\e[00m"
 	echo -n " Extracting ..."
 	tar -xzf "${scriptdir}/FTPauto-v${release_version}.tar.gz" --overwrite --strip-components 1
@@ -425,7 +431,11 @@ function updateScript {
 	argument="$1"
 	getCurrentVersion
 	echo -n " Checking/updating FTPauto ..."
-	local release_version=$(curl -s https://api.github.com/repos/Meliox/ftpauto/tags | grep -oP '"name": "\KFTPauto-v\d+\.\d+\.\d+' | sort -V | tail -n 1 | cut -d'v' -f2)
+	local release_version=$(curl -s https://api.github.com/repos/Meliox/FTPauto/releases/latest | grep -oP '"tag_name":\s*"FTPauto-v\K\d+\.\d+\.\d+')
+	if [[ -z "$release_version" ]]; then
+		# No release published yet, use the newest tag
+		release_version=$(curl -s https://api.github.com/repos/Meliox/FTPauto/tags | grep -oP '"name":\s*"FTPauto-v\K\d+\.\d+\.\d+' | sort -V | tail -n 1)
+	fi
 	version_compare "$release_version" "$i_version"
 	if [[ "$i_version" == "0" ]] && [[ $argument != installNew ]]; then
 		echo -e "\e[00;31m [ERROR]\e[00m\nNo installation found. Execute script with install as argument instead. Exiting.\n"

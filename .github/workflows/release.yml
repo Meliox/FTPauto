@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Semver bump applied to the latest release tag
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+      dry_run:
+        description: Only print the version and changelog, do not commit, tag or release
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  TAG_PREFIX: FTPauto-v
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Determine versions
+        id: version
+        run: |
+          prev_tag=$(git tag --list "${TAG_PREFIX}[0-9]*.[0-9]*.[0-9]*" | sort -V | tail -n 1)
+          prev_version="${prev_tag#"$TAG_PREFIX"}"
+          if [[ -z "$prev_tag" ]]; then
+            echo "No previous release tag found" >&2
+            exit 1
+          fi
+          IFS=. read -r major minor patch <<< "$prev_version"
+          case "${{ inputs.bump }}" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+          new_version="$major.$minor.$patch"
+          echo "prev_tag=$prev_tag" >> "$GITHUB_OUTPUT"
+          echo "new_version=$new_version" >> "$GITHUB_OUTPUT"
+          echo "new_tag=${TAG_PREFIX}${new_version}" >> "$GITHUB_OUTPUT"
+          echo "Releasing $prev_tag -> ${TAG_PREFIX}${new_version}"
+
+      - name: Generate changelog
+        run: |
+          bash .github/scripts/changelog.sh "${{ steps.version.outputs.prev_tag }}" "${{ steps.version.outputs.new_version }}" > release_notes.md
+          cat release_notes.md
+
+      - name: Bump version and update CHANGELOG.md
+        if: ${{ !inputs.dry_run }}
+        run: |
+          new_version="${{ steps.version.outputs.new_version }}"
+          # install.sh reads the installed version from line 2 of ftpauto.sh
+          sed -i -E "2s/^s_version=\".*\"/s_version=\"${new_version}\"/" ftpauto.sh
+          grep -q "^s_version=\"${new_version}\"" <(sed -n 2p ftpauto.sh)
+          {
+            echo "# Changelog"
+            echo
+            cat release_notes.md
+            if [[ -f CHANGELOG.md ]]; then
+              echo
+              tail -n +3 CHANGELOG.md
+            fi
+          } > CHANGELOG.new
+          mv CHANGELOG.new CHANGELOG.md
+
+      - name: Commit and tag
+        if: ${{ !inputs.dry_run }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ftpauto.sh CHANGELOG.md
+          git commit -m "Release ${{ steps.version.outputs.new_tag }}"
+          git tag -a "${{ steps.version.outputs.new_tag }}" -m "Release ${{ steps.version.outputs.new_tag }}"
+          git push origin HEAD "${{ steps.version.outputs.new_tag }}"
+
+      - name: Build source archive
+        if: ${{ !inputs.dry_run }}
+        run: |
+          tag="${{ steps.version.outputs.new_tag }}"
+          # Single top-level directory so install.sh can extract with --strip-components 1
+          git archive --format=tar.gz --prefix="${tag}/" -o "${tag}.tar.gz" "$tag"
+
+      - name: Create GitHub release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.version.outputs.new_tag }}"
+          gh release create "$tag" "${tag}.tar.gz" \
+            --title "FTPauto v${{ steps.version.outputs.new_version }}" \
+            --notes-file release_notes.md \
+            --verify-tag
