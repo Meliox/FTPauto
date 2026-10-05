@@ -24,24 +24,19 @@ function control_c() {
 }
 trap control_c SIGINT
 
-# Function to compare versions
+# Sets new_version to "true" if version $1 is newer than version $2
 function version_compare {
-    if [[ "$1" == "$2" ]]; then
-        new_version="false"
+    if [[ "$1" != "$2" && "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n 1)" == "$1" ]]; then
+        new_version="true"
     else
-        local IFS=.
-        local n1=($1) n2=($2)
-        local len=${#n1[@]}
-        for ((i=0; i<$len; i++)); do
-            if [[ ${n1[i]:-0} -gt ${n2[i]:-0} ]]; then
-                new_version="true"
-                break
-            elif [[ ${n1[i]:-0} -lt ${n2[i]:-0} ]]; then
-                new_version="false"
-                break
-            fi
-        done
+        new_version="false"
     fi
+}
+
+# Print the version of the latest GitHub release of a repository, without the tag prefix
+# Usage: github_latest_version <owner/repo> [tag prefix]
+function github_latest_version {
+	curl -fsS "https://api.github.com/repos/$1/releases/latest" | grep -oP '"tag_name":\s*"\K[^"]+' | head -n 1 | sed "s/^$2//"
 }
 
 # Function to install/update lftp
@@ -51,7 +46,7 @@ function lftp_update {
     # Check if lftp is installed
     if [[ -n $(command -v lftp) ]]; then
         # Get the latest version of lftp from GitHub
-        local lftpversion=$(curl -s https://github.com/lavv17/lftp/tags | grep -oP '(?<=tags/v)\d+\.\d+\.\d+' | sort -V | tail -n 1)
+        local lftpversion=$(github_latest_version lavv17/lftp v)
         # Get the current version of lftp
         local c_lftpversion=$(lftp --version | grep -Eo 'Version\ [0-9].[0-9].[0-9]' | cut -d' ' -f2)
         # Compare versions
@@ -85,10 +80,9 @@ function lftp_update {
 
         # Download and install lftp
         cd "$scriptdir/dependencies" || exit
-        local lftpversion=$(curl -s https://github.com/lavv17/lftp/tags | grep -oP '(?<=tags/v)\d+\.\d+\.\d+' | sort -V | tail -n 1)
-        wget "https://github.com/lavv17/lftp/archive/refs/tags/v$lftpversion.tar.gz" &> /dev/null
-		mv "$scriptdir/dependencies/v$lftpversion.tar.gz" "$scriptdir/dependencies/lftp-$lftpversion.tar.gz"
-        tar -xzvf "lftp-$lftpversion.tar.gz" &> /dev/null
+        local lftpversion=$(github_latest_version lavv17/lftp v)
+        wget -q "https://github.com/lavv17/lftp/releases/download/v$lftpversion/lftp-$lftpversion.tar.gz"
+        tar -xzf "lftp-$lftpversion.tar.gz" &> /dev/null
         rm "$scriptdir/dependencies/lftp-$lftpversion.tar.gz"
         cd "lftp-$lftpversion" && ./configure --with-openssl --silent &> /dev/null && make --silent &> /dev/null && sudo checkinstall -y &> /dev/null
 
@@ -157,7 +151,7 @@ function rar2fs_update {
 		# Get the current version of rar2fs
 		local c_rar2fsversion=$(rar2fs --version 2> /dev/null | grep -Eo 'rar2fs\sv[0-9][0-9]?\.[0-9][0-9]?\.[0-9][0-9]?' | cut -d' ' -f2 | cut -d'v' -f2)
 		# Get the latest release version of rar2fs from GitHub
-		local rar2fsversion=$(curl -s https://api.github.com/repos/hasse69/rar2fs/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4 | cut -d '/' -f8 | cut -d'v' -f2)
+		local rar2fsversion=$(github_latest_version hasse69/rar2fs v)
 		# Compare the versions
 		version_compare "$rar2fsversion" "$c_rar2fsversion"
 		if [[ "$new_version" == "true" ]]; then
@@ -183,12 +177,10 @@ function rar2fs_update {
 	if [[ "$argument" == "install" ]]; then
 		cd "$scriptdir/dependencies/"
 		# Download and install rar2fs
-		local var=$(curl -s https://api.github.com/repos/hasse69/rar2fs/releases | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
-		wget -q "$var"
-		local name=$(basename "$var")
-		tar zxf "$name" && rm "$name"
-		name=${name::-7}
-		cd "$name"
+		local rar2fsversion=$(github_latest_version hasse69/rar2fs v)
+		wget -q "https://github.com/hasse69/rar2fs/archive/refs/tags/v$rar2fsversion.tar.gz" -O "rar2fs-$rar2fsversion.tar.gz"
+		tar zxf "rar2fs-$rar2fsversion.tar.gz" && rm "rar2fs-$rar2fsversion.tar.gz"
+		cd "rar2fs-$rar2fsversion"
 		wget -q https://www.rarlab.com/rar/unrarsrc-6.2.12.tar.gz && tar -zxf unrarsrc-6.2.12.tar.gz && rm unrarsrc-6.2.12.tar.gz
 		cd unrar && make lib &> /dev/null && sudo make install-lib &> /dev/null && cd ..
 		autoreconf -f -i &> /dev/null && ./configure --silent && make --silent && sudo checkinstall -y &> /dev/null
@@ -408,9 +400,7 @@ function uninstall {
 # Function to handle downloading the script
 function downloadScript {
 	echo -n " Downloading FTPauto..."
-	# Prefer the release asset, fall back to the tag archive for releases without one
-	wget -q "https://github.com/Meliox/FTPauto/releases/download/FTPauto-v$release_version/FTPauto-v$release_version.tar.gz" || \
-		wget -q "https://github.com/Meliox/FTPauto/archive/FTPauto-v$release_version.tar.gz"
+	wget -q "https://github.com/Meliox/FTPauto/releases/download/FTPauto-v$release_version/FTPauto-v$release_version.tar.gz"
 	if [[ ! -f "${scriptdir}/FTPauto-v${release_version}.tar.gz" ]]; then
 		echo -e "\e[00;31m [ERROR]\e[00m\nDownload failed. Exiting.\n"
 		exit 1
@@ -431,10 +421,10 @@ function updateScript {
 	argument="$1"
 	getCurrentVersion
 	echo -n " Checking/updating FTPauto ..."
-	local release_version=$(curl -s https://api.github.com/repos/Meliox/FTPauto/releases/latest | grep -oP '"tag_name":\s*"FTPauto-v\K\d+\.\d+\.\d+')
+	local release_version=$(github_latest_version Meliox/FTPauto FTPauto-v)
 	if [[ -z "$release_version" ]]; then
-		# No release published yet, use the newest tag
-		release_version=$(curl -s https://api.github.com/repos/Meliox/FTPauto/tags | grep -oP '"name":\s*"FTPauto-v\K\d+\.\d+\.\d+' | sort -V | tail -n 1)
+		echo -e "\e[00;31m [ERROR]\e[00m\nCould not determine the latest release. Exiting.\n"
+		exit 1
 	fi
 	version_compare "$release_version" "$i_version"
 	if [[ "$i_version" == "0" ]] && [[ $argument != installNew ]]; then
