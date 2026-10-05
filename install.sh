@@ -24,23 +24,12 @@ function control_c() {
 }
 trap control_c SIGINT
 
-# Function to compare versions
+# Sets new_version to "true" if version $1 is newer than version $2
 function version_compare {
-    if [[ "$1" == "$2" ]]; then
-        new_version="false"
+    if [[ "$1" != "$2" && "$(printf '%s\n%s\n' "$1" "$2" | sort -V | tail -n 1)" == "$1" ]]; then
+        new_version="true"
     else
-        local IFS=.
-        local n1=($1) n2=($2)
-        local len=${#n1[@]}
-        for ((i=0; i<$len; i++)); do
-            if [[ ${n1[i]:-0} -gt ${n2[i]:-0} ]]; then
-                new_version="true"
-                break
-            elif [[ ${n1[i]:-0} -lt ${n2[i]:-0} ]]; then
-                new_version="false"
-                break
-            fi
-        done
+        new_version="false"
     fi
 }
 
