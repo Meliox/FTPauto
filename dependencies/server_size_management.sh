@@ -20,9 +20,9 @@ function server_sizemanagement {
 				while [[ $retry_count -lt $retries ]]; do
 					echo -e "\e[00;31mERROR: Looking up free space failed for some reason!\e[00m"
 					echo -e "\e[00;31mTransfer terminated: $(date '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
-					waittime=$(($retry_download*60))
-					echo "INFO: Pausing session and trying again $retry_download"mins" later"
-					sed "3s#.*#*************************** SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i $logfile
+					waittime=$retry_download
+					echo "INFO: Pausing session and trying again $retry_download seconds later"
+					sed "3s#.*#*************************** SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime" seconds#" -i $logfile
 					sleep $waittime
 					let retry_count++
 					$lftp -f "$server_freespace_file" &> /dev/null
@@ -39,9 +39,9 @@ function server_sizemanagement {
 				while [[ $(date +%s) -lt $quittime ]]; do
 					echo -e "\e[00;31mERROR: Looking up free space failed for some reason!\e[00m"
 					echo -e "\e[00;31mTransfer terminated: $(date '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
-					waittime=$(($retry_download*60))
-					echo "INFO: Pausing session and trying again $retry_download"mins" later"
-					sed "3s#.*#*************************** SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i $logfile
+					waittime=$retry_download
+					echo "INFO: Pausing session and trying again $retry_download seconds later"
+					sed "3s#.*#*************************** SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime" seconds#" -i $logfile
 					sleep $waittime
 					let retry_count++
 					$lftp -f "$server_freespace_file" &> /dev/null
@@ -89,10 +89,10 @@ function server_getsize {
 			echo "INFO: SERVER: "$usedmb"/"$totalmb"MB Used"
 			echo -e "\e[00;31mERROR: SERVER: Free space: "$freemb"MB\e[00m"
 			echo -e "\e[00;31mERROR: "$orig_name" needs "$freespaceneeded"MB additional free space\e[00m"
-			echo "INFO: Stopping session and trying again $retry_download"mins" later"
+			echo "INFO: Stopping session and trying again $retry_download seconds later"
 			echo -e "INFO: Exiting current session\n"
-			waittime=$(($retry_download*60))
-			sed "3s#.*#*************************** SERVER INFO: "$usedmb"\/"$totalmb"MB - FREE SPACE IS CRITICAL! DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i $logfile
+			waittime=$retry_download
+			sed "3s#.*#*************************** SERVER INFO: "$usedmb"\/"$totalmb"MB - FREE SPACE IS CRITICAL! DOWNLOAD POSTPONED! Trying again in "$waittime" seconds#" -i $logfile
 			sleep $waittime
 			queue run #running new session
 		fi

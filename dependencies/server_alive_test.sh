@@ -16,10 +16,10 @@ function online_test {
             quittime=$(( $scriptstart + $retry_download_max*60*60 )) # Hours
             echo "INFO: Keep trying until $(date --date=@$quittime)"
             if [[ $(date +%s) -lt $quittime ]]; then
-                echo -e "INFO: Stopping session and trying again $retry_download"mins" later\n"
+                echo -e "INFO: Stopping session and trying again $retry_download seconds later\n"
                 cleanup session
-                waittime=$(($retry_download*60))
-                sed "3s#.*#***************************  SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i "$logfile"
+                waittime=$retry_download
+                sed "3s#.*#***************************  SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime" seconds#" -i "$logfile"
                 sleep 10
                 queue run # Running new session
             fi
@@ -84,10 +84,10 @@ function writeable {
             quittime=$(( $scriptstart + $retry_download_max*60*60 )) # Hours
             echo "INFO: Keep trying until $(date --date=@$quittime)"
             if [[ $(date +%s) -lt $quittime ]]; then
-                echo -e "INFO: Stopping session and trying again $retry_download"mins" later\n"
+                echo -e "INFO: Stopping session and trying again $retry_download seconds later\n"
                 cleanup session
-                waittime=$(($retry_download*60))
-                sed "3s#.*#***************************  SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime"mins#" -i "$logfile"
+                waittime=$retry_download
+                sed "3s#.*#***************************  SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime" seconds#" -i "$logfile"
                 sleep 10
                 let retry_count++
                 queue run # Running new session
