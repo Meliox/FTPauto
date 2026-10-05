@@ -57,7 +57,6 @@ function queue {
 				:
 			else
 				# Figure out ID.
-				id_old=$id
 				if [[ -e "$queue_file" ]]; then
 					# Get last ID.
 					id=$(( $(tail -1 "$queue_file" | cut -d'|' -f1) + 1 ))
@@ -70,13 +69,6 @@ function queue {
 					# Passing an item which is already in the queue, do nothing.
 					echo -e "INFO: Item already in queue. Doing nothing...\n"
 					exit 0
-				elif [[ "$option" == failed ]]; then
-					# Passing a failed item, remove it, and add it with the status failed.
-					failed="true"
-					# Remove ID from queue.
-					sed "/^"$id_old"/d" -i "$queue_file"
-					echo "$id|$source|$filepath|$sortto|${size}MB|true|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-					echo -e "\e[00;33mINFO: Failing item: $(basename "$filepath")\e[00m"
 				elif [[ "$option" == end ]]; then
 					# Passed item should only be queued, then exit.
 					source="${source}Q"
@@ -154,13 +146,14 @@ function queue {
 				exit 0
 			fi
 			;;
-                "fail" )
-                # Failed item, remove it, and add it with the status failed.
-                # Remove ID from queue.
-                sed "/^"$id"/d" -i "$queue_file"
-                echo "$id|$source|$filepath|$sortto|${size}MB|true|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-                echo -e "\e[00;33mINFO: Failing item: $(basename "$filepath")\e[00m"
-                ;;
+		"fail" )
+			# Failed item, remove it, and add it with the status failed.
+			failed="true"
+			# Remove ID from queue.
+			sed "/^"$id"/d" -i "$queue_file"
+			echo "$id|$source|$filepath|$sortto|${size}MB|true|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
+			echo -e "\e[00;33mINFO: Failing item: $(basename "$filepath")\e[00m"
+			;;
 	esac
 }
 
@@ -368,7 +361,7 @@ function transfer {
 					
 					# Stop the transfer process and add to queue
 					transfer_process "stop-process-bar"
-					queue add failed
+					queue fail
 					break
 				else
 					echo -e "\e[00;31mERROR: Transfer failed for some reason!\e[00m"
