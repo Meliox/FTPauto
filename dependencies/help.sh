@@ -144,6 +144,7 @@ function show_example {
 	echo
 	echo "logrotate=\"false\" # enabled logrotating to move old to log.old"
 	echo "lognumber=\"50\" # how many transfers to save in log before moving to log.old. 0 for disabled"
+	echo "lftp_log=\"false\" # write lftp output of each transfer attempt to $scriptdir/run/'$username'.lftptransfer.log (rotated at 5 MB). Useful for debugging failed transfers"
 	echo
 	echo "#### Transfer settings ####"
 	echo
