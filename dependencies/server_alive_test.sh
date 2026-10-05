@@ -13,7 +13,7 @@ function online_test {
         # Before download
         if [[ $confirm_online == "true" ]]; then
             # Continue trying according to settings
-            quittime=$(( $scriptstart + $retry_download_max*60*60 )) # Hours
+            quittime=$(( ScriptStartTime + retry_download_max*60 )) # Minutes
             echo "INFO: Keep trying until $(date --date=@$quittime)"
             if [[ $(date +%s) -lt $quittime ]]; then
                 echo -e "INFO: Stopping session and trying again $retry_download seconds later\n"
@@ -71,8 +71,9 @@ function online {
 # Function to check if the server is writable
 function writeable {
     writeable_test
+    local writeable_status=$?
     if [[ -f "$server_check_file" ]]; then rm "$server_check_file"; fi;
-    if [[ $? -eq 0 ]]; then
+    if [[ $writeable_status -eq 0 ]]; then
         echo -e "\e[00;32m [OK]\e[00m"
         is_online="0"
     else
@@ -81,7 +82,7 @@ function writeable {
         # Before download
         if [[ $confirm_online == "true" ]]; then
             # Continue trying according to settings
-            quittime=$(( $scriptstart + $retry_download_max*60*60 )) # Hours
+            quittime=$(( ScriptStartTime + retry_download_max*60 )) # Minutes
             echo "INFO: Keep trying until $(date --date=@$quittime)"
             if [[ $(date +%s) -lt $quittime ]]; then
                 echo -e "INFO: Stopping session and trying again $retry_download seconds later\n"
@@ -93,14 +94,23 @@ function writeable {
                 queue run # Running new session
             fi
         fi
+        is_online="1"
         # Online test
         while [[ $retry_count -lt $retries ]]; do
             echo -e "\e[00;31m [RETRYING]\e[00m"
             let retry_count++
             writeable_test
+            writeable_status=$?
+            if [[ -f "$server_check_file" ]]; then rm "$server_check_file"; fi;
+            if [[ $writeable_status -eq 0 ]]; then
+                is_online="0"
+                break
+            fi
         done
-        # If still offline
-        sed "3s#.*#***************************	SERVER INFO: SERVER NOT WRITEABLE#" -i $logfile
-        is_online="1"
+        # If still not writeable
+        if [[ $is_online -ne 0 ]]; then
+            sed "3s#.*#***************************	SERVER INFO: SERVER NOT WRITEABLE#" -i $logfile
+            is_online="1"
+        fi
     fi
 }

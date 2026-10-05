@@ -34,7 +34,7 @@ function server_sizemanagement {
 					fi
 				done
 			elif [[ $mode == "check" ]]; then
-				quittime=$(( $scriptstart + $retry_download_max*60*60 )) #hours
+				quittime=$(( ScriptStartTime + retry_download_max*60 )) # Minutes
 				echo "INFO: Keep trying until $(date --date=@$quittime)"
 				while [[ $(date +%s) -lt $quittime ]]; do
 					echo -e "\e[00;31mERROR: Looking up free space failed for some reason!\e[00m"
