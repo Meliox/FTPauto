@@ -192,6 +192,17 @@ function transfer_process {
 	esac
 }
 
+# Build an lftp move command (incomplete -> complete) that retries on failure
+function move_cmd {
+	local cmd="$1" mv_line out attempt
+	mv_line="$cmd \"${incomplete}${orig_name}\" \"${complete}\""
+	out="$mv_line"
+	for attempt in 1 2 3 4; do
+		out="$mv_line || (sleep 15; $out)"
+	done
+	echo "$out"
+}
+
 function transfer {
 	local lftp_exclude quittime waittime
 
@@ -230,7 +241,7 @@ function transfer {
 				echo "wait" >> "$transfere_file"
 
 				# Move files locally if incomplete directory is used
-				[[ -n $incomplete ]] && echo "queue !mv \"${incomplete}${orig_name}\" \"${complete}\"" >> "$transfere_file"
+				[[ -n $incomplete ]] && echo "$(move_cmd "!mv")" >> "$transfere_file"
 				echo "wait" >> "$transfere_file"
 		elif [[ $transferetype == "upftp" || $transferetype == "upsftp" ]]; then
 			# Handle lftp transfer for upftp
@@ -255,7 +266,7 @@ function transfer {
 			echo "wait" >> "$transfere_file"
 
 			# Move files remotely if incomplete directory is used
-			[[ -n "$incomplete" ]] && echo "queue mv \"${incomplete}${orig_name}\" \"${complete}\"" >> "$transfere_file"
+			[[ -n "$incomplete" ]] && echo "$(move_cmd "mv")" >> "$transfere_file"
 			echo "wait" >> "$transfere_file"
 		elif [[ $transferetype == "fxp" ]]; then
 			# Handle lftp transfer for fxp
@@ -277,7 +288,7 @@ function transfer {
 			echo "wait" >> "$transfere_file"
 
 			 # Move files remotely if incomplete directory is used
-			[[ -n "$incomplete" ]] && echo "queue mv \"${incomplete}${orig_name}\" \"${complete}\"" >> "$transfere_file"
+			[[ -n "$incomplete" ]] && echo "$(move_cmd "mv")" >> "$transfere_file"
 			echo "wait" >> "$transfere_file"
 		else
 			echo -e "\e[00;31mERROR: Transfer setting not recognized\e[00m\n"
