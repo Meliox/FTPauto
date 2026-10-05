@@ -61,7 +61,7 @@ function lftp_update {
                 # Remove old version of lftp
                 echo -n "Removing old version ..."
                 sudo apt-get -y remove lftp &> /dev/null
-                sudo rm -rf "$scriptdir/dependencies/lftp*"
+                sudo rm -rf "$scriptdir/dependencies/"lftp*
                 argument="install"
             else
                 echo -e " lftp update ... [\e[00;33mSKIPPED\e[00m]"
@@ -163,7 +163,7 @@ function rar2fs_update {
 					# Remove old version and proceed with installation
 					echo -n "Removing old version ..."
 					sudo apt-get -y remove rar2fs &> /dev/null
-					sudo rm -rf "$scriptdir/dependencies/rar2fs*"
+					sudo rm -rf "$scriptdir/dependencies/"rar2fs*
 					argument="install"
 				fi
 			else
@@ -285,11 +285,11 @@ function installDependencies {
 		source "$scriptdir/dependencies/help.sh"
 		write_config
 		if [[ -f "$scriptdir/users/$username/config" ]]; then
-			read -p " Do you want to configure $user now(y/n)? "
+			read -p " Do you want to configure $username now(y/n)? "
 			if [[ "$REPLY" == "y" ]]; then
-				nano "$scriptdir/users/$user/config"
+				nano "$scriptdir/users/$username/config"
 			else
-				echo "NOTE: You can edit the user later using bash ftpauto.sh --user=$user --edit"
+				echo "NOTE: You can edit the user later using bash ftpauto.sh --user=$username --edit"
 			fi
 		else
 			echo -e "\nUser already exists"
@@ -400,7 +400,10 @@ function uninstall {
 # Function to handle downloading the script
 function downloadScript {
 	echo -n " Downloading FTPauto..."
-	wget -q "https://github.com/Meliox/FTPauto/releases/download/FTPauto-v$release_version/FTPauto-v$release_version.tar.gz"
+	cd "$scriptdir" || exit 1
+	# Prefer the release asset, fall back to the tag archive for releases without one
+	wget -q "https://github.com/Meliox/FTPauto/releases/download/FTPauto-v$release_version/FTPauto-v$release_version.tar.gz" || \
+		wget -q "https://github.com/Meliox/FTPauto/archive/FTPauto-v$release_version.tar.gz"
 	if [[ ! -f "${scriptdir}/FTPauto-v${release_version}.tar.gz" ]]; then
 		echo -e "\e[00;31m [ERROR]\e[00m\nDownload failed. Exiting.\n"
 		exit 1
@@ -459,6 +462,9 @@ case "$1" in
 	installNew)
 		updateScript installNew
 		;;
+	update)
+		updateScript
+		;;
 	install)
 		install
 		;;
@@ -466,7 +472,7 @@ case "$1" in
 		uninstall
 		;;
 	*)
-		echo "Usage: $0 {install|uninstall}" >&2
+		echo "Usage: $0 {install|update|uninstall}" >&2
 		exit 1
 		;;
 esac

@@ -4,6 +4,7 @@ function server_sizemanagement {
 	loadDependency DServerLogin && load_login 1
 	if [[ $test_mode != "true" ]]; then
 		local mode=$1
+		is_online="1"
 		cat "$login_file1" >> "$server_freespace_file"
 		echo "du -s $incomplete >> ~/../..$server_size_file" >> "$server_freespace_file"
 		echo "wait" >> "$server_freespace_file"
@@ -13,6 +14,7 @@ function server_sizemanagement {
 		$lftp -f "$server_freespace_file" &> /dev/null
 		if [[ $? -eq 0 ]]; then
 			# server online, continue to find size
+			is_online="0"
 			server_getsize $mode
 		else
 			retry_count="0"
@@ -93,8 +95,9 @@ function server_getsize {
 			echo -e "INFO: Exiting current session\n"
 			waittime=$retry_download
 			sed "3s#.*#*************************** SERVER INFO: "$usedmb"\/"$totalmb"MB - FREE SPACE IS CRITICAL! DOWNLOAD POSTPONED! Trying again in "$waittime" seconds#" -i $logfile
+			cleanup session
 			sleep $waittime
-			queue run #running new session
+			queue next #running new session
 		fi
 		usedcrit=$(( $totalmb - $critical ))
 		echo "INFO: SERVER OK - free space: "$freemb"MB ("$usedmb"/"$totalmb"MB used)"

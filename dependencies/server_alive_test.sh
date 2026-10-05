@@ -2,16 +2,18 @@
 
 # Function to confirm that the server is alive and writable
 function online_test {
+    is_online="1"
     loadDependency DServerLogin && load_login 1
     online
     if [[ $? -eq 0 ]]; then
         writeable # Check if server is writable
     else
+        is_online="1"
         if [[ -f "$server_alive_file" ]]; then rm "$server_alive_file"; fi;
         echo -e "\e[00;31m [RETRYING]\e[00m"
         retry_count="0"
         # Before download
-        if [[ $confirm_online == "true" ]]; then
+        if [[ $confirm_online == "true" && -n $ScriptStartTime ]]; then
             # Continue trying according to settings
             quittime=$(( ScriptStartTime + retry_download_max*60 )) # Minutes
             echo "INFO: Keep trying until $(date --date=@$quittime)"
@@ -19,9 +21,9 @@ function online_test {
                 echo -e "INFO: Stopping session and trying again $retry_download seconds later\n"
                 cleanup session
                 waittime=$retry_download
-                sed "3s#.*#***************************  SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime" seconds#" -i "$logfile"
-                sleep 10
-                queue run # Running new session
+                sed "3s#.*#***************************  SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in ${waittime} seconds#" -i "$logfile"
+                sleep "$waittime"
+                queue next # Running new session
             fi
         fi
         # Online test
@@ -52,6 +54,7 @@ function writeable_test {
     echo -n "INFO: Checking if set path is writeable..."
     echo "Testing server settings for download" > "$server_check_testfile"
     cat "$login_file1" >> "$server_check_file"
+    echo "set cmd:fail-exit true" >> "$server_check_file"
     echo "put -O \"$incomplete\" \"$server_check_file\"" >> "$server_check_file"
     echo "rm \"$incomplete$(basename $server_check_file)\"" >> "$server_check_file"
     echo "quit" >> "$server_check_file"
@@ -70,17 +73,18 @@ function online {
 
 # Function to check if the server is writable
 function writeable {
+    local write_status
     writeable_test
-    local writeable_status=$?
-    if [[ -f "$server_check_file" ]]; then rm "$server_check_file"; fi;
-    if [[ $writeable_status -eq 0 ]]; then
+    write_status=$?
+    rm -f "$server_check_file"
+    if [[ $write_status -eq 0 ]]; then
         echo -e "\e[00;32m [OK]\e[00m"
         is_online="0"
     else
         echo -e "\e[00;32m [RETRYING]\e[00m"
         retry_count="0"
         # Before download
-        if [[ $confirm_online == "true" ]]; then
+        if [[ $confirm_online == "true" && -n $ScriptStartTime ]]; then
             # Continue trying according to settings
             quittime=$(( ScriptStartTime + retry_download_max*60 )) # Minutes
             echo "INFO: Keep trying until $(date --date=@$quittime)"
@@ -88,10 +92,9 @@ function writeable {
                 echo -e "INFO: Stopping session and trying again $retry_download seconds later\n"
                 cleanup session
                 waittime=$retry_download
-                sed "3s#.*#***************************  SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in "$waittime" seconds#" -i "$logfile"
-                sleep 10
-                let retry_count++
-                queue run # Running new session
+                sed "3s#.*#***************************  SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in ${waittime} seconds#" -i "$logfile"
+                sleep "$waittime"
+                queue next # Running new session
             fi
         fi
         is_online="1"
@@ -99,10 +102,11 @@ function writeable {
         while [[ $retry_count -lt $retries ]]; do
             echo -e "\e[00;31m [RETRYING]\e[00m"
             let retry_count++
+            rm -f "$server_check_file"
             writeable_test
-            writeable_status=$?
-            if [[ -f "$server_check_file" ]]; then rm "$server_check_file"; fi;
-            if [[ $writeable_status -eq 0 ]]; then
+            write_status=$?
+            rm -f "$server_check_file"
+            if [[ $write_status -eq 0 ]]; then
                 is_online="0"
                 break
             fi

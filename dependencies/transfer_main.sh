@@ -84,12 +84,13 @@ function queue {
 			;;
 		"remove" )
 			# Remove item according to ID.
-			sed "/^"$id"/d" -i "$queue_file"
+			sed "/^${id}|/d" -i "$queue_file"
 			# If queue is true then continue to run else stop.
 			if [[ $continue_queue == true ]]; then
 				queue next
 			else
 				cleanup end
+				exit 0
 			fi
 			;;
 		"next" )
@@ -110,7 +111,7 @@ function queue {
 					i=$(grep -n "^${id}|" "$queue_file" | grep -Eo '^[^:]+')
 					source=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $2}' "$queue_file")
 					filepath=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $3}' "$queue_file")
-					sort=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $4}' "$queue_file")
+					queue_sort=$(awk 'BEGIN{FS="|";OFS=" "}NR=='$i'{print $4}' "$queue_file")
 					# Execute main script again.
 					queue_running="true"
 					if [[ -f "$lockfile" ]]; then
@@ -119,7 +120,7 @@ function queue {
 					fi
 					echo "---------------------- Running queue ----------------------"
 					echo "Transfering id=$id, $(basename "$filepath")"
-					start_main --path="$filepath" --user="$username" --sortto="$sort"
+					start_main --path="$filepath" --user="$username" --sortto="$queue_sort"
 				else
 					# All items in the queue are marked as failed, e.g. nothing to transfer.
 					echo "---------------------- Failed queue -----------------------"
@@ -150,7 +151,7 @@ function queue {
 			# Failed item, remove it, and add it with the status failed.
 			failed="true"
 			# Remove ID from queue.
-			sed "/^"$id"/d" -i "$queue_file"
+			sed "/^${id}|/d" -i "$queue_file"
 			echo "$id|$source|$filepath|$sortto|${size}MB|true|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 			echo -e "\e[00;33mINFO: Failing item: $(basename "$filepath")\e[00m"
 			;;
@@ -406,14 +407,7 @@ function transfer_process_bar {
         
         if [[ $transferetype == "downftp" ]]; then
             # Get the transferred size for download
-            transfered_size="du -s \"$incomplete$changed_name\" > \"$proccess_bar_file\""
-            if [[ $transfer_type = file ]]; then
-                echo "du -s \"$incomplete${orig_name}\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
-            elif [[ $transfer_type = directory ]]; then
-                echo "du -s \"$incomplete$orig_name\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
-            fi
-			# Get time
-			echo $(date +%s%N) >> "$transfere_processbar"
+            transfered_size="du -s \"${incomplete:-$complete}$orig_name\" > \"$proccess_bar_file\"; date +%s%N >> \"$proccess_bar_file\""
         elif [[ $transferetype == "upftp" || $transferetype == "fxp" || $transferetype == "upsftp" ]]; then
             # Create a config file for lftp process bar
             cat "$login_file1" >> "$transfere_processbar"
@@ -525,6 +519,7 @@ function logrotate {
 
 		# Add new info to 7th line of logfile
 		sed "7i $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')|${source}|${orig_name}|${size}MB|${transferTime2}|${SpeedAverage}MB/s" -i "$logfile"
+		local keep_entries="$lognumber"
 		lognumber=$((7 + $lognumber ))
 
 		# Add text to oldlogfile if log rotation is enabled
@@ -535,25 +530,25 @@ function logrotate {
 		fi
 
 		# Remove text from old file
-		if [ "$lognumber" -ne 0 ]; then
+		if [[ "$keep_entries" -ne 0 ]]; then
 			sed $lognumber,'$d' -i "$logfile"
 		fi
 
 		# Calculate total downloaded size
-		totaldl=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f4)
-		totaldl=${totaldl%MB}
-		if [[ -z "$totaldl" ]]; then
-			totaldl="0"
+		# Read the current stats (line 2): "STATS: <size>MB in <n> transfers in <dd>d:<hh>h:<mm>m:<ss>s"
+		local totaldltime_seconds
+		totaldl="0"; totalrls="0"; totaldltime_seconds=0
+		if [[ "$(sed -n 2p "$logfile")" =~ STATS:\ *([0-9.]+)MB\ in\ ([0-9]+)\ transfers\ in\ ([0-9]+)d:([0-9]+)h:([0-9]+)m:([0-9]+)s ]]; then
+			totaldl="${BASH_REMATCH[1]}"
+			totalrls="${BASH_REMATCH[2]}"
+			totaldltime_seconds=$(( 10#${BASH_REMATCH[3]}*86400 + 10#${BASH_REMATCH[4]}*3600 + 10#${BASH_REMATCH[5]}*60 + 10#${BASH_REMATCH[6]} ))
 		fi
 		totaldl=$(echo "$totaldl + $size" | bc)
 
 		# Increment total number of transfers
-		totalrls=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f6)
 		totalrls=$(echo "$totalrls + 1" | bc)
 
 		# Calculate total download time
-		totaldltime=$(awk 'BEGIN{FS="|";OFS=" "}NR==2{print $1}' "$logfile" | cut -d' ' -f10)
-		totaldltime_seconds=$(awk 'BEGIN{split("'$totaldltime'",a,":"); print a[1]*(60*60*24)+a[2]*(60*60)+a[3]*60+a[4];}')
 		totaldltime=$(echo "$totaldltime_seconds + $transferTime" | bc)
 		totaldltime=$(printf '%02dd:%02dh:%02dm:%02ds' "$(($totaldltime/(60*60*24)))" "$(($totaldltime/(60*60)%24))" "$((($totaldltime/60)%60))" "$(($totaldltime%60))")
 
@@ -662,15 +657,20 @@ function main {
 		if [[ $transferetype == "upftp" ]]; then
 			loadDependency DServerSizeManagement && server_sizemanagement check
 		elif [[ $transferetype == "downftp" ]]; then
-			freesize=$(( $(df -P "$incomplete" | tail -1 | awk '{ print $3}') / (1024*1024) ))
-			freespaceneeded="$size"
-			while [[ "$freesize" -lt "$freespaceneeded" ]]; do
-				echo "INFO: Not enough free space"
-				echo "INFO: Trying again in 1 min"
-				sleep 60
-				# recalculate free space
-				freesize=$(( $(df -P "$incomplete" | tail -1 | awk '{ print $3}') / (1024*1024) ))
-			done
+			# Free space (MB) where the transfer is written
+			freesize=$(df -Pk "${incomplete:-$complete}" 2>/dev/null | awk 'NR==2{print int($4/1024)}')
+			freespaceneeded=$(echo "$size" | awk '{printf "%d", $1 + 0.999}')
+			if [[ -z "$freesize" ]]; then
+				echo -e "\e[00;33mINFO: Could not determine free space in ${incomplete:-$complete}. Skipping check\e[00m"
+			else
+				while [[ "$freesize" -lt "$freespaceneeded" ]]; do
+					echo "INFO: Not enough free space"
+					echo "INFO: Trying again in 1 min"
+					sleep 60
+					# recalculate free space
+					freesize=$(df -Pk "${incomplete:-$complete}" | awk 'NR==2{print int($4/1024)}')
+				done
+			fi
 		fi
 	fi
 
@@ -733,6 +733,7 @@ function main {
 
 	# Delay transfer if needed
 	delay
+	unset -v delay
 
 	# Transfer files
 	transfer
