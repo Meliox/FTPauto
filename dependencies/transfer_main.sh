@@ -166,20 +166,23 @@ function queue {
 
 function transfer_process {
 	# used to start and stop the lftp transfer and progressbar
-	local pid_f_process
+	local pid_f_process lftp_out
 	case "$1" in
 		"start" ) #start progressbar and transfer
+			lftp_out=$(lftp_log_target)
+			write_lftp_log "lftp transfer attempt started: $orig_name"
 			TransferStartTime=$(date +%s%N)
 			transfer_process_bar &
 			pid_f_process=$!
 			sed "3c $pid_f_process" -i "$lockfile"
 			TransferStartTimeInSeconds=$((TransferStartTime / 1000000000))
 			echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $(date --date=@$TransferStartTimeInSeconds '+%d/%m/%y-%a-%H:%M:%S')\n\e[00m"
-			$lftp -f "$transfere_file" &> /dev/null &
+			$lftp -f "$transfere_file" &>> "$lftp_out" &
 			pid_transfer=$!
 			sed "2c $pid_transfer" -i "$lockfile"
 			wait $pid_transfer 2>/dev/null
 			pid_transfer_status=$?
+			write_lftp_log "lftp transfer attempt ended with exit status $pid_transfer_status"
 			TransferEndTime=$(date +%s%N)
 		;;
 		"stop-process-bar" )
@@ -190,6 +193,24 @@ function transfer_process {
 
 		;;
 	esac
+}
+
+# Prints where lftp output should be written: the lftp log if lftp_log="true" (rotated at 5 MB), otherwise /dev/null
+function lftp_log_target {
+	if [[ $lftp_log != "true" ]]; then
+		echo "/dev/null"
+		return
+	fi
+	if [[ -f "$lftp_transfer_log" && $(stat -c %s "$lftp_transfer_log") -gt 5242880 ]]; then
+		mv -f "$lftp_transfer_log" "$lftp_transfer_log.old"
+	fi
+	echo "$lftp_transfer_log"
+}
+
+# Appends a timestamped line to the lftp transfer log, if enabled with lftp_log="true"
+function write_lftp_log {
+	[[ $lftp_log == "true" ]] && echo "[$(date '+%d/%m/%y-%a-%H:%M:%S')] $1" >> "$lftp_transfer_log"
+	return 0
 }
 
 # Returns 0 if the given path exists on the destination (local for downftp, remote otherwise)
@@ -203,7 +224,7 @@ function destination_exists {
 
 	[[ $transferetype == "fxp" ]] && login="$login_file2" || login="$login_file1"
 	result=$({ cat "$login"; echo "set cmd:fail-exit true"; echo "cls -1 -d \"$path\""; echo "quit"; } > "$transfere_file.check"
-		$lftp -f "$transfere_file.check" 2> /dev/null)
+		$lftp -f "$transfere_file.check" 2>> "$(lftp_log_target)")
 	rm -f "$transfere_file.check"
 	[[ -n "$result" ]]
 }
@@ -218,6 +239,7 @@ function transfer_already_moved {
 
 	for i in 1 2 3; do
 		if destination_exists "${complete}${orig_name}" && ! destination_exists "${incomplete}${orig_name}"; then
+			write_lftp_log "Found ${complete}${orig_name} in complete and not in incomplete"
 			return 0
 		fi
 		# Give a delayed move time to show up

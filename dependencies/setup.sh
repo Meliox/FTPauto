@@ -10,7 +10,7 @@ function setup {
 	login_file1="$scriptdir/run/$username.login1"
 	login_file2="$scriptdir/run/$username.login2"
 	lftpdebug="$scriptdir/run/$username.lftpdebug"
-	lftp_transfer_log="$scriptdir/run/$username.lftptransfer.log" # persistent, not removed by cleanup
+	lftp_transfer_log="$scriptdir/run/$username.lftptransfer.log" # only used if lftp_log="true" in config, not removed by cleanup
 	lftptransfersize="$scriptdir/run/$username.transfersize"
 	lftptransfersize2="$scriptdir/run/$username.lftptransfersize2"
 	lockfile="$scriptdir/run/$username.lck"
