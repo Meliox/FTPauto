@@ -29,7 +29,7 @@ If you find this tool helpful, a small donation is appreciated, [![Donate](https
 * [Installation](#installation)
  * [Quick install](#quick-install)
  * [Updating](#updating)
- * [Install from git](#install-from-git)
+ * [Uninstalling](#uninstalling)
 * [Configuration](#configuration)
  * [Adding user](#adding-user)
  * [The config](#the-config)
@@ -77,16 +77,7 @@ Run the installer again. It checks for a newer release and asks before updating:
 cd ~/FTPauto && bash install.sh install
 ```
 
-### Install from git
-The latest development version (may contain unfinished features and be unstable) can be used instead of a release:
-
-```bash
-git clone https://github.com/Meliox/FTPauto.git ~/FTPauto && cd ~/FTPauto
-bash install.sh install
-```
-
-Update with `git pull` and run the installer again.
-
+### Uninstalling
 To remove FTPauto and its dependencies, run `bash install.sh uninstall`.
 
 # Configuration
