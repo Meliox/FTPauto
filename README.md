@@ -71,11 +71,13 @@ bash install.sh install
 Follow the instructions to set up a user and then you're ready to use FTPauto! If you skipped user setup or need help go to [configuration](#configuration).
 
 ### Updating
-Run the installer again. It checks for a newer release and asks before updating:
+Run the installer's update command. It checks for a newer FTPauto release and asks before updating:
 
 ```bash
-cd ~/FTPauto && bash install.sh install
+cd ~/FTPauto && bash install.sh update
 ```
+
+Running `bash install.sh install` again also checks for updates to FTPauto, lftp and rar2fs.
 
 ### Uninstalling
 To remove FTPauto and its dependencies, run `bash install.sh uninstall`.
