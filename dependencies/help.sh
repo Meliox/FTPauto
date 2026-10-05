@@ -161,7 +161,7 @@ function show_example {
 	echo "parallel=\"3\" # how many simultaneous transfers to download with"
 	echo "continue_queue=\"true\" # Script will continue downloading if something is queued"
 	echo "retries=\"3\" # How many times should the transfer be tried, before giving up"
-	echo "retry_download=\"10\" # retry again in minutes after minimum space is reached OR server is offline."
+	echo "retry_download=\"60\" # retry again in seconds after a failed transfer, minimum space is reached OR server is offline."
 	echo "retry_download_max=\"30\" # retry for how many minites, before quitting. Recommended 30 mins. For each try 3 tries to establish connection with furthermore be tried"
 	echo
 	echo "## Extra settings"
