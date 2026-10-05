@@ -242,7 +242,7 @@ function transfer_already_moved {
 }
 
 function transfer {
-	local lftp_exclude quittime waittime complete_preexisting=false
+	local lftp_exclude quittime waittime complete_preexisting=false transfer_attempt=1
 
 	# Prepare new transfer
 	{
@@ -353,6 +353,15 @@ function transfer {
 					break
 				fi
 
+				# Give up when all allowed attempts are used
+				if [[ $transfer_attempt -ge ${retries:-3} ]]; then
+					echo -e "\e[00;31mERROR: Transfer failed after $transfer_attempt attempt(s)!\e[00m"
+					transfer_process "stop-process-bar"
+					queue fail
+					break
+				fi
+				transfer_attempt=$(( transfer_attempt + 1 ))
+
 				quittime=$(( ScriptStartTime + retry_download_max*60 ))
 				
 				# Check if it's time to quit
@@ -365,7 +374,7 @@ function transfer {
 					break
 				else
 					echo -e "\e[00;31mERROR: Transfer failed for some reason!\e[00m"
-					echo "INFO: Retrying until $(date --date=@$quittime '+%d/%m/%y-%a-%H:%M:%S')"
+					echo "INFO: Retrying until $(date --date=@$quittime '+%d/%m/%y-%a-%H:%M:%S') (attempt $transfer_attempt of ${retries:-3})"
 					
 					# Stop the transfer process, pause session, and retry after a delay
 					transfer_process "stop-process-bar"
