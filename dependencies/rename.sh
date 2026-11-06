@@ -141,8 +141,8 @@ function rename_destination_commands {
 function rename_resolve {
 	[[ ${#rename_array[@]} -eq 0 ]] && return 0
 
-	if [[ "$send_option" != "default" ]]; then
-		echo "INFO: Renaming is only supported with send_option=default. Skipping"
+	if [[ "$send_option" != "default" && "$send_option" != "video" ]]; then
+		echo "INFO: Renaming is only supported with send_option=default or video. Skipping"
 		return 0
 	fi
 
