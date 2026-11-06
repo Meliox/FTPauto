@@ -3,8 +3,6 @@ s_version="0.8.0"
 verbose="0" #0 Normal info | 1 debug console | 2 debug into logfile
 script="$(readlink -f "$0")"
 scriptdir=$(dirname $script)
-lastUpdate=1511410224
-message=""
 
 # Common function for all console messages (sourced scripts use it as well)
 # Usage: msg [-n] <level> <text>
@@ -69,48 +67,6 @@ function verbose {
 
 # load verbose
 verbose
-
-function updateChecker {
-	# Check if it's time to perform an update check
-	if [[ $(date +'%s') -gt $((lastUpdate + 14*24*60*60)) ]]; then
-		msg -n plain "INFO: Checking for update ..."
-		# Retrieve the latest release version from GitHub
-		release_version=$(curl --silent https://api.github.com/repos/Meliox/FTPauto/releases/latest | grep -oP '"tag_name":\s*"FTPauto-v\K\d+\.\d+\.\d+')
-		# Compare the latest release version with the installed version
-		if [[ -z "$release_version" ]]; then
-			msg warning "  [Could not determine latest version]"
-		elif [[ "$release_version" == "$s_version" ]]; then
-			# If the versions match, notify that it's the latest version
-			msg success "  [Latest]"
-			# Clear any previous update messages
-			sed "7c message=\"\"" -i "$script"
-		else
-			# Split version numbers into arrays for comparison
-			local IFS=.
-			local n1=($release_version) n2=($s_version)
-			for i in "${!n1[@]}"; do
-				if [[ "${n1[i]}" -gt "${n2[i]}" ]]; then
-					# If a newer version is found, notify and update the message
-					msg warning " [$release_version available. Consider updating]"
-					sed "7c message=\"INFO: New version ($release_version) available. Consider updating (execute bash install.sh update)\"" -i "$script"
-					break
-				elif [[ "${n1[i]}" -lt "${n2[i]}" ]]; then
-					# If the installed version is newer, notify it's the latest version and clear the message
-					msg success "  [Latest]"
-					sed "7c message=\"\"" -i "$script"
-					break
-				fi
-			done
-		fi
-		# Update the last update timestamp
-		sed "6c lastUpdate=$(date +'%s')" -i "$script"
-	else
-		# If it's not time for an update check, display any existing message
-		if [[ -n $message ]]; then
-			msg warning "$message"
-		fi
-	fi
-}
 
 # Function to load dependencies based on input
 function loadDependency {
@@ -562,9 +518,6 @@ done
 # load verbose level
 verbose
 msg plain "INFO: Information level: $verbose"
-
-# check for new version
-updateChecker
 
 # load user
 load_user
