@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.9.1 - 2026-11-06
+
+### Other changes
+
+- Support renaming video transfers (#58) (45d6faf)
+
 ## v0.9.0 - 2026-11-06
 
 ### Other changes
