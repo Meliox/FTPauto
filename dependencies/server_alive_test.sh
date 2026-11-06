@@ -10,15 +10,15 @@ function online_test {
     else
         is_online="1"
         if [[ -f "$server_alive_file" ]]; then rm "$server_alive_file"; fi;
-        echo -e "\e[00;31m [RETRYING]\e[00m"
+        msg error " [RETRYING]"
         retry_count="0"
         # Before download
         if [[ $confirm_online == "true" && -n $ScriptStartTime ]]; then
             # Continue trying according to settings
             quittime=$(( ScriptStartTime + retry_download_max*60 )) # Minutes
-            echo "INFO: Keep trying until $(date --date=@$quittime)"
+            msg plain "INFO: Keep trying until $(date --date=@$quittime)"
             if [[ $(date +%s) -lt $quittime ]]; then
-                echo -e "INFO: Stopping session and trying again $retry_download seconds later\n"
+                msg plain "INFO: Stopping session and trying again $retry_download seconds later\n"
                 cleanup session
                 waittime=$retry_download
                 sed "3s#.*#***************************  SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in ${waittime} seconds#" -i "$logfile"
@@ -28,7 +28,7 @@ function online_test {
         fi
         # Online test
         while [[ $retry_count -lt $retries ]]; do
-            echo -e "\e[00;31m [RETRYING]\e[00m"
+            msg error " [RETRYING]"
             let retry_count++
             online
             if [[ $? -eq 0 ]]; then
@@ -49,9 +49,9 @@ function online_test {
 # Function to check if the server is writable
 function writeable_test {
     if [[ -f "$server_alive_file" ]]; then rm "$server_alive_file"; fi;
-    echo -e "\e[00;32m [OK]\e[00m"
+    msg success " [OK]"
     # Confirm that path is writeable etc.
-    echo -n "INFO: Checking if set path is writeable..."
+    msg -n plain "INFO: Checking if set path is writeable..."
     echo "Testing server settings for download" > "$server_check_testfile"
     cat "$login_file1" >> "$server_check_file"
     echo "set cmd:fail-exit true" >> "$server_check_file"
@@ -63,7 +63,7 @@ function writeable_test {
 
 # Function to check if the server is online
 function online {
-    echo -n "INFO: Checking if server is alive..."
+    msg -n plain "INFO: Checking if server is alive..."
     # Returns 1 if server is offline, takes up to 1 min!
     cat "$login_file1" >> $server_alive_file
     echo "ls" >> $server_alive_file
@@ -78,18 +78,18 @@ function writeable {
     write_status=$?
     rm -f "$server_check_file"
     if [[ $write_status -eq 0 ]]; then
-        echo -e "\e[00;32m [OK]\e[00m"
+        msg success " [OK]"
         is_online="0"
     else
-        echo -e "\e[00;32m [RETRYING]\e[00m"
+        msg success " [RETRYING]"
         retry_count="0"
         # Before download
         if [[ $confirm_online == "true" && -n $ScriptStartTime ]]; then
             # Continue trying according to settings
             quittime=$(( ScriptStartTime + retry_download_max*60 )) # Minutes
-            echo "INFO: Keep trying until $(date --date=@$quittime)"
+            msg plain "INFO: Keep trying until $(date --date=@$quittime)"
             if [[ $(date +%s) -lt $quittime ]]; then
-                echo -e "INFO: Stopping session and trying again $retry_download seconds later\n"
+                msg plain "INFO: Stopping session and trying again $retry_download seconds later\n"
                 cleanup session
                 waittime=$retry_download
                 sed "3s#.*#***************************  SERVER INFO: SERVER OFFLINE: DOWNLOAD POSTPONED! Trying again in ${waittime} seconds#" -i "$logfile"
@@ -100,7 +100,7 @@ function writeable {
         is_online="1"
         # Online test
         while [[ $retry_count -lt $retries ]]; do
-            echo -e "\e[00;31m [RETRYING]\e[00m"
+            msg error " [RETRYING]"
             let retry_count++
             rm -f "$server_check_file"
             writeable_test

@@ -55,10 +55,10 @@ function get_size {
 			let ++count
 		done <"$transfersize2"
 		if [[ $count -gt 0 ]]; then
-			echo "INFO: Transferring a directory"
+			msg plain "INFO: Transferring a directory"
 			transfer_type="directory"
 		else
-			echo "INFO: Transferring a file"
+			msg plain "INFO: Transferring a file"
 			transfer_type="file"
 		fi
 
@@ -105,9 +105,9 @@ function get_size {
 		directorysize="$size"
 		size=$(echo "scale=2; $size / (1024 * 1024)" | bc)
 		if [[ ${#exclude_array[@]} -eq 0 ]]; then
-			echo "INFO: Size to transfer: ${size}MB"
+			msg plain "INFO: Size to transfer: ${size}MB"
 		else
-			echo "INFO: Size to transfer (regex used): ${size}MB"
+			msg plain "INFO: Size to transfer (regex used): ${size}MB"
 		fi
 
 		cleanup session
@@ -115,7 +115,7 @@ function get_size {
 		# Look up directory or file size locally
 		directorysize=$(du -bsL "$dir" | awk '{print $1}')
 		size=$(echo "scale=2; $directorysize / (1024 * 1024)" | bc)
-		echo "INFO: Size to transfer: ${size}MB"
+		msg plain "INFO: Size to transfer: ${size}MB"
 
 		# Exclude files matching passed regex
 		if [[ "${#exclude_array[@]}" -gt 0 && -n "${exclude_array[@]}" ]]; then
@@ -132,7 +132,7 @@ function get_size {
 			exclude_expression="${exclude_expression[@]}"
 			directorysize=$(find -L "$dir" \! \( $exclude_expression \) -type f -printf '%s\n' | awk -F ":" '{sum+=$NF} END { printf ("%0.0f\n", sum)}') # in bytes
 			size=$(echo "scale=2; $directorysize / (1024 * 1024)" | bc)
-			echo "INFO: Updated size to transfer (regex used): ${size}MB"
+			msg plain "INFO: Updated size to transfer (regex used): ${size}MB"
 		fi
 	fi
 }
@@ -152,7 +152,7 @@ function cleanup {
 	local array
 	case "$1" in
 	"die" ) # Used when script stops on user input
-		echo -e "\n*** Ouch! Exiting ***\n"
+		msg plain "\n*** Ouch! Exiting ***\n"
 		stty sane
 		if [[ "$safelock" != "true" ]]; then
 			# Stop processes, cleanup session, remove lockfile/end session
@@ -178,12 +178,12 @@ function cleanup {
 		if [[ -d "$scriptdir/run/$username-temp" ]]; then
 			rm -r "$scriptdir/run/$username-temp"
 		fi
-		echo -e "INFO: Session cleanup done"
+		msg plain "INFO: Session cleanup done"
 	;;
 	"end" ) # Use to end script
 		removeClean "$lockfile"
 		sed "5s#.*#***************************	#" -i "$logfile"
-		echo -e "\e[00;32mExiting successfully...\e[00m\n"
+		msg success "Exiting successfully...\n"
 	;;
 	"stop-safe" ) # Use to terminate all pids except main process
 		for i in {2..4}; do

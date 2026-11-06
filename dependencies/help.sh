@@ -4,7 +4,7 @@ function write_config {
 	local config
 
 	# Prepare config file
-	echo "Preparing config ..."
+	msg plain "Preparing config ..."
 
 	# Set default username if not provided
 	if [[ -z "$username" ]]; then
@@ -24,17 +24,17 @@ function write_config {
 		if [[ "$REPLY" == "y" ]]; then
 			# Write config using show_example function
 			show_example > "$config"
-			echo "Config written to \"$config\""
+			msg plain "Config written to \"$config\""
 		fi
 	else
 		# Write config using show_example function
 		show_example > "$config"
-		echo "Config written to \"$config\""
+		msg plain "Config written to \"$config\""
 	fi
 }
 
 function show_help {
-echo -e "
+msg plain "
 \033[1mHomepage\033[0m
 \e[04;34mhttps://github.com/Meliox/FTPauto/\e[00m
 
@@ -202,7 +202,7 @@ function create_log_file {
     if [[ ! -e "$logfile" ]]; then
 		serversizemanagement="false"
         # First time usage, create the logfile
-        echo "INFO: First time usage. Logfile is created"
+        msg plain "INFO: First time usage. Logfile is created"
         echo "*************************** FTPauto - $s_version" >> "$logfile"
         echo "*************************** STATS: 0MB in 0 transfers in 00d:00h:00m:00s" >> "$logfile"
         # Display server info based on configuration
@@ -213,7 +213,7 @@ function create_log_file {
         echo "" >> "$logfile"
     else
         # Logfile exists, indicate its location
-        echo "INFO: Logfile: $logfile"
+        msg plain "INFO: Logfile: $logfile"
         # Clean the existing logfile
         echo "*************************** SERVER INFO:" >> "$logfile"
     fi
