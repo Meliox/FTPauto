@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.9.0 - 2026-11-06
+
+### Other changes
+
+- Remove startup update check (#56) (ff7ef34)
+- Refactor console messages into shared function (#55) (40ad582)
+- Add configurable transfer renaming (#54) (acae056)
+- Fix average speed for quick transfers (#53) (50530f9)
+- README: document the install.sh update command (#52) (ea40d63)
+
 ## v0.8.0 - 2026-10-05
 
 ### Fixes
