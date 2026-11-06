@@ -233,8 +233,8 @@ function transfer_already_moved {
 	[[ -z "$incomplete" || "$complete_preexisting" == "true" ]] && return 1
 
 	for i in 1 2 3; do
-		if destination_exists "${complete}${orig_name}" && ! destination_exists "${incomplete}${orig_name}"; then
-			write_lftp_log "Found ${complete}${orig_name} in complete and not in incomplete"
+		if destination_exists "${complete}${dest_name}" && ! destination_exists "${incomplete}${dest_name}"; then
+			write_lftp_log "Found ${complete}${dest_name} in complete and not in incomplete"
 			return 0
 		fi
 		# Give a delayed move time to show up
@@ -244,7 +244,8 @@ function transfer_already_moved {
 }
 
 function transfer {
-	local lftp_exclude quittime waittime complete_preexisting=false transfer_attempt=1
+	local lftp_exclude quittime waittime complete_preexisting=false transfer_attempt=1 rename_target=""
+	[[ "$dest_name" != "$orig_name" ]] && rename_target="$dest_name"
 
 	# Prepare new transfer
 	{
@@ -271,17 +272,24 @@ function transfer {
 
 				# Determine transfer type (file or directory)
 				if [[ $transfer_type = file ]]; then
-					[[ -n $incomplete ]] && echo "queue get -c -O \"${incomplete}\" \"${transfer_path}\"" >> "$transfere_file"
-					[[ -z $incomplete ]] && echo "queue get -c -O \"${complete}\" \"${transfer_path}\"" >> "$transfere_file"
+					if [[ -n $rename_target ]]; then
+						echo "queue get -c -o \"${incomplete:-$complete}${rename_target}\" \"${transfer_path}\"" >> "$transfere_file"
+					else
+						[[ -n $incomplete ]] && echo "queue get -c -O \"${incomplete}\" \"${transfer_path}\"" >> "$transfere_file"
+						[[ -z $incomplete ]] && echo "queue get -c -O \"${complete}\" \"${transfer_path}\"" >> "$transfere_file"
+					fi
 				elif [[ $transfer_type = directory ]]; then
-					[[ -n $incomplete ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c \"${transfer_path}\" \"${incomplete}\"" >> "$transfere_file"
-					[[ -z $incomplete ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c \"${transfer_path}\" \"${complete}\"" >> "$transfere_file"
+					[[ -n $incomplete ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c \"${transfer_path}\" \"${incomplete}${rename_target}\"" >> "$transfere_file"
+					[[ -z $incomplete ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c \"${transfer_path}\" \"${complete}${rename_target}\"" >> "$transfere_file"
 				fi
 
 				echo "wait" >> "$transfere_file"
 
+				# Rename the content on the destination
+				[[ $rename_active == "true" && $transfer_type = directory ]] && rename_destination_commands "${incomplete:-$complete}${dest_name}"
+
 				# Move files locally if incomplete directory is used
-				[[ -n $incomplete ]] && echo "shell \"mv \\\"${incomplete}${orig_name}\\\" \\\"${complete}\\\" || { test -e \\\"${complete}${orig_name}\\\" && ! test -e \\\"${incomplete}${orig_name}\\\"; }\"" >> "$transfere_file"
+				[[ -n $incomplete ]] && echo "shell \"mv \\\"${incomplete}${dest_name}\\\" \\\"${complete}\\\" || { test -e \\\"${complete}${dest_name}\\\" && ! test -e \\\"${incomplete}${dest_name}\\\"; }\"" >> "$transfere_file"
 		elif [[ $transferetype == "upftp" || $transferetype == "upsftp" ]]; then
 			# Handle lftp transfer for upftp
 			cat "$login_file1" >> "$transfere_file"
@@ -305,7 +313,7 @@ function transfer {
 			echo "wait" >> "$transfere_file"
 
 			# Move files remotely if incomplete directory is used
-			[[ -n "$incomplete" ]] && echo "mv \"${incomplete}${orig_name}\" \"${complete}\" || (cls -d \"${complete}${orig_name}\" && (cls -d \"${incomplete}${orig_name}\" && exit 1 || echo \"INFO: Item already moved to complete\"))" >> "$transfere_file"
+			[[ -n "$incomplete" ]] && echo "mv \"${incomplete}${dest_name}\" \"${complete}\" || (cls -d \"${complete}${dest_name}\" && (cls -d \"${incomplete}${dest_name}\" && exit 1 || echo \"INFO: Item already moved to complete\"))" >> "$transfere_file"
 		elif [[ $transferetype == "fxp" ]]; then
 			# Handle lftp transfer for fxp
 			server_login 2
@@ -316,17 +324,20 @@ function transfer {
 
 			# Determine transfer type (file or directory)
 			if [[ $transfer_type = file ]]; then
-				[[ -n "$incomplete" ]] && echo "queue get -c ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"$transfer_path\" -o ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"$incomplete\"" >> "$transfere_file"
-				[[ -z "$incomplete" ]] && echo "queue get -c ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"$transfer_path\" -o ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"$complete\"" >> "$transfere_file"
+				[[ -n "$incomplete" ]] && echo "queue get -c ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"$transfer_path\" -o ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"$incomplete${rename_target}\"" >> "$transfere_file"
+				[[ -z "$incomplete" ]] && echo "queue get -c ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"$transfer_path\" -o ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"$complete${rename_target}\"" >> "$transfere_file"
 			elif [[ $transfer_type = directory ]]; then
-				[[ -n "$incomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"${transfer_path}\" ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"${incomplete}\"" >> "$transfere_file"
-				[[ -z "$incomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"${transfer_path}\" ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"${complete}\"" >> "$transfere_file"
+				[[ -n "$incomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"${transfer_path}\" ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"${incomplete}${rename_target}\"" >> "$transfere_file"
+				[[ -z "$incomplete" ]] && echo "queue mirror --no-umask -p --parallel=$parallel -c -RL ftp://$ftpuser1:$ftppass1@$ftphost1:$ftpport1:\"${transfer_path}\" ftp://$ftpuser2:$ftppass2@$ftphost2:$ftpport2:\"${complete}${rename_target}\"" >> "$transfere_file"
 			fi
 
 			echo "wait" >> "$transfere_file"
 
-			 # Move files remotely if incomplete directory is used
-			[[ -n "$incomplete" ]] && echo "mv \"${incomplete}${orig_name}\" \"${complete}\" || (cls -d \"${complete}${orig_name}\" && (cls -d \"${incomplete}${orig_name}\" && exit 1 || echo \"INFO: Item already moved to complete\"))" >> "$transfere_file"
+			 # Rename the content on the destination
+			[[ $rename_active == "true" && $transfer_type = directory ]] && rename_destination_commands "${incomplete:-$complete}${dest_name}"
+
+			# Move files remotely if incomplete directory is used
+			[[ -n "$incomplete" ]] && echo "mv \"${incomplete}${dest_name}\" \"${complete}\" || (cls -d \"${complete}${dest_name}\" && (cls -d \"${incomplete}${dest_name}\" && exit 1 || echo \"INFO: Item already moved to complete\"))" >> "$transfere_file"
 		else
 			echo -e "\e[00;31mERROR: Transfer setting not recognized\e[00m\n"
 			cleanup die
@@ -339,7 +350,7 @@ function transfer {
 	{
 		if [[ $test_mode != "true" ]]; then
 			# Remember if the item already exists in complete, as then a finished move cannot be detected reliably
-			if [[ -n "$incomplete" ]] && destination_exists "${complete}${orig_name}"; then
+			if [[ -n "$incomplete" ]] && destination_exists "${complete}${dest_name}"; then
 				complete_preexisting="true"
 			fi
 
@@ -410,15 +421,15 @@ function transfer_process_bar {
         
         if [[ $transferetype == "downftp" ]]; then
             # Get the transferred size for download
-            transfered_size="du -s \"${incomplete:-$complete}$orig_name\" > \"$proccess_bar_file\"; date +%s%N >> \"$proccess_bar_file\""
+            transfered_size="du -s \"${incomplete:-$complete}$dest_name\" > \"$proccess_bar_file\"; date +%s%N >> \"$proccess_bar_file\""
         elif [[ $transferetype == "upftp" || $transferetype == "fxp" || $transferetype == "upsftp" ]]; then
             # Create a config file for lftp process bar
             cat "$login_file1" >> "$transfere_processbar"
             # Determine whether it's a file or directory
             if [[ -f "$filepath" ]]; then
-                echo "du -s \"$incomplete${orig_name}\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
+                echo "du -s \"$incomplete${dest_name}\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
             elif [[ -d "$filepath" ]]; then
-                echo "du -s \"$incomplete$orig_name\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
+                echo "du -s \"$incomplete$dest_name\" > ~/../..$proccess_bar_file" >> "$transfere_processbar"
             fi
 			echo "!date +%s%N >> ~/../..$proccess_bar_file" >> "$transfere_processbar"
             echo "quit" >> "$transfere_processbar"
@@ -622,7 +633,8 @@ function main {
 	filepath="$1"
 	transfer_path="$filepath"
 	orig_name=$(basename "$filepath")
-
+	dest_name="$orig_name"
+	rename_active=""
 	# Define temp directory based on file type
 	if [[ -f "$filepath" ]]; then
 		tempdir="$scriptdir/run/$username-temp/${orig_name%.*}-temp/"
@@ -738,6 +750,9 @@ function main {
 	if [[ "$sort" == "true" ]] || [[ -n "$sortto" ]]; then
 		loadDependency DSort && sortFiles "$sortto"
 	fi
+
+	# Rename item on the destination according to the config
+	[[ ${#rename_array[@]} -gt 0 ]] && loadDependency DRename && rename_resolve
 
 	# Delay transfer if needed
 	delay

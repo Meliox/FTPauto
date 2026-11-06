@@ -101,6 +101,7 @@ function loadDependency {
         DPushOver) LoadPath="$scriptdir/plugins/pushover.sh";;
         DSetup) LoadPath="$scriptdir/dependencies/setup.sh";;
         DSort) LoadPath="$scriptdir/dependencies/sorting.sh";;
+        DRename) LoadPath="$scriptdir/dependencies/rename.sh";;
         DVideoFile) LoadPath="$scriptdir/plugins/videofile.sh";;
     esac
     # Source the dependency
