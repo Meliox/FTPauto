@@ -178,6 +178,7 @@ function transfer_process {
 			pid_transfer_status=$?
 			write_lftp_log "lftp transfer attempt ended with exit status $pid_transfer_status"
 			TransferEndTime=$(date +%s%N)
+			TransferDurationNs=$((TransferDurationNs + TransferEndTime - TransferStartTime))
 		;;
 		"stop-process-bar" )
 			kill $(sed -n '3p' $lockfile) &> /dev/null
@@ -341,6 +342,8 @@ function transfer {
 			if [[ -n "$incomplete" ]] && destination_exists "${complete}${orig_name}"; then
 				complete_preexisting="true"
 			fi
+
+			TransferDurationNs=0
 
 			# Start the transfer process
 			transfer_process start
@@ -510,12 +513,17 @@ function transfer_process_bar {
 function logrotate {
 	# Check if test mode is not enabled
 	if [[ $test_mode != "true" ]]; then
-		# Calculate transfer time
-		transferTime=$(( ( $TransferEndTime - $TransferStartTime ) / 1000000000 ))
+		# Calculate active transfer time across attempts, excluding retry delays
+		transferTime=$(( ${TransferDurationNs:-0} / 1000000000 ))
 		transferTime2=$(printf '%02dh:%02dm:%02ds' "$(($transferTime/(60*60)))" "$((($transferTime/60)%60))" "$(($transferTime%60))")
 
-		# Get average speed from lockfile
-		SpeedAverage=$(sed -n 5p "$lockfile")
+		# Calculate the final average from the payload size and active transfer time
+		if [[ "$directorysize" =~ ^[0-9]+$ ]] && (( directorysize > 0 && TransferDurationNs > 0 )); then
+			SpeedAverage=$(echo "scale=2; ($directorysize * 1000000000) / ($TransferDurationNs * 1048576)" | bc)
+		else
+			SpeedAverage="?"
+		fi
+		sed "5c $SpeedAverage" -i "$lockfile"
 
 		# Add new info to 7th line of logfile
 		sed "7i $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')|${source}|${orig_name}|${size}MB|${transferTime2}|${SpeedAverage}MB/s" -i "$logfile"
