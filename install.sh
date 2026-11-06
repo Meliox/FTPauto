@@ -413,8 +413,6 @@ function downloadScript {
 	tar -xzf "${scriptdir}/FTPauto-v${release_version}.tar.gz" --overwrite --strip-components 1
 	rm -f "${scriptdir}/FTPauto-v${release_version}.tar.gz"
 	echo -e "\e[00;32m [OK]\e[00m"
-	sed "6c lastUpdate=$(date +'%s')" -i "$scriptdir/ftpauto.sh" # set update time
-	sed "7c message=\"\"" -i "$scriptdir/ftpauto.sh" # reset update message
 	echo -e "\nPlease execute installer again.\n";
 	exit 0;
 }
