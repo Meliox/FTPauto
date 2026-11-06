@@ -169,6 +169,11 @@ function show_example {
 	echo "confirm_transfer=\"false\" # Try to confirm transfer"
 	echo "confirm_online=\"false\" # Try to confirm that server is online/writeable before doing anything"
 	echo "exclude_array=( ) # Ignore certain files with name matching, format is ( \"word1\" \"word2\" )"
+	echo "# Rename the item and the files inside it on the destination. The first matching rule is used. The source is not changed. Only used with send_option=default"
+	echo "# Format: \"<path glob>|<name glob>|<sed -E expression>\". The path glob matches anywhere in the source path;"
+	echo "# the name glob matches the transferred file or folder name. Either glob can be empty to match anything."
+	echo "# Example: rename_array=( \"|Example.Show.*|s/\\.S01E/.S2026E/\" \"TV|Another.Show.*|s/\\.S02E/.S2025E/\" )"
+	echo "rename_array=( )"
 	echo
 	echo "## Extra settings"
 	echo "# To enable Server space info, serversizemanagement has to be set to true"
