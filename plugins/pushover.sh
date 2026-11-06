@@ -21,7 +21,7 @@ function Pushover {
 	# Check if all necessary parameters are provided
 	if [[ -n "$push_token" ]] && [[ -n "$push_user" ]] && [[ -n "$push_message" ]]; then
 		# If all parameters are provided, send the push notification
-		echo "INFO: Sending push-notification"
+		msg plain "INFO: Sending push-notification"
 		# Values are passed as arguments (not through eval) as they contain file names
 		if "$CURL" -s --fail \
 			--form-string "token=${push_token}" \
@@ -29,12 +29,12 @@ function Pushover {
 			--form-string "title=${push_title}" \
 			--form-string "message=${push_message}" \
 			"${PUSHOVER_URL}" > /dev/null 2>&1; then
-			echo "INFO: Push-notification sent"
+			msg plain "INFO: Push-notification sent"
 		else
-			echo -e "\e[00;31mERROR: Failed to send push-notification\e[00m" >&2
+			msg error "ERROR: Failed to send push-notification" >&2
 		fi
 	else
 		# If any of the parameters are missing, display an error message
-		echo -e "\e[00;31mERROR: All settings are not set.\e[00m"
+		msg error "ERROR: All settings are not set."
 	fi
 }

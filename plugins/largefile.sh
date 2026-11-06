@@ -4,7 +4,7 @@ function largefile {
 	# Function to split large files and create SFV checkfiles
 
 	# Splitting process
-	echo "INFO: Splitting files into volumes $tempdir"
+	msg plain "INFO: Splitting files into volumes $tempdir"
 
 	# Update log file with information about the current process
 	sed "5s#.*#***************************	Transferring: ${orig_name} - Rar splitting, ${splitsize} MB pieces, in process#" -i $logfile
@@ -25,21 +25,21 @@ function largefile {
 	# Update transfer path
 	transfer_path="$tempdir"
 
-	echo "INFO: Splitting into volumes done"
+	msg plain "INFO: Splitting into volumes done"
 
 	# SFV process
 	if [[ "$create_sfv" == "true" ]]; then
-		echo "INFO: Creating sfv checkfile"
+		msg plain "INFO: Creating sfv checkfile"
 		# Update log file with information about the current process
 		sed "5s#.*#***************************	Transferring: ${orig_name} - Creating sfv #" -i $logfile
 
 		# Create SFV checkfile
 		if [[ -f "$filepath" ]]; then
 			cksfv -b "$tempdir"* > "${tempdir}/${orig_name%.*}.sfv"
-			echo "INFO: ${orig_name%.*}.sfv created"
+			msg plain "INFO: ${orig_name%.*}.sfv created"
 		elif [[ -d "$filepath" ]]; then
 			cksfv -b "$tempdir"* > "${tempdir}/${orig_name}.sfv"
-			echo "INFO: ${orig_name%.*}.sfv created"
+			msg plain "INFO: ${orig_name%.*}.sfv created"
 		fi
 	fi
 }

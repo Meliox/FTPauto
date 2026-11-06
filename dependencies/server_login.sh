@@ -48,7 +48,7 @@ function ftp_login {
     if [[ "$transferetype" =~ "upftp" ]] || [[ "$transferetype" =~ "downftp" ]] || [[ "$transferetype" =~ "fxp" ]]; then
         echo "open -u ${!user},${!pass} ${!host} -p ${!port}" >> "${!login_file}"
     else
-        echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Check your config (--user=$user --edit)!\e[00m\n"
+        msg error "ERROR: Transfer-option \"$transferetype\" not recognized. Check your config (--user=$user --edit)!\n"
         cleanup session
         cleanup end
         exit 1
@@ -90,7 +90,7 @@ function sftp_login {
     if [[ "$transferetype" =~ "upsftp" ]]; then
         echo "open -u ${!user},${!pass} sftp://${!host} -p ${!port}" >> "${!login_file}"
     else
-        echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Check your config (--user=$user --edit)!\e[00m\n"
+        msg error "ERROR: Transfer-option \"$transferetype\" not recognized. Check your config (--user=$user --edit)!\n"
         cleanup session
         cleanup end
         exit 1

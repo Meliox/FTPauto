@@ -8,14 +8,14 @@ function delay {
 		if [[ $target_epoch -gt $current_epoch ]]; then
 			sleep_seconds=$(( target_epoch - current_epoch ))
 			if [[ $test_mode != "true" ]]; then
-				echo "INFO: Transfere has been postponed until $delay"
+				msg plain "INFO: Transfere has been postponed until $delay"
 				timediff=$(printf '%2d:%2d:%2d' "$((sleep_seconds/(60*60)))" "$(((sleep_seconds/60)%60))" "$((sleep_seconds%60))")
 				countdown "$timediff"
 			else
-				echo -e "\e[00;31mTESTMODE: Would delay until $delay\e[00m"
+				msg error "TESTMODE: Would delay until $delay"
 			fi
 		else
-			echo -e "\e[00;31mERROR: Time is older than current time, now $(date '+%m/%d/%y %H:%M') vs. delay $delay . Format should be mm/dd/yy hh:mm.\e[00m\n"
+			msg error "ERROR: Time is older than current time, now $(date '+%m/%d/%y %H:%M') vs. delay $delay . Format should be mm/dd/yy hh:mm.\n"
 			cleanup session
 			cleanup end
 			exit 1
@@ -43,7 +43,7 @@ function countdown {
 		sleep 1
 	done
 	IFS="${OLD_IFS}"
-	echo "        "
+	msg plain "        "
 }
 
 function queue {
@@ -67,17 +67,17 @@ function queue {
 				get_size "$filepath" &> /dev/null
 				if [[ -e "$queue_file" && -n $(cat "$queue_file" | grep "$filepath") ]]; then
 					# Passing an item which is already in the queue, do nothing.
-					echo -e "INFO: Item already in queue. Doing nothing...\n"
+					msg plain "INFO: Item already in queue. Doing nothing...\n"
 					exit 0
 				elif [[ "$option" == end ]]; then
 					# Passed item should only be queued, then exit.
 					source="${source}Q"
 					echo "$id|$source|$filepath|$sortto|${size}MB|false|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-					echo -e "INFO: Queueing: $(basename "$filepath"), id=$id\n"
+					msg plain "INFO: Queueing: $(basename "$filepath"), id=$id\n"
 					exit 0
 				else
 					# Passed item should be queued, e.g. when something already is being transferred.
-					echo "INFO: Queueid: $id"
+					msg plain "INFO: Queueid: $id"
 					echo "$id|$source|$filepath|$sortto|${size}MB|false|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
 				fi
 			fi
@@ -118,12 +118,12 @@ function queue {
 						# Ensure that lockfile isn't created running queue.
 						lockfileRunning="true"
 					fi
-					echo "---------------------- Running queue ----------------------"
-					echo "Transfering id=$id, $(basename "$filepath")"
+					msg plain "---------------------- Running queue ----------------------"
+					msg plain "Transfering id=$id, $(basename "$filepath")"
 					start_main --path="$filepath" --user="$username" --sortto="$queue_sort"
 				else
 					# All items in the queue are marked as failed, e.g. nothing to transfer.
-					echo "---------------------- Failed queue -----------------------"
+					msg plain "---------------------- Failed queue -----------------------"
 					while read line; do
 						id=$(echo $line | cut -d'|' -f1)
 						source=$(echo $line | cut -d'|' -f2)
@@ -131,18 +131,18 @@ function queue {
 						sort=$(echo $line | cut -d'|' -f4)
 						size=$(echo $line | cut -d'|' -f5)
 						time=$(echo $line | cut -d'|' -f7)
-						echo "ID|PATH|SORT TO|SIZE(MB)|TIME"
-						echo "$id|$source|$path|$sort|$size|$time"
+						msg plain "ID|PATH|SORT TO|SIZE(MB)|TIME"
+						msg plain "$id|$source|$path|$sort|$size|$time"
 					done < "$queue_file"
-					echo -e "\nINFO: Queue does not contain non-failed items. Program will end\n"
+					msg plain "\nINFO: Queue does not contain non-failed items. Program will end\n"
 					cleanup end
 					exit 1
 				fi
 			else
 				# No queuefile found, e.g. nothing to transfer.
-				echo "----------------------- Empty queue -----------------------"
+				msg plain "----------------------- Empty queue -----------------------"
 				if [[ -f "$queue_file" ]]; then rm "$queue_file"; fi
-				echo -e "INFO: Queue is empty. Program will end\n"
+				msg plain "INFO: Queue is empty. Program will end\n"
 				cleanup end
 				exit 0
 			fi
@@ -153,7 +153,7 @@ function queue {
 			# Remove ID from queue.
 			sed "/^${id}|/d" -i "$queue_file"
 			echo "$id|$source|$filepath|$sortto|${size}MB|true|$(date '+%d/%m/%y-%a-%H:%M:%S')" >> "$queue_file"
-			echo -e "\e[00;33mINFO: Failing item: $(basename "$filepath")\e[00m"
+			msg warning "INFO: Failing item: $(basename "$filepath")"
 			;;
 	esac
 }
@@ -170,7 +170,8 @@ function transfer_process {
 			pid_f_process=$!
 			sed "3c $pid_f_process" -i "$lockfile"
 			TransferStartTimeInSeconds=$((TransferStartTime / 1000000000))
-			echo -e "\e[00;37mINFO: \e[00;32mTransfer started: $(date --date=@$TransferStartTimeInSeconds '+%d/%m/%y-%a-%H:%M:%S')\n\e[00m"
+			msg -n white "INFO: "
+			msg success "Transfer started: $(date --date=@$TransferStartTimeInSeconds '+%d/%m/%y-%a-%H:%M:%S')\n"
 			$lftp -f "$transfere_file" &>> "$lftp_out" &
 			pid_transfer=$!
 			sed "2c $pid_transfer" -i "$lockfile"
@@ -339,7 +340,7 @@ function transfer {
 			# Move files remotely if incomplete directory is used
 			[[ -n "$incomplete" ]] && echo "mv \"${incomplete}${dest_name}\" \"${complete}\" || (cls -d \"${complete}${dest_name}\" && (cls -d \"${incomplete}${dest_name}\" && exit 1 || echo \"INFO: Item already moved to complete\"))" >> "$transfere_file"
 		else
-			echo -e "\e[00;31mERROR: Transfer setting not recognized\e[00m\n"
+			msg error "ERROR: Transfer setting not recognized\n"
 			cleanup die
 		fi
 
@@ -363,14 +364,14 @@ function transfer {
 			while [[ $pid_transfer_status -ne 0 ]]; do
 				# lftp may have failed after the move to complete already happened
 				if transfer_already_moved; then
-					echo -e "\e[00;33mINFO: lftp reported failure, but the item is already moved to complete. Treating transfer as successful\e[00m"
+					msg warning "INFO: lftp reported failure, but the item is already moved to complete. Treating transfer as successful"
 					pid_transfer_status=0
 					break
 				fi
 
 				# Give up when all allowed attempts are used
 				if [[ $transfer_attempt -ge ${retries:-3} ]]; then
-					echo -e "\e[00;31mERROR: Transfer failed after $transfer_attempt attempt(s)!\e[00m"
+					msg error "ERROR: Transfer failed after $transfer_attempt attempt(s)!"
 					transfer_process "stop-process-bar"
 					queue fail
 					break
@@ -381,19 +382,19 @@ function transfer {
 				
 				# Check if it's time to quit
 				if [[ $(date +%s) -gt $quittime ]]; then
-					echo -e "\e[00;31mERROR: Transfer failed after reaching the maximum retry time ($retry_download_max minutes)!\e[00m"
+					msg error "ERROR: Transfer failed after reaching the maximum retry time ($retry_download_max minutes)!"
 					
 					# Stop the transfer process and add to queue
 					transfer_process "stop-process-bar"
 					queue fail
 					break
 				else
-					echo -e "\e[00;31mERROR: Transfer failed for some reason!\e[00m"
-					echo "INFO: Retrying until $(date --date=@$quittime '+%d/%m/%y-%a-%H:%M:%S') (attempt $transfer_attempt of ${retries:-3})"
+					msg error "ERROR: Transfer failed for some reason!"
+					msg plain "INFO: Retrying until $(date --date=@$quittime '+%d/%m/%y-%a-%H:%M:%S') (attempt $transfer_attempt of ${retries:-3})"
 					
 					# Stop the transfer process, pause session, and retry after a delay
 					transfer_process "stop-process-bar"
-					echo "INFO: Pausing session and trying again in $retry_download seconds"
+					msg plain "INFO: Pausing session and trying again in $retry_download seconds"
 					sed "3s#.*#*************************** SERVER INFO: DOWNLOAD POSTPONED! Trying again in ${retry_download} seconds#" -i "$logfile"
 					sleep "$retry_download"
 					transfer_process start
@@ -403,12 +404,13 @@ function transfer {
 			# Stop the transfer process and display end message
 			transfer_process "stop-process-bar"
 			TransferEndTimeInSeconds=$((TransferEndTime / 1000000000))
-			echo -e "\n\e[00;37mINFO: \e[00;32mTransfer ended: $(date --date=@$TransferEndTimeInSeconds '+%d/%m/%y-%a-%H:%M:%S')\e[00m"
+			msg -n white "\nINFO: "
+			msg success "Transfer ended: $(date --date=@$TransferEndTimeInSeconds '+%d/%m/%y-%a-%H:%M:%S')"
 		else
 			# Test mode: Display the lftp commands that would be executed
-			echo -e "\e[00;31mTESTMODE: LFTP-transfer NOT STARTED\e[00m"
-			echo "Would execute the following in lftp:"
-			cat "$transfere_file" | (while read; do echo "      $REPLY"; done)
+			msg error "TESTMODE: LFTP-transfer NOT STARTED"
+			msg plain "Would execute the following in lftp:"
+			cat "$transfere_file" | (while read; do msg plain "      $REPLY"; done)
 		fi
 	}
 	cleanup session
@@ -434,7 +436,7 @@ function transfer_process_bar {
 			echo "!date +%s%N >> ~/../..$proccess_bar_file" >> "$transfere_processbar"
             echo "quit" >> "$transfere_processbar"
 		else
-			echo "Progressbar not supported"
+			msg plain "Progressbar not supported"
 			return
         fi
         
@@ -516,7 +518,7 @@ function transfer_process_bar {
 			sleep "$sleeptime"
 		done
     else
-        echo -e "\e[00;31mTESTMODE: LFTP-processbar NOT STARTED\e[00m"
+        msg error "TESTMODE: LFTP-processbar NOT STARTED"
     fi
 }
 
@@ -579,7 +581,7 @@ function logrotate {
 		sed "5s#.*#*****  #" -i "$logfile"
 	else
 		# If test mode, just print message
-		echo -e "\e[00;31mTESTMODE: LOGGING NOT STARTED\e[00m"
+		msg error "TESTMODE: LOGGING NOT STARTED"
 	fi
 }
 
@@ -603,16 +605,16 @@ function lockfile {
         kill -0 $mypid_script &> /dev/null
         if [[ $? -eq 1 ]]; then
             # Process is not running, continue
-            echo "INFO: Old lockfile found, but process is not running"
+            msg plain "INFO: Old lockfile found, but process is not running"
             rm -f "$lockfile"
         else
             # Process is still running, display information and exit
-            echo "INFO: Another instance of the script is already running:"
-            echo "      Script PID: $mypid_script"
-            echo "      Transfer PID: $alreadyinprogress"
-            echo "      Transfer: $(sed -n 5p < "$logfile" | cut -d',' -f1 | cut -d' ' -f2)"
-            echo "      Lockfile: $lockfile"
-            echo "      Use --help to learn how to stop it"
+            msg plain "INFO: Another instance of the script is already running:"
+            msg plain "      Script PID: $mypid_script"
+            msg plain "      Transfer PID: $alreadyinprogress"
+            msg plain "      Transfer: $(sed -n 5p < "$logfile" | cut -d',' -f1 | cut -d' ' -f2)"
+            msg plain "      Lockfile: $lockfile"
+            msg plain "      Use --help to learn how to stop it"
             queue add end
             return
         fi
@@ -625,7 +627,7 @@ function lockfile {
     echo >> "$lockfile" # LFTP process PID (to be allocated later)
     echo >> "$lockfile" # Speed average (to be calculated later)
 
-    echo "INFO: Process ID: $BASHPID"
+    msg plain "INFO: Process ID: $BASHPID"
 }
 
 function main {
@@ -644,13 +646,13 @@ function main {
 
 	# Record script start time and display relevant information
 	ScriptStartTime=$(date +%s)
-	echo "INFO: Process start-time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
-	echo "INFO: Preparing transfer: $filepath"
-	echo "INFO: Launched from: $source"
+	msg plain "INFO: Process start-time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
+	msg plain "INFO: Preparing transfer: $filepath"
+	msg plain "INFO: Launched from: $source"
 
 	# Add to queue file to initialize ID
 	queue add
-	echo "INFO: Simultaneous transfers: $parallel"
+	msg plain "INFO: Simultaneous transfers: $parallel"
 
 	# Check transfer size
 	get_size "$filepath"
@@ -658,13 +660,13 @@ function main {
 	# Execute pre-external command if specified
 	if [[ -n "$exec_pre" ]]; then
 		if [[ $test_mode != "true" ]]; then
-			echo "INFO: Executing external command - START"
-			echo "      $exec_pre"
-			eval "$exec_pre" | (while read; do echo "      $REPLY"; done)
+			msg plain "INFO: Executing external command - START"
+			msg plain "      $exec_pre"
+			eval "$exec_pre" | (while read; do msg plain "      $REPLY"; done)
 		else
-			echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_pre\"\e[00m"
+			msg error "TESTMODE: Would execute external command: \"$exec_pre\""
 		fi
-		echo "INFO: Executing external command - ENDED"
+		msg plain "INFO: Executing external command - ENDED"
 	fi	
 
 	#confirm server is online
@@ -681,11 +683,11 @@ function main {
 			freesize=$(df -Pk "${incomplete:-$complete}" 2>/dev/null | awk 'NR==2{print int($4/1024)}')
 			freespaceneeded=$(echo "$size" | awk '{printf "%d", $1 + 0.999}')
 			if [[ -z "$freesize" ]]; then
-				echo -e "\e[00;33mINFO: Could not determine free space in ${incomplete:-$complete}. Skipping check\e[00m"
+				msg warning "INFO: Could not determine free space in ${incomplete:-$complete}. Skipping check"
 			else
 				while [[ "$freesize" -lt "$freespaceneeded" ]]; do
-					echo "INFO: Not enough free space"
-					echo "INFO: Trying again in 1 min"
+					msg plain "INFO: Not enough free space"
+					msg plain "INFO: Trying again in 1 min"
 					sleep 60
 					# recalculate free space
 					freesize=$(df -Pk "${incomplete:-$complete}" | awk 'NR==2{print int($4/1024)}')
@@ -695,7 +697,7 @@ function main {
 	fi
 
 	# Check send option
-	echo "INFO: Send option: $send_option"
+	msg plain "INFO: Send option: $send_option"
 	if [[ "$send_option" == "split" ]]; then
 		# Check if rar or cksfv is available
 		if [[ -n $(command -v rar) || -n $(command -v cksfv) ]]; then
@@ -703,17 +705,17 @@ function main {
 			if [[ "$transferetype" == "upftp" || "$transferetype" == "upsftp" ]]; then
 				loadDependency DLargeFile && largefile "$filepath" "exclude_array[@]"
 			elif [[ "$transferetype" == "downftp" ]]; then
-				echo -e "\e[00;33mERROR: send_option=split is not supported in mode=$transferetype. Exiting ...\e[00m"
+				msg warning "ERROR: send_option=split is not supported in mode=$transferetype. Exiting ..."
 				cleanup session
 				cleanup end
-				echo -e "INFO: Program has ended\n"
+				msg plain "INFO: Program has ended\n"
 				exit 1
 			fi
 		else
-			echo -e "\e[00;33mERROR: send_option=split is not supported as rar or cksfv is missing. Exiting ...\e[00m"
+			msg warning "ERROR: send_option=split is not supported as rar or cksfv is missing. Exiting ..."
 			cleanup session
 			cleanup end
-			echo -e "INFO: Program has ended\n"
+			msg plain "INFO: Program has ended\n"
 			exit 1
 		fi
 	elif [[ "$send_option" == "video" ]]; then
@@ -723,26 +725,26 @@ function main {
 			if [[ "$transferetype" == "upftp" || "$transferetype" == "upsftp" ]]; then
 				loadDependency DVideoFile && videoFile
 			elif [[ "$transferetype" == "downftp" ]]; then
-				echo -e "\e[00;33mERROR: send_option=video is not supported in mode=$transferetype. Exiting ...\e[00m"
+				msg warning "ERROR: send_option=video is not supported in mode=$transferetype. Exiting ..."
 				cleanup session
 				cleanup end
-				echo -e "INFO: Program has ended\n"
+				msg plain "INFO: Program has ended\n"
 				exit 1
 			fi
 		else
-			echo -e "\e[00;33mERROR: send_option=video is not supported as rarfs is missing. Exiting ...\e[00m"
+			msg warning "ERROR: send_option=video is not supported as rarfs is missing. Exiting ..."
 			cleanup session
 			cleanup end
-			echo -e "INFO: Program has ended\n"
+			msg plain "INFO: Program has ended\n"
 			exit 1
 		fi
 	elif [[ "$send_option" == "default" ]]; then
 		:
 	else
-		echo -e "\e[00;33mERROR: send_option=$send_option is not supported Exiting ...\e[00m"
+		msg warning "ERROR: send_option=$send_option is not supported Exiting ..."
 		cleanup session
 		cleanup end
-		echo -e "INFO: Program has ended\n"
+		msg plain "INFO: Program has ended\n"
 		exit 1
 	fi
 
@@ -780,7 +782,7 @@ function main {
 	if [[ -n $push_user ]]; then
 		if [[ $test_mode ]]; then
 			# Display notification details in test mode
-			echo -e "\e[00;31mTESTMODE: Would send notification \""$orig_name" "Sendoption=$send_option Size=$size MB Time=$transferTime2 Average speed=$SpeedAverage MB/s Path=$complete"\" to token=$push_token and user=$push_user \e[00m"
+			msg error "TESTMODE: Would send notification \""$orig_name" "Sendoption=$send_option Size=$size MB Time=$transferTime2 Average speed=$SpeedAverage MB/s Path=$complete"\" to token=$push_token and user=$push_user "
 		elif [[ $failed == true ]]; then
 			# Send notification if transfer failed
 			loadDependency DPushOver && Pushover "Failed: $orig_name" "Sendoption:        $send_option
@@ -801,19 +803,19 @@ function main {
 		if [[ $test_mode != "true" ]]; then
 			if [[ $allow_background == "true" ]]; then
 				# Execute command in background if allowed
-				echo "INFO: Executing external command (in background) - START"
-				echo "      $exec_post"
+				msg plain "INFO: Executing external command (in background) - START"
+				msg plain "      $exec_post"
 				eval $exec_post &
 			else
 				# Execute command and display output
-				echo "INFO: Executing external command - START:"
-				echo "      $exec_post"
-				eval $exec_post | (while read; do echo "      $REPLY"; done)
-				echo "INFO: Executing external command - ENDED"
+				msg plain "INFO: Executing external command - START:"
+				msg plain "      $exec_post"
+				eval $exec_post | (while read; do msg plain "      $REPLY"; done)
+				msg plain "INFO: Executing external command - ENDED"
 			fi
 		else
 			# Display the command that would be executed in test mode
-			echo -e "\e[00;31mTESTMODE: Would execute external command: \"$exec_post\"\e[00m"
+			msg error "TESTMODE: Would execute external command: \"$exec_post\""
 		fi
 	fi
 
@@ -822,18 +824,20 @@ function main {
 	TotalTransferTime=$(( $ScriptEndTime - $ScriptStartTime ))
 	if [[ $failed == true ]]; then
 		# Display transfer failure message
-		echo -e "\e[00;37mINFO: \e[00;31mTransfer failed\e[00m"
+		msg -n white "INFO: "
+		msg error "Transfer failed"
 	else
 		# Display transfer success message
-		echo -e "\e[00;37mINFO: \e[00;32mTransfer finished\e[00m"
+		msg -n white "INFO: "
+		msg success "Transfer finished"
 	fi
-	echo "                       Name: $orig_name"
-	echo "                       Size: $size MB"
-	echo "                      Speed: $SpeedAverage MB/s"
-	echo "              Transfer time: $transferTime2"
-	echo "                 Start time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
-	echo "                   End time: $(date --date=@$ScriptEndTime '+%d/%m/%y-%a-%H:%M:%S')"
-	echo "                 Total time: $(printf '%02dh:%02dm:%02ds' "$(($TotalTransferTime/(60*60)))" "$((($TotalTransferTime/60)%60))" "$(($TotalTransferTime%60))")"
+	msg plain "                       Name: $orig_name"
+	msg plain "                       Size: $size MB"
+	msg plain "                      Speed: $SpeedAverage MB/s"
+	msg plain "              Transfer time: $transferTime2"
+	msg plain "                 Start time: $(date --date=@$ScriptStartTime '+%d/%m/%y-%a-%H:%M:%S')"
+	msg plain "                   End time: $(date --date=@$ScriptEndTime '+%d/%m/%y-%a-%H:%M:%S')"
+	msg plain "                 Total time: $(printf '%02dh:%02dm:%02ds' "$(($TotalTransferTime/(60*60)))" "$((($TotalTransferTime/60)%60))" "$(($TotalTransferTime%60))")"
 
 	# Remove completed item from the queue
 	if [[ $failed != true ]]; then
@@ -857,7 +861,7 @@ function start_main {
             --queue ) queue=true; shift;;
             --source=* ) source="${1#--source=}"; shift;;
             --sortto=* ) sortto="${1#--sortto=}"; shift;;
-            --test ) test_mode="true"; echo "INFO: Running in TESTMODE, no changes are made!"; shift;;
+            --test ) test_mode="true"; msg plain "INFO: Running in TESTMODE, no changes are made!"; shift;;
             * ) break ;;
         esac
     done
@@ -875,11 +879,11 @@ function start_main {
             true
         elif [[ "$transferetype" == "upftp" ||  "$transferetype" == "upsftp" ]]; then
             # Server --> Client: Display error if path not found
-            echo -e "\e[00;31mERROR: Option --path is required with an existing path (with file(s)), or file does not exist:\n $filepath\n This cannot be transferred!\e[00m\n"
+            msg error "ERROR: Option --path is required with an existing path (with file(s)), or file does not exist:\n $filepath\n This cannot be transferred!\n"
             queue fail
             queue next
         else
-            echo -e "\e[00;31mERROR: Transfer-option \"$transferetype\" not recognized. Check your configuration (--user=$user --edit)!\e[00m\n"
+            msg error "ERROR: Transfer-option \"$transferetype\" not recognized. Check your configuration (--user=$user --edit)!\n"
             exit 1
         fi
     fi
@@ -893,10 +897,10 @@ function start_main {
     if [[ "$lockfileRunning" != "true" ]]; then
         lockfile
     else
-        echo "INFO: Updating lockfile"
+        msg plain "INFO: Updating lockfile"
     fi
 
-    echo "INFO: Transfer-option: $transferetype"
+    msg plain "INFO: Transfer-option: $transferetype"
 
     # Load dependencies
     loadDependency DSetup

@@ -2,7 +2,7 @@
 # Function to list content on a remote server and interactively navigate it
 
 function remote_server_list {
-    echo "INFO: Looking up content on remote server..."
+    msg plain "INFO: Looking up content on remote server..."
     # Set default directory to root if not specified
     [[ -z $dir ]] && dir="/"
 
@@ -37,13 +37,13 @@ function remote_server_list {
             path="$dir$(echo ${array_list[$number]} | awk '{print $9}')"
             download_argument+=("--user=$username" "--path=/$path" "--source=Manually")
             option=("download" "queue")
-            echo " Adding $path to queue"
+            msg plain " Adding $path to queue"
             main
             unset path download_argument option  # Unset variables
         else
             # Check if selected item is a directory
             if [[ "$(echo ${array_list[$number]} | awk '{print $5}')" -gt 4096 ]]; then
-                echo -e "\e[00;31m Cannot expand file: $(echo ${array_list[$number]} | awk '{print $9}')\e[00m"
+                msg error " Cannot expand file: $(echo ${array_list[$number]} | awk '{print $9}')"
                 continue
             fi
             # Expand selected directory
@@ -75,8 +75,8 @@ function get_content {
 
     # Check if listing was successful
     if [[ $? -eq 0 ]]; then
-        echo -e "\n\e[00;32mINFO: Listing content(s):\e[00m"
-        echo "Current path: $dir"
+        msg success "\nINFO: Listing content(s):"
+        msg plain "Current path: $dir"
         old_dir="$dir"
         array_list=( )
         readarray array_list < "$server_content"
@@ -86,7 +86,7 @@ function get_content {
         for value in "${array_list[@]}"; do
             if [[ $(echo $value | awk '{print $5}') -eq 4096 ]]; then
                 # Directory
-                printf "%-8s\n" "$i : $(($(echo $value | awk '{print $5}')/(1024*1024)))MB $(echo -e "\e[00;34m$(echo $value | awk '{print $9}')\e[00m")"
+                printf "%-8s\n" "$i : $(($(echo $value | awk '{print $5}')/(1024*1024)))MB $(msg header "$(echo $value | awk '{print $9}')")"
             else
                 # File
                 printf "%-8s\n" "$i : $(($(echo $value | awk '{print $5}')/(1024*1024)))MB $(echo $value | awk '{print $9}')"

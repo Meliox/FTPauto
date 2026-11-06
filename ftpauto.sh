@@ -6,9 +6,36 @@ scriptdir=$(dirname $script)
 lastUpdate=1511410224
 message=""
 
+# Common function for all console messages (sourced scripts use it as well)
+# Usage: msg [-n] <level> <text>
+#   -n     do not append a trailing newline
+#   level  plain | white | success (green) | warning (yellow) | error (red) | notice (cyan) | header (blue)
+#   text   printed with escape sequences (e.g. \n) interpreted
+function msg {
+	local newline=() color=""
+	if [[ "$1" == "-n" ]]; then
+		newline=(-n)
+		shift
+	fi
+	case "$1" in
+		white) color="\e[00;37m";;
+		success) color="\e[00;32m";;
+		warning) color="\e[00;33m";;
+		error) color="\e[00;31m";;
+		notice) color="\e[00;36m";;
+		header) color="\e[00;34m";;
+	esac
+	shift
+	if [[ -n "$color" ]]; then
+		echo -e "${newline[@]}" "${color}$*\e[00m"
+	else
+		echo -e "${newline[@]}" "$*"
+	fi
+}
+
 control_c() {
 	# run if user hits control-c
-	echo -ne '\n'
+	msg -n plain '\n'
 	cleanup die
 }
 trap control_c SIGINT
@@ -23,19 +50,19 @@ function verbose {
 	# Check if 'verbose' flag is set to 1
 	elif [[ ! $quiet ]] && [[ $verbose -eq 1 ]]; then
 		# If 'verbose' flag is set to 1, enable shell tracing and display starting message
-		echo "STARTING PID=$BASHPID"
+		msg plain "STARTING PID=$BASHPID"
 		set -x
 	# Check if 'verbose' flag is set to 2
 	elif [[ ! $quiet ]] && [[ $verbose -eq 2 ]]; then
 		# If 'verbose' flag is set to 2, redirect stderr to debug logfile, enable shell tracing, and display starting message
-		echo "INFO: Debugging. All input is redirected to logfile. Script is finished when console is idle again. Please wait!"
+		msg plain "INFO: Debugging. All input is redirected to logfile. Script is finished when console is idle again. Please wait!"
 		exec 2>> "$scriptdir/run/$username.ftpauto.debug"
-		echo "STARTING PID=$BASHPID"
+		msg plain "STARTING PID=$BASHPID"
 		set -x
 	# Check if 'quiet' flag is set and 'verbose' flag is not set to 0
 	elif [[ $quiet ]] && [[ $verbose -ne 0 ]]; then
 		# If both 'quiet' and 'verbose' flags are set, display an error message and exit
-		echo -e "\e[00;31mERROR: Verbose and silent can't be used at the same time\e[00m\n"
+		msg error "ERROR: Verbose and silent can't be used at the same time\n"
 		exit 0
 	fi
 }
@@ -46,15 +73,15 @@ verbose
 function updateChecker {
 	# Check if it's time to perform an update check
 	if [[ $(date +'%s') -gt $((lastUpdate + 14*24*60*60)) ]]; then
-		echo -n "INFO: Checking for update ..."
+		msg -n plain "INFO: Checking for update ..."
 		# Retrieve the latest release version from GitHub
 		release_version=$(curl --silent https://api.github.com/repos/Meliox/FTPauto/releases/latest | grep -oP '"tag_name":\s*"FTPauto-v\K\d+\.\d+\.\d+')
 		# Compare the latest release version with the installed version
 		if [[ -z "$release_version" ]]; then
-			echo -e " \e[00;33m [Could not determine latest version]\e[00m"
+			msg warning "  [Could not determine latest version]"
 		elif [[ "$release_version" == "$s_version" ]]; then
 			# If the versions match, notify that it's the latest version
-			echo -e " \e[00;32m [Latest]\e[00m"
+			msg success "  [Latest]"
 			# Clear any previous update messages
 			sed "7c message=\"\"" -i "$script"
 		else
@@ -64,12 +91,12 @@ function updateChecker {
 			for i in "${!n1[@]}"; do
 				if [[ "${n1[i]}" -gt "${n2[i]}" ]]; then
 					# If a newer version is found, notify and update the message
-					echo -e "\e[00;33m [$release_version available. Consider updating]\e[00m"
+					msg warning " [$release_version available. Consider updating]"
 					sed "7c message=\"INFO: New version ($release_version) available. Consider updating (execute bash install.sh update)\"" -i "$script"
 					break
 				elif [[ "${n1[i]}" -lt "${n2[i]}" ]]; then
 					# If the installed version is newer, notify it's the latest version and clear the message
-					echo -e " \e[00;32m [Latest]\e[00m"
+					msg success "  [Latest]"
 					sed "7c message=\"\"" -i "$script"
 					break
 				fi
@@ -80,7 +107,7 @@ function updateChecker {
 	else
 		# If it's not time for an update check, display any existing message
 		if [[ -n $message ]]; then
-			echo -e "\e[00;33m$message\e[00m"
+			msg warning "$message"
 		fi
 	fi
 }
@@ -150,10 +177,10 @@ function confirm {
 function message {
     if [[ "$2" -eq "1" ]]; then
         # Display message in red for error
-        echo -e "\e[00;31m$(date '+%d/%m/%y-%a-%H:%M:%S'): $1\e[00m\n"
+        msg error "$(date '+%d/%m/%y-%a-%H:%M:%S'): $1\n"
     else
         # Display message in green for success
-        echo -e "\e[00;32m$(date '+%d/%m/%y-%a-%H:%M:%S'): $1\e[00m\n"
+        msg success "$(date '+%d/%m/%y-%a-%H:%M:%S'): $1\n"
     fi
     # Exit with the provided exit code
     exit "$2"
@@ -166,13 +193,13 @@ function load_user {
         username="default"
         config_name="$scriptdir/users/default/config"
         loadDependency DConfig
-        echo "INFO: User: $username"
+        msg plain "INFO: User: $username"
     elif [[ -n "$username" && -f "$scriptdir/users/$username/config" ]]; then
         # If username is provided and corresponding configuration exists, use provided user
         username="$username"
         config_name="$scriptdir/users/$username/config"
         loadDependency DConfig
-        echo "INFO: User: $username"
+        msg plain "INFO: User: $username"
     elif [[ $option == "add" ]]; then
         # Manually add user
         if [[ -z "$username" ]]; then
@@ -182,19 +209,19 @@ function load_user {
         fi
     else
         # User used not found, prompt to create them
-        echo -e "\e[00;31mERROR: No user found. See --help for more info.\e[00m\n"
+        msg error "ERROR: No user found. See --help for more info.\n"
         exit 1
     fi
     # Confirm that config is most recent version
     if [[ $config_version != "7" && $config_version != "8" && $option != "add" && $option != "edit" ]]; then
-        echo -e "\e[00;31mERROR: Please update your config to version 8. See --help for more info!\e[00m\n"
+        msg error "ERROR: Please update your config to version 8. See --help for more info!\n"
         exit 1
     fi
 }
 
 # Function to handle invalid arguments
 function invalid_arg {
-    echo -e "\e[00;31mERROR: Invalid input for argument '$@'. See --help for more info.\e[00m\n"
+    msg error "ERROR: Invalid input for argument '$@'. See --help for more info.\n"
     exit 1
 }
 
@@ -203,7 +230,7 @@ function option_manage {
     if [[ -z ${option[0]} ]]; then
         option="$1"
     else
-        echo -e "\e[00;31mERROR: An option, --${option[0]} is already used. Only one can be used.\e[00m\n"
+        msg error "ERROR: An option, --${option[0]} is already used. Only one can be used.\n"
         exit 1
     fi
 }
@@ -219,7 +246,7 @@ function main {
             if [[ "$REPLY" == "y" ]]; then
                 nano "$scriptdir/users/$username/config"
             else
-                echo "You can edit the user later, by editing \"$scriptdir/users/$username/config\""
+                msg plain "You can edit the user later, by editing \"$scriptdir/users/$username/config\""
             fi
             create_log_file
             message "User=$username added." "0"
@@ -309,7 +336,7 @@ function main {
             ;;
         "list" ) # List content of queue file
             confirm queue_file "Empty queue!" "0"
-            echo "ID|PATH|SORT TO|SIZE(MB)|FAILED STATUS|TIME"
+            msg plain "ID|PATH|SORT TO|SIZE(MB)|FAILED STATUS|TIME"
             while read line; do
                 id=$(echo $line | cut -d'|' -f1)
                 source=$(echo $line | cut -d'|' -f2)
@@ -318,7 +345,7 @@ function main {
                 size=$(echo $line | cut -d'|' -f5)
                 failed=$(echo $line | cut -d'|' -f6)
                 time=$(echo $line | cut -d'|' -f7)
-                echo "$id|$source|$path|$sort|$size|$failed|$time"
+                msg plain "$id|$source|$path|$sort|$size|$failed|$time"
             done < "$queue_file"
             message "List has been shown." "0"
             ;;
@@ -330,7 +357,7 @@ function main {
         "forget" ) # Remove item with <ID> from queue
             confirm queue_file "Error, queuefile couldn't be found. Nothing could be removed!" "1"
             if [[ -n "$id" ]] && [[ -n $(grep "^${id}|" "$queue_file") ]]; then
-                echo "Removing id=$id"
+                msg plain "Removing id=$id"
                 sed "/^${id}|/d" -i "$queue_file"
                 message "Id=$id removed from queue." "0"
             else
@@ -396,10 +423,10 @@ function main {
 			# Confirm the existence of the lock file; if not found, display an error message
 			confirm lock_file "Error: Lockfile not found. Nothing is being transferred!" "1"
 
-			echo "INFO: Transferring: $(sed -n 5p < "$logfile" | cut -d',' -f1 | cut -d' ' -f3)"
+			msg plain "INFO: Transferring: $(sed -n 5p < "$logfile" | cut -d',' -f1 | cut -d' ' -f3)"
 
 			# Display information about the update frequency
-			echo "INFO: Updates every $sleeptime second. (Exit with 'x')"
+			msg plain "INFO: Updates every $sleeptime second. (Exit with 'x')"
 
 			# Disable echo and canonical mode for user input
 			if [ -t 0 ]; then 
@@ -423,7 +450,7 @@ function main {
 				
 				# Check if any transfer is in progress
 				if [[ -z "$(sed -n 5p < "$logfile" | grep Transferring)" ]]; then
-					echo "INFO: No ongoing transfer."
+					msg plain "INFO: No ongoing transfer."
 					break
 				fi
 				
@@ -456,7 +483,7 @@ function main {
 			fi
 
 			# Print newline character for clarity
-			echo -e '\n'
+			msg plain '\n'
 
 			# Display completion message
 			message "Progress finished" "0"
@@ -473,10 +500,10 @@ function main {
 
 ################################################### CODE BELOW ########################################################
 
-echo -e "\n\e[00;34mFTPauto script - $s_version\e[00m\n"
+msg header "\nFTPauto script - $s_version\n"
 
 download_argument=()
-if (($# < 1 )); then echo -e "\e[00;31mERROR: No option specified. See --help for more info.\e[00m\n"; exit 0; fi
+if (($# < 1 )); then msg error "ERROR: No option specified. See --help for more info.\n"; exit 0; fi
 while :; do
 	case "$1" in
 		# Session
@@ -526,7 +553,7 @@ while :; do
 		--exec_pre=* ) exec_pre="${1#--exec_pre=}"; download_argument+=("--exec_pre=$exec_pre"); shift;;
 		--exec_pre ) if (($# > 1 )); then exec_pre="$2"; download_argument+=("--exec_pre=$exec_pre"); else invalid_arg "$@"; fi; shift 2;;
 		--test ) option=( "download" "start"); download_argument+=("--test"); shift;;
-		-* ) echo -e "\e[00;31mERROR: Invalid argument '$@'. See --help for more info.\e[00m\n"; exit 0;;
+		-* ) msg error "ERROR: Invalid argument '$@'. See --help for more info.\n"; exit 0;;
 		--) shift; break;;
 		* ) break;;
 	esac
@@ -534,7 +561,7 @@ done
 
 # load verbose level
 verbose
-echo "INFO: Information level: $verbose"
+msg plain "INFO: Information level: $verbose"
 
 # check for new version
 updateChecker
@@ -552,5 +579,5 @@ if [[ ! -e "$logfile" && "${option[0]}" != add ]]; then
 fi
 
 # Execute the given option
-echo "INFO: Option(s): ${option[@]}"
+msg plain "INFO: Option(s): ${option[@]}"
 main
